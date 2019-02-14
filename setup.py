@@ -13,7 +13,8 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ki-tools/kitools-py",
-    packages=setuptools.find_packages(exclude=['tests*']),
+    package_dir={"": "src"},
+    packages=setuptools.find_packages(where="src"),
     classifiers=(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.6',

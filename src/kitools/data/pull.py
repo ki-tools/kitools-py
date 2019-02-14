@@ -12,20 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name = 'kitools'
-
-
-def create_analysis(path):
-    return 'create_analysis: {0}'.format(path)
-
-
-def data_load(handle):
-    return 'data_load: {0}'.format(handle)
-
-
 def data_pull(handle):
     return 'data_pull: {0}'.format(handle)
-
-
-def data_save(data, filename):
-    return 'data_save: {0}'.format(filename)
