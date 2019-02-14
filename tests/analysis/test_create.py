@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytest
-from kitools import create_analysis
+from src.kitools import create_analysis
 
 
 def test_create_analysis():
