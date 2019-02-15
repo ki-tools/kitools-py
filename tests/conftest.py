@@ -12,5 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def create_analysis(path):
-    return 'create_analysis: {0}'.format(path)
+import os
+import tempfile
+import shutil
+import pytest
+
+
+@pytest.fixture()
+def temp_dir():
+    path = tempfile.mkdtemp()
+    yield path
+    if os.path.isdir(path):
+        shutil.rmtree(path)

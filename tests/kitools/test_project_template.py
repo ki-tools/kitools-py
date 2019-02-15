@@ -13,8 +13,17 @@
 # limitations under the License.
 
 import pytest
-from src.kitools import data_pull
+import os
+from src.kitools.project_template import ProjectTemplate
 
 
-def test_data_pull():
-    assert data_pull('/test') == 'data_pull: /test'
+def test_write(temp_dir):
+    pass
+
+
+def test_create_dirs(temp_dir):
+    pass
+
+
+def test_create_gitignore(temp_dir):
+    pass

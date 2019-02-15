@@ -12,5 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def data_pull(handle):
-    return 'data_pull: {0}'.format(handle)
+import pytest
+from src.kitools.data_providers import DataProviderFactory, SynapseProvider
+
+
+def test_create():
+    # Parses the source_uri
+    for source_uri in ['syn123', 'SyN123', 'syn123/dir', 'syn123/dir/file.txt']:
+        dp = DataProviderFactory.get(source_uri)
+        assert isinstance(dp, SynapseProvider)
+
+    # Raises an error
+    with pytest.raises(ValueError):
+        DataProviderFactory.get('unsupported-uri')
+
+    # Returns the same instance
+    dp1 = DataProviderFactory.get('syn1')
+    dp2 = DataProviderFactory.get('syn2')
+    assert id(dp1) == id(dp2)

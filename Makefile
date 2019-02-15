@@ -32,7 +32,7 @@ install_local:
 
 .PHONY: install_test
 install_test:
-	pip install -i https://test.pypi.org/simple/ kitools
+	pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple kitools
 
 
 .PHONY: publish_test

@@ -12,6 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .create import create_analysis
-
-__all__ = ["create_analysis"]
+from .data_provider_factory import DataProviderFactory
+from .synapse_provider import SynapseProvider

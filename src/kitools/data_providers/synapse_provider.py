@@ -12,8 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .load import data_load
-from .save import data_save
-from .pull import data_pull
+from .base_provider import BaseProvider
 
-__all__ = ["data_load", "data_pull", "data_save"]
+
+class SynapseProvider(BaseProvider):
+
+    def login(self, username, password, **kwargs):
+        pass
+
+    def create_project(self, name, **kwargs):
+        pass
+
+    def get_project(self, source_uri):
+        pass
+
+    def pull_data(self, source_uri, target_path, only_if_changed=True):
+        pass
+
+    def push_data(self, target_uri, source_path, only_if_changed=True):
+        pass

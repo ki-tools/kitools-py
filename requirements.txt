@@ -1,4 +1,5 @@
 synapseclient==1.9.0
+PyYAML==3.13
 wheel
 autopep8
 pylint

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .analysis import *
-from .data import *
+from .project import Project
 
 name = 'kitools'
