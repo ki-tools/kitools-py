@@ -28,7 +28,7 @@ def test___init__(temp_dir):
     assert project._config == project.DEFAULT_CONFIG
     for data_type in project.DATA_TYPES:
         assert project._get_config_data(data_type) == {}
-        assert project._get_config_data(data_type, synapse_id='syn000') is None
+        assert project._get_config_data(data_type, source_id='syn000') is None
 
     # kwargs
     project = Project(temp_dir, title='title1', synapse_id='syn1')
@@ -52,24 +52,24 @@ def test_set_get_delete_config_data(temp_dir):
     project = Project(temp_dir)
 
     for data_type in project.DATA_TYPES:
-        synapse_id = 'syn001'
+        source_id = 'syn001'
         path = os.path.join(temp_dir, data_type, 'testfile1.txt')
         modified = '2019-02-15T20:09:38.167Z'
         version = 1.2
 
         assert project._get_config_data(data_type) == {}
-        assert project._get_config_data(data_type, synapse_id=synapse_id) is None
+        assert project._get_config_data(data_type, source_id=source_id) is None
 
-        project._set_config_data(data_type, synapse_id, path, modified, version)
+        project._set_config_data(data_type, source_id, path, modified, version)
 
-        data = project._get_config_data(data_type, synapse_id=synapse_id)
+        data = project._get_config_data(data_type, source_id=source_id)
         assert data is not None
         assert data['path'] == path
         assert data['modified'] == modified
         assert data['version'] == version
 
-        project._delete_config_data(data_type, synapse_id)
-        data = project._get_config_data(data_type, synapse_id=synapse_id)
+        project._delete_config_data(data_type, source_id)
+        data = project._get_config_data(data_type, source_id=source_id)
         assert data is None
 
     # Invalid data types

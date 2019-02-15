@@ -189,11 +189,11 @@ class Project:
         self._config[name] = value
         self._save_config()
 
-    def _get_config_data(self, data_type, synapse_id=None):
+    def _get_config_data(self, data_type, source_id=None):
         """
         Gets a data property from the config.
         :param data_type:
-        :param synapse_id:
+        :param source_id:
         :return: Dictionary
         """
         data_type = data_type.lower()
@@ -203,26 +203,26 @@ class Project:
 
         data = getattr(self, 'data_{0}'.format(data_type))
 
-        if synapse_id:
-            return data.get(synapse_id, None)
+        if source_id:
+            return data.get(source_id, None)
         else:
             return data
 
-    def _set_config_data(self, data_type, synapse_id, path, modified, version):
+    def _set_config_data(self, data_type, source_id, path, modified, version):
         """
         Sets a data property in the config.
         :param data_type:
-        :param synapse_id:
+        :param source_id:
         :param path:
         :param modified:
         :param version:
         :return: Dictionary
         """
-        data = self._get_config_data(data_type, synapse_id)
+        data = self._get_config_data(data_type, source_id)
         if not data:
             data = {}
             data_type = self._get_config_data(data_type)
-            data_type[synapse_id] = data
+            data_type[source_id] = data
 
         data['path'] = path
         data['modified'] = modified
@@ -231,13 +231,13 @@ class Project:
         self._save_config()
         return data
 
-    def _delete_config_data(self, data_type, synapse_id):
+    def _delete_config_data(self, data_type, source_id):
         """
         Deletes a data property in the config.
         :param data_type:
-        :param synapse_id:
+        :param source_id:
         :return:
         """
         data = self._get_config_data(data_type)
-        if data.pop(synapse_id, None):
+        if data.pop(source_id, None):
             self._save_config()
