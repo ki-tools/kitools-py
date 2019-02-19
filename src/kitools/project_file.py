@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-import os
-from src.kitools.project_template import ProjectTemplate
 
+class ProjectFile(object):
 
-def test_write(new_temp_dir):
-    pass
-
-
-def test_create_dirs(new_temp_dir):
-    pass
-
-
-def test_create_gitignore(new_temp_dir):
-    pass
+    def __init__(self, remote_uri=None, local_path=None, version=None):
+        """
+        :param remote_uri: The remote URI of the folder or file.
+        :param local_path: The relative path from the project root to the folder or file.
+        :param version: The version of the local file.
+        """
+        self.remote_uri = remote_uri
+        self.local_path = local_path
+        self.version = version

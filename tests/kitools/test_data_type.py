@@ -13,20 +13,18 @@
 # limitations under the License.
 
 import pytest
-from src.kitools.data_providers import DataProviderFactory, SynapseProvider
+from src.kitools import DataType
 
 
-def test_create():
-    # Parses the source_uri
-    for source_uri in ['syn123', 'SyN123', 'syn123/dir', 'syn123/dir/file.txt']:
-        dp = DataProviderFactory.get(source_uri)
-        assert isinstance(dp, SynapseProvider)
+def test___init__():
+    for type in DataType.ALL:
+        dt = DataType(type)
+        assert dt.name == type
 
-    # Raises an error
-    with pytest.raises(ValueError):
-        DataProviderFactory.get('unsupported-uri')
+    with pytest.raises(ValueError) as ex:
+        DataType(None)
+    assert str(ex.value) == 'Name must be specified.'
 
-    # Returns the same instance
-    dp1 = DataProviderFactory.get('syn1')
-    dp2 = DataProviderFactory.get('syn2')
-    assert id(dp1) == id(dp2)
+    with pytest.raises(ValueError) as ex:
+        DataType('not-a-valid-type')
+    assert str(ex.value) == 'Invalid data type: not-a-valid-type'

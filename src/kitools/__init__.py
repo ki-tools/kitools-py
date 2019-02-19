@@ -13,5 +13,7 @@
 # limitations under the License.
 
 from .project import Project
+from .project_file import ProjectFile
+from .data_type import DataType
 
 name = 'kitools'

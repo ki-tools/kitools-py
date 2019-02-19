@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-import os
-from src.kitools.project_template import ProjectTemplate
 
+class DataType(object):
+    CORE = 'core'
+    DISCOVERED = 'discovered'
+    DERIVED = 'derived'
+    ALL = [CORE, DISCOVERED, DERIVED]
 
-def test_write(new_temp_dir):
-    pass
+    def __init__(self, name):
+        if not name:
+            raise ValueError('Name must be specified.')
 
+        name = name.lower()
+        if name not in self.ALL:
+            raise ValueError('Invalid data type: {0}'.format(name))
 
-def test_create_dirs(new_temp_dir):
-    pass
-
-
-def test_create_gitignore(new_temp_dir):
-    pass
+        self.name = name

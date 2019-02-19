@@ -13,17 +13,5 @@
 # limitations under the License.
 
 import pytest
-import os
-from src.kitools.project_template import ProjectTemplate
 
-
-def test_write(new_temp_dir):
-    pass
-
-
-def test_create_dirs(new_temp_dir):
-    pass
-
-
-def test_create_gitignore(new_temp_dir):
-    pass
+# TODO: Add tests.

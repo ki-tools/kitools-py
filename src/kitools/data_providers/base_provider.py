@@ -18,6 +18,14 @@ import abc
 class BaseProvider(object):
 
     @abc.abstractmethod
+    def name(self):
+        """
+        Returns the name of the Data Provider (e.g., Synapse).
+        :return: String
+        """
+        pass
+
+    @abc.abstractmethod
     def login(self, username, password, **kwargs):
         """
         Logs into the data provider.
@@ -39,32 +47,31 @@ class BaseProvider(object):
         pass
 
     @abc.abstractmethod
-    def get_project(self, source_uri):
+    def get_project(self, remote_uri):
         """
         Gets a project.
-        :param source_uri:
+        :param remote_uri:
         :return:
         """
         pass
 
     @abc.abstractmethod
-    def pull_data(self, source_uri, target_path, only_if_changed=True):
+    def data_pull(self, remote_uri, local_path, version=None, get_latest=True):
         """
         Downloads a file for folder from a data provider into a local directory.
-        :param source_uri:
-        :param target_path:
-        :param only_if_changed:
+        :param remote_uri:
+        :param local_path:
+        :param version:
+        :param get_latest:
         :return:
         """
         pass
 
     @abc.abstractmethod
-    def push_data(self, target_uri, source_path, only_if_changed=True):
+    def data_push(self, local_path):
         """
         Uploads a file for folder to a data provider from a local directory.
-        :param target_uri:
-        :param source_path:
-        :param only_if_changed:
+        :param local_path:
         :return:
         """
         pass

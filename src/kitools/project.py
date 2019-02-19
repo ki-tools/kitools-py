@@ -13,231 +13,169 @@
 # limitations under the License.
 
 import os
-import yaml
-from .data_providers import DataProviderFactory
+import json as JSON
+from .project_file import ProjectFile
 from .project_template import ProjectTemplate
+from .data_providers import ProviderUri
+from .data_type import DataType
 
 
-class Project:
-    CONFIG_FILENAME = '.project.yml'
-    CONFIG_PROPERTIES = ['title', 'description', 'synapse_id']
-    DATA_TYPES = ['core', 'discovered', 'derived']
+class Project(object):
+    CONFIG_FILENAME = 'project.json'
 
-    DEFAULT_CONFIG = {
-        'title': None,
-        'description': None,
-        'synapse_id': None,
-        'data': {
-            'core': {},
-            'discovered': {},
-            'derived': {}
-        }
-    }
+    def __init__(self, local_path):
+        self.local_path = local_path
+        self.title = None
+        self.description = None
+        self.project_uri = None
+        self.files = []
 
-    def __init__(self, path, **kwargs):
-        self.path = path
-        self._config_path = os.path.join(self.path, self.CONFIG_FILENAME)
-        self._config = dict(self.DEFAULT_CONFIG)
-        self._load_config()
+        self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
 
-        if kwargs:
-            for prop_name, prop_value in kwargs.items():
-                self._set_config_value(prop_name, prop_value)
+        if not self.load():
+            self.create()
 
-    title = property(
-        lambda self: self._get_config_value('title'),
-        lambda self, value: self._set_config_value('title', value)
-    )
+    def create(self, title=None, description=None, project_uri=None):
+        # TODO: Prompt for empty param values.
 
-    description = property(
-        lambda self: self._get_config_value('description'),
-        lambda self, value: self._set_config_value('description', value)
-    )
+        ProjectTemplate(self.local_path).write()
 
-    synapse_id = property(
-        lambda self: self._get_config_value('synapse_id'),
-        lambda self, value: self._set_config_value('synapse_id', value)
-    )
+        self.title = title
+        self.description = description
+        self.project_uri = project_uri
 
-    data_core = property(
-        lambda self: self._get_config_value('data').get('core')
-    )
+        self.save()
+        return self
 
-    data_discovered = property(
-        lambda self: self._get_config_value('data').get('discovered')
-    )
-
-    data_derived = property(
-        lambda self: self._get_config_value('data').get('derived')
-    )
-
-    @staticmethod
-    def create(path, title=None, description=None, synapse_project_id=None, synapse_user_id=None):
-        ProjectTemplate(path).write()
-
-        project = Project(path, title=title, description=description, synapse_id=synapse_project_id)
-
-        return project
-
-    def data_pull(self, source_uri, data_type=None, only_if_changed=True):
+    def data_pull(self, remote_uri=None, data_type=None, version=None, get_latest=True):
         """
-        Downloads a file or a complete directory from a source URI.
+        Downloads a file or a complete directory from a remote URI.
 
-        Downloads data to self.path/data/data_type/rest_of_path
-        Checks if file exists already and checks if it's the latest version (by just getting metadata first and comparing MD5 hashes)
-        Download new file
-        Update the config and save
-        :param source_uri: synapse_id/subdir_1/subdir_2/file.csv or synapse_id/subdir_1/subdir_2/
-        :param data_type: must be one of {'core', 'discovered', 'derived'}
-        :param only_if_changed: whether to check for update
-        :return: path to file or folder
+        :param remote_uri: the URI of the remote file (e.g., syn:syn123456)
+        :param data_type: one of {'core', 'discovered', 'derived'}
+        :param version: the version of the file to pull
+        :param get_latest: pull the latest remote version (cannot be used if version is set)
+        :return: absolute path to the local file or folder.
         """
         result = None
 
-        data_provider = DataProviderFactory.get(source_uri)
+        provider_uri = ProviderUri(remote_uri)
+        data_provider = provider_uri.data_provider()
+        data_type = DataType(data_type)
 
-        self._save_config()
+        self.save()
 
         return result
 
-    def data_load(self, source_uri, data_type=None, only_if_changed=True):
+    def data_load(self, remote_uri, data_type=None, version=None, get_latest=True):
         """
         Calls data_pull and then loads into memory and returns
         Check the file extension and load a certain set of supported file types
-        to start: csv, pickle, json, excel,
+        to start: csv, pickle, json, excel
+
+        :param remote_uri:
+        :param data_type:
+        :param version:
+        :param get_latest:
         :return: the loaded data
         """
         result = None
 
-        data_provider = DataProviderFactory.get(source_uri)
+        provider_uri = ProviderUri(remote_uri)
+        data_provider = provider_uri.data_provider()
+        data_type = DataType(data_type)
 
         return result
 
-    def data_save(self, data, target_uri, data_type=None, only_if_changed=True):
+    def data_save(self, name, data, data_type=None):
         """
-        Sends data up to synapse, inferring how to save based on file extension.
+        Saves the data locally and pushes it to the remote project (inferring how to save based on file extension).
         (Uses data_push)
+
+        :param name:
         :param data:
-        :param target_uri:
         :param data_type:
-        :param only_if_changed:
         :return:
         """
         result = None
 
-        data_provider = DataProviderFactory.get(target_uri)
+        provider_uri = ProviderUri(self.project_uri)
+        data_provider = provider_uri.data_provider()
+        data_type = DataType(data_type)
 
         return result
 
-    def data_push(self, data_path, target_uri, data_type=None, only_if_changed=True):
+    def data_push(self, local_path=None):
         """
-        Takes the file at data_path and sends it to target_uri
-        :param data_path:
-        :param target_uri:
-        :param data_type:
-        :param only_if_changed:
+        Takes the file at local_path and uploads it to the remote project,
+        or uploads all project files (with changes).
+
+        :param local_path:
         :return:
         """
         result = None
 
-        data_provider = DataProviderFactory.get(target_uri)
+        provider_uri = ProviderUri(self.project_uri)
+        data_provider = provider_uri.data_provider()
+        data_type = DataType(data_type)
 
         return result
 
     def data_list(self):
         """
-        Prints out a nice table of all the available data entries in config.yml + local path
+        Prints out a nice table of all the available project file entries.
         """
         return None
 
-    def _load_config(self):
+    def load(self):
         """
-        Loads the Project's config file.
-        :return: None
+        Loads the Project from a config file.
+        :return: True if the config file exists and was loaded.
         """
+        loaded = False
         if os.path.isfile(self._config_path):
             with open(self._config_path) as f:
-                self._config = yaml.load(f)
+                self._json_to_self(JSON.load(f))
+                loaded = True
 
-    def _save_config(self):
+        return loaded
+
+    def save(self):
         """
-        Saves the Project's config file.
+        Saves the Project to a config file.
         :return: None
         """
         with open(self._config_path, 'w') as f:
-            yaml.dump(self._config, f, default_flow_style=False)
-        return self
+            JSON.dump(self._self_to_json(), f, indent=2)
 
-    def _get_config_value(self, name):
-        """
-        Gets the value from the config.
-        :param name:
-        :return: object
-        """
-        return self._config.get(name, None)
+    def _self_to_json(self):
+        return {
+            'title': self.title,
+            'description': self.description,
+            'project_uri': self.project_uri,
+            'files': [self._project_file_to_json(f) for f in self.files]
+        }
 
-    def _set_config_value(self, name, value):
-        """
-        Sets a value in the config.
-        :param name:
-        :param value:
-        :return: None
-        """
-        if name not in self.CONFIG_PROPERTIES:
-            raise AttributeError('Invalid config property: {0}'.format(name))
+    def _json_to_self(self, json):
+        self.title = json.get('title')
+        self.description = json.get('description')
+        self.project_uri = json.get('project_uri')
+        self.files = []
 
-        self._config[name] = value
-        self._save_config()
+        jfiles = json.get('files')
+        for jfile in jfiles:
+            self.files.append(self._json_to_project_file(jfile))
 
-    def _get_config_data(self, data_type, source_id=None):
-        """
-        Gets a data property from the config.
-        :param data_type:
-        :param source_id:
-        :return: Dictionary
-        """
-        data_type = data_type.lower()
+    def _project_file_to_json(self, project_file):
+        return {
+            'remote_uri': project_file.remote_uri,
+            'local_path': project_file.local_path,
+            'version': project_file.version
+        }
 
-        if data_type not in self.DATA_TYPES:
-            raise ValueError('Invalid data data_type: {0}'.format(data_type))
-
-        data = getattr(self, 'data_{0}'.format(data_type))
-
-        if source_id:
-            return data.get(source_id, None)
-        else:
-            return data
-
-    def _set_config_data(self, data_type, source_id, path, modified, version):
-        """
-        Sets a data property in the config.
-        :param data_type:
-        :param source_id:
-        :param path:
-        :param modified:
-        :param version:
-        :return: Dictionary
-        """
-        data = self._get_config_data(data_type, source_id)
-        if not data:
-            data = {}
-            data_type = self._get_config_data(data_type)
-            data_type[source_id] = data
-
-        data['path'] = path
-        data['modified'] = modified
-        data['version'] = version
-
-        self._save_config()
-        return data
-
-    def _delete_config_data(self, data_type, source_id):
-        """
-        Deletes a data property in the config.
-        :param data_type:
-        :param source_id:
-        :return:
-        """
-        data = self._get_config_data(data_type)
-        if data.pop(source_id, None):
-            self._save_config()
+    def _json_to_project_file(self, json):
+        return ProjectFile(
+            remote_uri=json.get('remote_uri'),
+            local_path=json.get('local_path'),
+            version=json.get('version')
+        )

@@ -14,107 +14,92 @@
 
 import pytest
 import os
-from src.kitools import Project
+import json as JSON
+from src.kitools import Project, ProjectFile
 
 
-def test___init__(temp_dir):
-    project = Project(temp_dir)
+def assert_matches_project(projectA, projectB):
+    """
+    Asserts that two Projects match each other.
+    :param projectA:
+    :param projectB:
+    :return: None
+    """
+    assert projectA.local_path == projectB.local_path
+    assert projectA._config_path == projectB._config_path
+    assert projectA.title == projectB.title
+    assert projectA.description == projectB.description
+    assert projectA.project_uri == projectB.project_uri
 
-    # Paths
-    assert project.path == temp_dir
-    assert project._config_path == os.path.join(temp_dir, Project.CONFIG_FILENAME)
+    assert len(projectA.files) == len(projectB.files)
 
-    # Default config
-    assert project._config == project.DEFAULT_CONFIG
-    for data_type in project.DATA_TYPES:
-        assert project._get_config_data(data_type) == {}
-        assert project._get_config_data(data_type, source_id='syn000') is None
-
-    # kwargs
-    project = Project(temp_dir, title='title1', synapse_id='syn1')
-    assert project.title == 'title1'
-    assert project.synapse_id == 'syn1'
-
-    # Invalid properties
-    with pytest.raises(AttributeError) as ex:
-        # On __init__
-        Project(temp_dir, not_a_real_prop_name='test')
-    assert str(ex.value) == 'Invalid config property: not_a_real_prop_name'
-
-    with pytest.raises(AttributeError) as ex:
-        # On _set_config_value
-        project = Project(temp_dir)
-        project._set_config_value('not_a_real_prop_name', 'test')
-    assert str(ex.value) == 'Invalid config property: not_a_real_prop_name'
+    for fileA in projectA.files:
+        fileB = next((b for b in projectB.files if
+                      b.remote_uri == fileA.remote_uri and
+                      b.local_path == fileA.local_path and
+                      b.version == fileA.version), None)
+        assert fileB
 
 
-def test_set_get_delete_config_data(temp_dir):
-    project = Project(temp_dir)
+def assert_matches_config(project):
+    """
+    Asserts that a Project's config matches the Project.
+    :param project:
+    :return: None
+    """
+    json = None
+    with open(project._config_path) as f:
+        json = JSON.load(f)
 
-    for data_type in project.DATA_TYPES:
-        source_id = 'syn001'
-        path = os.path.join(temp_dir, data_type, 'testfile1.txt')
-        modified = '2019-02-15T20:09:38.167Z'
-        version = 1.2
+    assert json.get('title', None) == project.title
+    assert json.get('description', None) == project.description
+    assert json.get('project_uri', None) == project.project_uri
 
-        assert project._get_config_data(data_type) == {}
-        assert project._get_config_data(data_type, source_id=source_id) is None
-
-        project._set_config_data(data_type, source_id, path, modified, version)
-
-        data = project._get_config_data(data_type, source_id=source_id)
-        assert data is not None
-        assert data['path'] == path
-        assert data['modified'] == modified
-        assert data['version'] == version
-
-        project._delete_config_data(data_type, source_id)
-        data = project._get_config_data(data_type, source_id=source_id)
-        assert data is None
-
-    # Invalid data types
-    with pytest.raises(ValueError) as ex:
-        project._set_config_data('not_a_real_data_type', '', '', '', '')
-    assert str(ex.value) == 'Invalid data data_type: not_a_real_data_type'
-
-    with pytest.raises(ValueError) as ex:
-        project._get_config_data('not_a_real_data_type')
-    assert str(ex.value) == 'Invalid data data_type: not_a_real_data_type'
+    for jfile in json.get('files'):
+        file = next((f for f in project.files if
+                     f.remote_uri == jfile['remote_uri'] and
+                     f.local_path == jfile['local_path'] and
+                     f.version == jfile['version']), None)
+        assert file
 
 
-def test__load_config(temp_dir):
-    title = 'title1'
-    synapse_id = 'syn1'
+def test___init__(new_temp_dir):
+    project = Project(new_temp_dir)
 
-    # Create a config file
-    Project(temp_dir, title=title, synapse_id=synapse_id)
+    # Sets the paths
+    assert project.local_path == new_temp_dir
+    assert project._config_path == os.path.join(new_temp_dir, Project.CONFIG_FILENAME)
 
-    # Load the config
-    project = Project(temp_dir)
+    # Created the config file.
+    assert os.path.isfile(project._config_path)
 
-    assert project.title == title
-    assert project.synapse_id == synapse_id
+    # Created the dir structure
+    # TODO: test this.
 
-    # Loads if the config file doesn't exist and saves once a prop is set
+    # Load the project and make sure it matches
+    assert_matches_project(project, Project(new_temp_dir))
+
+
+def test_load(new_test_project):
+    # Test loading from the constructor.
+    project = Project(new_test_project.local_path)
+    assert_matches_project(project, new_test_project)
+
+    # Make sure it loads successfully.
+    assert project.load() is True
+
     os.remove(project._config_path)
-    project = Project(temp_dir)
-    assert os.path.isfile(project._config_path) is False
-    project.title = 'test'
-    assert project.title == 'test'
-    assert os.path.isfile(project._config_path) is True
+
+    # Does not load since the config file has been deleted.
+    assert project.load() is False
 
 
-def test__save_config(temp_dir):
-    project = Project(temp_dir)
+def test_save(new_test_project):
+    # Remove the config file
+    os.remove(new_test_project._config_path)
+    assert os.path.isfile(new_test_project._config_path) is False
 
-    # Auto saving
-    for prop in project.CONFIG_PROPERTIES:
-        value = 'test'
-        setattr(project, prop, value)
-        saved_config = Project(temp_dir)
-        assert getattr(saved_config, prop) == value
+    new_test_project.save()
 
-
-def test_create(temp_dir):
-    project = Project.create(temp_dir, title='title1', description='description1', synapse_project_id='syn123')
-    # TODO: finish this test.
+    assert os.path.isfile(new_test_project._config_path) is True
+    assert_matches_config(new_test_project)

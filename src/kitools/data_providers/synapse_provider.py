@@ -16,6 +16,8 @@ from .base_provider import BaseProvider
 
 
 class SynapseProvider(BaseProvider):
+    def name(self):
+        return 'Synapse'
 
     def login(self, username, password, **kwargs):
         pass
@@ -23,11 +25,11 @@ class SynapseProvider(BaseProvider):
     def create_project(self, name, **kwargs):
         pass
 
-    def get_project(self, source_uri):
+    def get_project(self, remote_uri):
         pass
 
-    def pull_data(self, source_uri, target_path, only_if_changed=True):
+    def data_pull(self, remote_uri, local_path, version=None, get_latest=True):
         pass
 
-    def push_data(self, target_uri, source_path, only_if_changed=True):
+    def data_push(self, local_path):
         pass

@@ -13,17 +13,15 @@
 # limitations under the License.
 
 import pytest
-import os
-from src.kitools.project_template import ProjectTemplate
+from src.kitools import ProjectFile
 
 
-def test_write(new_temp_dir):
-    pass
+def test__init__():
+    test_remote_uri = 'syn:syn123'
+    test_path = '/tmp/test.csv'
+    test_version = '1.2'
+    pf = ProjectFile(remote_uri=test_remote_uri, local_path=test_path, version=test_version)
 
-
-def test_create_dirs(new_temp_dir):
-    pass
-
-
-def test_create_gitignore(new_temp_dir):
-    pass
+    assert pf.remote_uri == test_remote_uri
+    assert pf.local_path == test_path
+    assert pf.version == test_version

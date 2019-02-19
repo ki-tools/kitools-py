@@ -17,19 +17,19 @@ import os
 
 class ProjectTemplate:
 
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, local_path):
+        self.local_path = local_path
 
     def write(self):
         self.create_dirs()
         self.create_gitignore()
 
     def create_dirs(self):
-        if not os.path.exists(self.path):
-            os.mkdir(self.path)
+        if not os.path.exists(self.local_path):
+            os.mkdir(self.local_path)
 
         for dirname in ProjectTemplate.project_dir_names():
-            full_path = os.path.join(self.path, dirname)
+            full_path = os.path.join(self.local_path, dirname)
             if not os.path.exists(full_path):
                 os.mkdir(full_path)
 
