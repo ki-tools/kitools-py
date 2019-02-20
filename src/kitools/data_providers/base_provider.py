@@ -26,13 +26,10 @@ class BaseProvider(object):
         pass
 
     @abc.abstractmethod
-    def login(self, username, password, **kwargs):
+    def connected(self):
         """
-        Logs into the data provider.
-        :param username:
-        :param password:
-        :param kwargs:
-        :return:
+        Gets if the provider is up and accessible.
+        :return: True if successful
         """
         pass
 
@@ -56,10 +53,10 @@ class BaseProvider(object):
         pass
 
     @abc.abstractmethod
-    def data_pull(self, remote_uri, local_path, version=None, get_latest=True):
+    def data_pull(self, remote_id, local_path, version=None, get_latest=True):
         """
         Downloads a file for folder from a data provider into a local directory.
-        :param remote_uri:
+        :param remote_id:
         :param local_path:
         :param version:
         :param get_latest:

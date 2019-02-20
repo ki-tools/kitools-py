@@ -13,4 +13,4 @@
 # limitations under the License.
 
 from .synapse_provider import SynapseProvider
-from .provider_uri import ProviderUri
+from .provider_file import ProviderFile

@@ -52,30 +52,22 @@ project.data_pull('syn:syn0020', data_type='core')
 project.data_pull('syn:syn0021', data_type='core', version='2')
 ```
 
-Use data from an existing Project:
-```python
-project = Project('/path/to/my/project')
-a = project.data_load('syn:syn001')
-b = project.data_load('syn:syn002')
-```
-
 Pull all the data for an existing Project:
 ```python
 project = Project('/path/to/my/project')
 project.data_pull()
 ```
 
-Save data to a local file:
-```python
-project = Project('/path/to/my/project')
-my_data = {...some data...}
-project.data_save('my-data.csv', my_data, data_type='core')
-```
-
 Push Data to the remote Project:
 ```python
 project = Project('/path/to/my/project')
-project.data_push('core/my-data.csv')
+project.data_push('core/my-data.csv', data_type='core', remote_uri=None)
+```
+
+Push Data to the different Project:
+```python
+project = Project('/path/to/my/project')
+project.data_push('core/my-data.csv', data_type='core', remote_uri='syn:syn123456')
 ```
 
 Push All Data to the remote Project:

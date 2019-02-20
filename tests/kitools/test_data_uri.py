@@ -13,26 +13,28 @@
 # limitations under the License.
 
 import pytest
-from src.kitools.data_providers import ProviderUri, SynapseProvider
+from src.kitools.data_providers import SynapseProvider
+from src.kitools import DataUri
 
 
 def test___init__():
-    for scheme in ProviderUri.SCHEMES:
+    for scheme in DataUri.SCHEMES:
         id = '123456'
         uri = '{0}:{1}'.format(scheme, id).title()
 
-        puri = ProviderUri(uri)
-        assert puri.scheme == scheme
-        assert puri.id == id
+        duri = DataUri.parse(uri)
+        assert duri.scheme == scheme
+        assert duri.id == id
+        assert duri.uri() == uri.lower()
 
         if scheme == 'syn':
-            assert isinstance(puri.data_provider(), SynapseProvider)
+            assert isinstance(duri.data_provider(), SynapseProvider)
 
     with pytest.raises(ValueError) as ex:
-        ProviderUri(None)
+        DataUri.parse(None)
     assert str(ex.value) == 'URI must be specified.'
 
     for bad_uri in ['syn', 'syn123', 'syn:123:abc']:
         with pytest.raises(ValueError) as ex:
-            ProviderUri(bad_uri)
+            DataUri.parse(bad_uri)
         assert str(ex.value) == 'Invalid URI format, cannot parse: {0}'.format(bad_uri)

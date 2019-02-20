@@ -15,7 +15,9 @@
 import pytest
 import os
 import json as JSON
-from src.kitools import Project, ProjectFile
+from src.kitools import Project
+from src.kitools import DataUri
+import synapseclient
 
 
 def assert_matches_project(projectA, projectB):
@@ -103,3 +105,49 @@ def test_save(new_test_project):
 
     assert os.path.isfile(new_test_project._config_path) is True
     assert_matches_config(new_test_project)
+
+
+def test_get_project_file(new_test_project):
+    assert len(new_test_project.files) > 0
+
+    for project_file in new_test_project.files:
+        found = new_test_project.find_project_file(project_file.remote_uri)
+        assert found == project_file
+
+
+def test_data_pull(syn_client, new_syn_project, new_temp_file, new_test_project):
+    # Create a Synapse file to pull
+    syn_file = syn_client.store(synapseclient.File(path=new_temp_file, parent=new_syn_project))
+    data_uri = DataUri(scheme='syn', id=syn_file.id)
+
+    # Pull a file (does not exist in the project)
+    new_test_project.files.clear()
+    assert len(new_test_project.files) == 0
+
+    abs_path = new_test_project.data_pull(remote_uri=data_uri.uri(), data_type='core', version=None, get_latest=True)
+
+    # File was added to the project
+    assert len(new_test_project.files) == 1
+
+    # Can find the project file from data_uri
+    project_file = new_test_project.find_project_file(data_uri.uri())
+
+    # Has the correct values
+    assert project_file
+    assert project_file.local_path == os.path.relpath(abs_path, start=new_test_project.local_path)
+    assert project_file.version is None
+
+    # Pull a specific version (does not exist in the project)
+    # TODO: test this
+
+    # Pull a file (exists in the project)
+    # TODO: test this
+
+    # Pull a specific version (file exist in the project)
+    # TODO: test this
+
+    # Pull a folder (does not exist in the project)
+    # TODO: test this
+
+    # Pull a folder (exists in the project)
+    # TODO: test this

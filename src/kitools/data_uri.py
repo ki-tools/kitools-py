@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import SynapseProvider
+from src.kitools.data_providers import SynapseProvider
 
 
-class ProviderUri(object):
+class DataUri(object):
     """
-    Data provider URI parsing.
+    Data URI parsing.
 
     URI Format: <scheme>:<id> (e.g., syn:syn123456789, osf:z7s4a)
     """
@@ -28,32 +28,33 @@ class ProviderUri(object):
         }
     }
 
-    def __init__(self, uri):
-        self.uri = uri
-        self.scheme = None
-        self.id = None
-        self._parse()
+    def __init__(self, scheme=None, id=None):
+        self.scheme = scheme
+        self.id = id
+
+    def uri(self):
+        return '{0}:{1}'.format(self.scheme, self.id)
 
     def data_provider(self):
         return self.SCHEMES.get(self.scheme).get('data_provider')()
 
-    def _parse(self):
-        if not self.uri:
+    @staticmethod
+    def parse(uri):
+        if not uri:
             raise ValueError('URI must be specified.')
 
         # Clean up the URI.
-        self.uri = self.uri.strip().replace(' ', '')
+        uri = uri.strip().replace(' ', '')
 
-        segments = self.uri.split(':')
+        segments = uri.split(':')
 
         if len(segments) != 2:
-            raise ValueError('Invalid URI format, cannot parse: {0}'.format(self.uri))
+            raise ValueError('Invalid URI format, cannot parse: {0}'.format(uri))
 
-        tscheme = segments[0].lower()
-        tid = segments[1]
+        scheme = segments[0].lower()
+        id = segments[1]
 
-        if tscheme not in self.SCHEMES:
-            raise ValueError('Invalid scheme: {0}'.format(tscheme))
+        if scheme not in DataUri.SCHEMES:
+            raise ValueError('Invalid scheme: {0}'.format(scheme))
 
-        self.scheme = tscheme
-        self.id = tid
+        return DataUri(scheme=scheme, id=id)

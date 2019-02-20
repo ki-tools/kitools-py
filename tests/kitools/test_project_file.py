@@ -20,8 +20,8 @@ def test__init__():
     test_remote_uri = 'syn:syn123'
     test_path = '/tmp/test.csv'
     test_version = '1.2'
-    pf = ProjectFile(remote_uri=test_remote_uri, local_path=test_path, version=test_version)
+    project_file = ProjectFile(remote_uri=test_remote_uri, local_path=test_path, version=test_version)
 
-    assert pf.remote_uri == test_remote_uri
-    assert pf.local_path == test_path
-    assert pf.version == test_version
+    assert project_file.remote_uri == test_remote_uri
+    assert project_file.local_path == test_path
+    assert project_file.version == test_version

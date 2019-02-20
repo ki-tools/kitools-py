@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .project import Project
-from .project_file import ProjectFile
-from .data_type import DataType
-from .data_uri import DataUri
 
-name = 'kitools'
+class ProviderFile(object):
+    """
+    Encapsulates a file/folder from a provider.
+    """
+    def __init__(self, id, name, version, raw):
+        self.id = id
+        self.name = name
+        self.version = version
+        self.raw = raw

@@ -19,6 +19,7 @@ import shutil
 import json
 from src.kitools import Project, ProjectFile
 from tests.synapse_test_helper import SynapseTestHelper
+import synapseclient
 
 # Load Environment variables.
 module_dir = os.path.dirname(os.path.abspath(__file__))
@@ -41,7 +42,40 @@ else:
 
 
 @pytest.fixture(scope='session')
+def synapse_test_config():
+    """
+    Creates a temporary Synapse config file with the test credentials and redirects
+    the Synapse client to the temp config file.
+    :return:
+    """
+
+    config = """
+[authentication]
+username = {0}
+password = {1}
+    """.format(os.getenv('SYNAPSE_USERNAME'), os.getenv('SYNAPSE_PASSWORD'))
+
+    fd, tmp_filename = tempfile.mkstemp(suffix='.synapseConfig')
+    with os.fdopen(fd, 'w') as tmp:
+        tmp.write(config)
+
+    synapseclient.client.CONFIG_FILE = tmp_filename
+
+    yield tmp_filename
+
+    if os.path.isfile(tmp_filename):
+        os.remove(tmp_filename)
+
+
+@pytest.fixture(scope='session')
 def syn_test_helper():
+    helper = SynapseTestHelper()
+    yield helper
+    helper.dispose()
+
+
+@pytest.fixture()
+def new_syn_test_helper():
     helper = SynapseTestHelper()
     yield helper
     helper.dispose()
@@ -57,23 +91,9 @@ def syn_project(syn_test_helper):
     return syn_test_helper.create_project()
 
 
-@pytest.fixture(scope='session')
-def temp_file(syn_test_helper):
-    fd, tmp_filename = tempfile.mkstemp()
-    with os.fdopen(fd, 'w') as tmp:
-        tmp.write(syn_test_helper.uniq_name())
-    yield tmp_filename
-
-    if os.path.isfile(tmp_filename):
-        os.remove(tmp_filename)
-
-
 @pytest.fixture()
-def new_temp_dir():
-    path = tempfile.mkdtemp()
-    yield path
-    if os.path.isdir(path):
-        shutil.rmtree(path)
+def new_syn_project(new_syn_test_helper):
+    return new_syn_test_helper.create_project()
 
 
 @pytest.fixture()
@@ -96,3 +116,33 @@ def new_test_project(new_temp_dir):
     project.save()
 
     return project
+
+
+@pytest.fixture(scope='session')
+def temp_file(syn_test_helper):
+    fd, tmp_filename = tempfile.mkstemp()
+    with os.fdopen(fd, 'w') as tmp:
+        tmp.write(syn_test_helper.uniq_name())
+    yield tmp_filename
+
+    if os.path.isfile(tmp_filename):
+        os.remove(tmp_filename)
+
+
+@pytest.fixture()
+def new_temp_file(syn_test_helper):
+    fd, tmp_filename = tempfile.mkstemp()
+    with os.fdopen(fd, 'w') as tmp:
+        tmp.write(syn_test_helper.uniq_name())
+    yield tmp_filename
+
+    if os.path.isfile(tmp_filename):
+        os.remove(tmp_filename)
+
+
+@pytest.fixture()
+def new_temp_dir():
+    path = tempfile.mkdtemp()
+    yield path
+    if os.path.isdir(path):
+        shutil.rmtree(path)

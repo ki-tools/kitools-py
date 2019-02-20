@@ -14,10 +14,11 @@
 
 import os
 import json as JSON
-from .project_file import ProjectFile
+
 from .project_template import ProjectTemplate
-from .data_providers import ProviderUri
+from .project_file import ProjectFile
 from .data_type import DataType
+from .data_uri import DataUri
 
 
 class Project(object):
@@ -47,6 +48,14 @@ class Project(object):
         self.save()
         return self
 
+    def find_project_file(self, remote_uri):
+        """
+        Gets a ProjectFile by remote_uri
+        :param remote_uri:
+        :return: ProjectFile or None
+        """
+        return next((f for f in self.files if f.remote_uri == remote_uri), None)
+
     def data_pull(self, remote_uri=None, data_type=None, version=None, get_latest=True):
         """
         Downloads a file or a complete directory from a remote URI.
@@ -57,55 +66,60 @@ class Project(object):
         :param get_latest: pull the latest remote version (cannot be used if version is set)
         :return: absolute path to the local file or folder.
         """
+        if remote_uri and not data_type:
+            raise ValueError('remote_uri and data_type are required.')
+
+        if version and get_latest:
+            raise ValueError('version and get_latest cannot both be set.')
+
         result = None
 
-        provider_uri = ProviderUri(remote_uri)
-        data_provider = provider_uri.data_provider()
-        data_type = DataType(data_type)
+        if remote_uri:
+            data_uri = DataUri.parse(remote_uri)
+            data_provider = data_uri.data_provider()
+            data_type = DataType(data_type)
+
+            local_dir = os.path.join(self.local_path, data_type.name)
+
+            # Pull a specific file
+            project_file = self.find_project_file(remote_uri)
+
+            if project_file:
+                pull_version = version or project_file.version
+                provider_file = data_provider.data_pull(
+                    data_uri.id,
+                    local_dir,
+                    version=pull_version,
+                    get_latest=get_latest
+                )
+                project_file.version = provider_file.version
+
+                local_path = os.path.join(local_dir, provider_file.name)
+                result = local_path
+            else:
+                provider_file = data_provider.data_pull(
+                    data_uri.id,
+                    local_dir,
+                    version=version,
+                    get_latest=get_latest
+                )
+
+                local_path = os.path.join(local_dir, provider_file.name)
+                relative_path = os.path.relpath(local_path, start=self.local_path)
+
+                project_file = ProjectFile(remote_uri=data_uri.uri(), local_path=relative_path, version=version)
+                self.files.append(project_file)
+                result = local_path
+
+        else:
+            # Pull all files
+            pass  # TODO: implement this
 
         self.save()
 
         return result
 
-    def data_load(self, remote_uri, data_type=None, version=None, get_latest=True):
-        """
-        Calls data_pull and then loads into memory and returns
-        Check the file extension and load a certain set of supported file types
-        to start: csv, pickle, json, excel
-
-        :param remote_uri:
-        :param data_type:
-        :param version:
-        :param get_latest:
-        :return: the loaded data
-        """
-        result = None
-
-        provider_uri = ProviderUri(remote_uri)
-        data_provider = provider_uri.data_provider()
-        data_type = DataType(data_type)
-
-        return result
-
-    def data_save(self, name, data, data_type=None):
-        """
-        Saves the data locally and pushes it to the remote project (inferring how to save based on file extension).
-        (Uses data_push)
-
-        :param name:
-        :param data:
-        :param data_type:
-        :return:
-        """
-        result = None
-
-        provider_uri = ProviderUri(self.project_uri)
-        data_provider = provider_uri.data_provider()
-        data_type = DataType(data_type)
-
-        return result
-
-    def data_push(self, local_path=None):
+    def data_push(self, local_path=None, data_type=None, remote_uri=None):
         """
         Takes the file at local_path and uploads it to the remote project,
         or uploads all project files (with changes).
@@ -115,8 +129,8 @@ class Project(object):
         """
         result = None
 
-        provider_uri = ProviderUri(self.project_uri)
-        data_provider = provider_uri.data_provider()
+        data_uri = DataUri.parse(remote_uri or self.project_uri)
+        data_provider = data_uri.data_provider()
         data_type = DataType(data_type)
 
         return result
