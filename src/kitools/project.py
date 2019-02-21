@@ -24,17 +24,17 @@ from .data_uri import DataUri
 class Project(object):
     CONFIG_FILENAME = 'project.json'
 
-    def __init__(self, local_path):
+    def __init__(self, local_path, title=None, description=None, project_uri=None, files=None):
         self.local_path = local_path
-        self.title = None
-        self.description = None
-        self.project_uri = None
-        self.files = []
+        self.title = title
+        self.description = description
+        self.project_uri = project_uri
+        self.files = files or []
 
         self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
 
         if not self.load():
-            self.create()
+            self.create(title=self.title, description=self.description, project_uri=self.project_uri)
 
     def create(self, title=None, description=None, project_uri=None):
         # TODO: Prompt for empty param values.
@@ -58,7 +58,8 @@ class Project(object):
 
     def data_pull(self, remote_uri=None, data_type=None, version=None, get_latest=True):
         """
-        Downloads a file or a complete directory from a remote URI.
+        Downloads a file or a complete directory from a remote URI and adds
+        the folder or file to the project manifest.
 
         :param remote_uri: the URI of the remote file (e.g., syn:syn123456)
         :param data_type: one of {'core', 'discovered', 'derived'}
@@ -84,7 +85,7 @@ class Project(object):
 
             pull_version = version
 
-            if version is None and project_file is not None:
+            if version is None and project_file is not None and not get_latest:
                 pull_version = project_file.version
 
             provider_file = data_provider.data_pull(
@@ -95,11 +96,16 @@ class Project(object):
             )
 
             if project_file:
-                # Update the version if it changed
-                project_file.version = provider_file.version
+                # Update the version
+                if get_latest:
+                    # Set the version to None so we know to always get the latest version.
+                    project_file.version = None
+                elif version is not None:
+                    # Set the version
+                    project_file.version = provider_file.version
             else:
                 # Add the ProjectFile
-                relative_path = os.path.relpath(provider_file.local_path, start=self.local_path)
+                relative_path = ProjectFile.to_relative_path(provider_file.local_path, self.local_path)
                 project_file = ProjectFile(remote_uri=data_uri.uri(), local_path=relative_path, version=version)
                 self.files.append(project_file)
 

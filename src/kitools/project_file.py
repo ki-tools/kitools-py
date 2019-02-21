@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 
 class ProjectFile(object):
 
@@ -24,3 +26,23 @@ class ProjectFile(object):
         self.remote_uri = remote_uri
         self.local_path = local_path
         self.version = str(version) if version else None
+
+    def to_absolute_path(self, root_path):
+        """
+        Gets the absolute path from a root path.
+        :param root_path:
+        :return:
+        """
+        root_path = os.path.abspath(root_path)
+        return os.path.join(root_path, self.local_path)
+
+    @staticmethod
+    def to_relative_path(child_path, root_path):
+        """
+        Gets the relative path of a child file for folder from a root path.
+        :param root_path:
+        :param child_path:
+        :return:
+        """
+        root_path = os.path.abspath(root_path)
+        return os.path.relpath(child_path, start=root_path)

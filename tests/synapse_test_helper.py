@@ -125,3 +125,16 @@ class SynapseTestHelper:
         file = self.client().store(File(**kwargs))
         self.dispose_of(file)
         return file
+
+    def create_folder(self, **kwargs):
+        """
+        Creates a new Folder and adds it to the trash queue.
+        """
+        if 'name' not in kwargs:
+            kwargs['name'] = self.uniq_name(prefix=kwargs.get('prefix', ''))
+
+        kwargs.pop('prefix', None)
+
+        folder = self.client().store(Folder(**kwargs))
+        self.dispose_of(folder)
+        return folder

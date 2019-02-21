@@ -66,7 +66,7 @@ class SynapseProvider(BaseProvider):
             entity.name,
             entity.get('versionNumber', None),
             is_directory=isinstance(entity, synapseclient.Folder),
-            local_path=os.path.join(local_path, entity.name),
+            local_path=entity.get('path', os.path.join(local_path, entity.name)),
             raw=entity
         )
 

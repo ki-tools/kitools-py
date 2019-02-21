@@ -17,7 +17,7 @@ import os
 import tempfile
 import shutil
 import json
-from src.kitools import Project, ProjectFile
+from src.kitools import Project, ProjectFile, DataUri, DataType
 from tests.synapse_test_helper import SynapseTestHelper
 import synapseclient
 
@@ -117,6 +117,72 @@ def new_test_project(mk_tempdir):
     project.save()
 
     return project
+
+
+@pytest.fixture()
+def mk_project(mk_tempdir, mk_tempfile, write_file, syn_test_helper):
+    def _mkproject(
+            with_project=False,
+            with_project_scheme='syn',
+            with_files=False,
+            with_files_count=1,
+            with_files_versions=1,
+            **kwargs):
+
+        if kwargs is None:
+            kwargs = {}
+
+        project_path = mk_tempdir()
+        provider_project = None
+        project_files = []
+
+        if with_project or with_files:
+            if isinstance(with_project, bool):
+                if with_project_scheme == 'syn':
+                    provider_project = syn_test_helper.create_project()
+                else:
+                    raise ValueError('Invalid scheme: {0}'.format(with_project_scheme))
+            else:
+                provider_project = with_project
+
+        if with_files:
+            if with_project_scheme == 'syn':
+                for i in range(with_files_count):
+
+                    syn_file = None
+                    temp_file = mk_tempfile(content='version0')
+
+                    for fileversion in range(with_files_versions):
+                        write_file(temp_file, 'version{0}'.format(fileversion + 1))
+                        syn_file = syn_test_helper.create_file(
+                            name=os.path.basename(temp_file),
+                            path=temp_file,
+                            parent=provider_project)
+
+                    remote_uri = DataUri(scheme='syn', id=syn_file.id).uri()
+                    local_path = ProjectFile.to_relative_path(temp_file, project_path)
+
+                    project_files.append(ProjectFile(remote_uri=remote_uri, local_path=local_path))
+            else:
+                raise ValueError('Invalid scheme: {0}'.format(with_project_scheme))
+
+        project_uri = DataUri(scheme=with_project_scheme)
+        if provider_project:
+            project_uri.id = provider_project.id
+        else:
+            project_uri.id = DataUri.parse(kwargs.get('project_uri', '{0}:123456'.format(with_project_scheme))).id
+
+        project = Project(
+            project_path,
+            title=kwargs.get('title', 'My Project Title'),
+            description=kwargs.get('description', 'My Project Description'),
+            project_uri=project_uri.uri(),
+            files=project_files
+        )
+
+        return project
+
+    yield _mkproject
 
 
 @pytest.fixture()

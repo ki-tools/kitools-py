@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import os
 from src.kitools import ProjectFile
 
 
@@ -30,3 +31,20 @@ def test___init__():
     assert ProjectFile(version=None).version is None
     assert ProjectFile(version=1).version == '1'
     assert ProjectFile(version='').version is None
+
+
+def test_to_absolute_path():
+    rel_path = os.path.join('one', 'two', 'three')
+    project_file = ProjectFile(local_path=rel_path)
+    root_path = os.path.join('/', 'tmp', 'project')
+
+    abs_path = project_file.to_absolute_path(root_path)
+    assert abs_path == os.path.join(root_path, rel_path)
+
+def test_to_relative_path():
+    root_path = os.path.join('/', 'tmp', 'project')
+    expected_rel_path = os.path.join('one', 'two', 'three')
+    child_path = os.path.join(root_path, expected_rel_path)
+
+    rel_path = ProjectFile.to_relative_path(child_path, root_path)
+    assert rel_path == expected_rel_path
