@@ -97,13 +97,14 @@ def new_syn_project(new_syn_test_helper):
 
 
 @pytest.fixture()
-def new_test_project(new_temp_dir):
+def new_test_project(mk_tempdir):
     """
     Provides a test Project with one ProjectFile.
-    :param temp_dir:
     :return: Project
     """
-    project = Project(new_temp_dir)
+    temp_dir = mk_tempdir()
+
+    project = Project(temp_dir)
     project.title = 'My Project Title'
     project.description = 'My Project Description'
     project.project_uri = 'syn:syn001'
@@ -118,31 +119,60 @@ def new_test_project(new_temp_dir):
     return project
 
 
-@pytest.fixture(scope='session')
-def temp_file(syn_test_helper):
-    fd, tmp_filename = tempfile.mkstemp()
-    with os.fdopen(fd, 'w') as tmp:
-        tmp.write(syn_test_helper.uniq_name())
-    yield tmp_filename
+@pytest.fixture()
+def mk_tempdir():
+    created = []
 
-    if os.path.isfile(tmp_filename):
-        os.remove(tmp_filename)
+    def _mktempdir():
+        path = tempfile.mkdtemp()
+        created.append(path)
+        return path
+
+    yield _mktempdir
+
+    for path in created:
+        if os.path.isdir(path):
+            shutil.rmtree(path)
 
 
 @pytest.fixture()
-def new_temp_file(syn_test_helper):
-    fd, tmp_filename = tempfile.mkstemp()
-    with os.fdopen(fd, 'w') as tmp:
-        tmp.write(syn_test_helper.uniq_name())
-    yield tmp_filename
+def mk_tempfile(mk_tempdir, syn_test_helper):
+    temp_dir = mk_tempdir()
 
-    if os.path.isfile(tmp_filename):
-        os.remove(tmp_filename)
+    def _mktempfile(content=syn_test_helper.uniq_name()):
+        fd, tmp_filename = tempfile.mkstemp(dir=temp_dir)
+        with os.fdopen(fd, 'w') as tmp:
+            tmp.write(content)
+        return tmp_filename
+
+    yield _mktempfile
+
+    if os.path.isdir(temp_dir):
+        shutil.rmtree(temp_dir)
 
 
 @pytest.fixture()
-def new_temp_dir():
-    path = tempfile.mkdtemp()
-    yield path
-    if os.path.isdir(path):
-        shutil.rmtree(path)
+def write_file():
+    def _write(file, content):
+        with open(file, mode='w') as f:
+            f.write(content)
+
+    yield _write
+
+
+@pytest.fixture()
+def read_file():
+    def _read(file):
+        with open(file, mode='r') as f:
+            return f.read()
+
+    yield _read
+
+
+@pytest.fixture()
+def delete_file():
+    def _delete(file):
+        if os.path.isfile(file):
+            os.remove(file)
+
+    yield _delete

@@ -65,12 +65,14 @@ def assert_matches_config(project):
         assert file
 
 
-def test___init__(new_temp_dir):
-    project = Project(new_temp_dir)
+def test___init__(mk_tempdir):
+    temp_dir = mk_tempdir()
+
+    project = Project(temp_dir)
 
     # Sets the paths
-    assert project.local_path == new_temp_dir
-    assert project._config_path == os.path.join(new_temp_dir, Project.CONFIG_FILENAME)
+    assert project.local_path == temp_dir
+    assert project._config_path == os.path.join(temp_dir, Project.CONFIG_FILENAME)
 
     # Created the config file.
     assert os.path.isfile(project._config_path)
@@ -79,7 +81,7 @@ def test___init__(new_temp_dir):
     # TODO: test this.
 
     # Load the project and make sure it matches
-    assert_matches_project(project, Project(new_temp_dir))
+    assert_matches_project(project, Project(temp_dir))
 
 
 def test_load(new_test_project):
@@ -115,16 +117,42 @@ def test_get_project_file(new_test_project):
         assert found == project_file
 
 
-def test_data_pull(syn_client, new_syn_project, new_temp_file, new_test_project):
-    # Create a Synapse file to pull
-    syn_file = syn_client.store(synapseclient.File(path=new_temp_file, parent=new_syn_project))
+def test_data_pull(syn_client, new_syn_project, new_test_project, mk_tempdir):
+    syn_folder = syn_client.store(synapseclient.Folder(name='folder', parent=new_syn_project))
+    syn_folder_uri = DataUri(scheme='syn', id=syn_folder.id).uri()
+
+    # Pull a remote_uri with no data_type specified
+    with pytest.raises(ValueError) as ex:
+        new_test_project.data_pull(remote_uri=syn_folder_uri, data_type=None)
+    assert str(ex.value) == 'remote_uri and data_type are required.'
+
+    # Pull a specific version of a folder
+    with pytest.raises(ValueError) as ex:
+        new_test_project.data_pull(remote_uri=syn_folder_uri, data_type='core', version='1', get_latest=False)
+    assert str(ex.value) == 'version cannot be set when pulling a folder.'
+
+    # Get version and latest
+    with pytest.raises(ValueError) as ex:
+        new_test_project.data_pull(remote_uri=syn_folder_uri, data_type='core', version='1', get_latest=True)
+    assert str(ex.value) == 'version and get_latest cannot both be set.'
+
+
+def test_data_pull_file(syn_client, new_syn_project, new_test_project, mk_tempdir, mk_tempfile, write_file, read_file):
+    # Make 2 versions of a file
+    temp_file = mk_tempfile(content='version1')
+    syn_file = syn_client.store(synapseclient.File(path=temp_file, parent=new_syn_project))
+    write_file(temp_file, 'version2')
+    syn_file = syn_client.store(synapseclient.File(path=temp_file, parent=new_syn_project))
+
     data_uri = DataUri(scheme='syn', id=syn_file.id)
 
-    # Pull a file (does not exist in the project)
+    # Pull the file (does not exist in the project)
     new_test_project.files.clear()
     assert len(new_test_project.files) == 0
 
-    abs_path = new_test_project.data_pull(remote_uri=data_uri.uri(), data_type='core', version=None, get_latest=True)
+    presult = new_test_project.data_pull(remote_uri=data_uri.uri(), data_type='core', version=None, get_latest=True)
+    assert presult.version == '2'
+    assert os.path.isfile(presult.local_path)
 
     # File was added to the project
     assert len(new_test_project.files) == 1
@@ -133,21 +161,28 @@ def test_data_pull(syn_client, new_syn_project, new_temp_file, new_test_project)
     project_file = new_test_project.find_project_file(data_uri.uri())
 
     # Has the correct values
-    assert project_file
-    assert project_file.local_path == os.path.relpath(abs_path, start=new_test_project.local_path)
+    assert project_file.remote_uri == data_uri.uri()
+    assert project_file.local_path == os.path.relpath(presult.local_path, start=new_test_project.local_path)
     assert project_file.version is None
 
-    # Pull a specific version (does not exist in the project)
-    # TODO: test this
+    # Get version 1
+    presult = new_test_project.data_pull(remote_uri=data_uri.uri(), data_type='core', version='1', get_latest=False)
+    assert presult.version == '1'
 
-    # Pull a file (exists in the project)
-    # TODO: test this
+    # Did not add a duplicate file to the project
+    assert len(new_test_project.files) == 1
 
-    # Pull a specific version (file exist in the project)
-    # TODO: test this
+    project_file = new_test_project.find_project_file(data_uri.uri())
 
-    # Pull a folder (does not exist in the project)
-    # TODO: test this
+    # Updated the project file's version since we requested a version this time
+    assert project_file.version == '1'
 
-    # Pull a folder (exists in the project)
-    # TODO: test this
+
+def test_data_pull_folder():
+    # TODO:
+    pass
+
+
+def test_data_all():
+    # TODO:
+    pass

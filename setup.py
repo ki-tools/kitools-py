@@ -22,6 +22,6 @@ setuptools.setup(
         "Operating System :: OS Independent"
     ),
     install_requires=[
-        'synapseclient==1.9.0'
+        'synapseclient==1.9.2'
     ]
 )

@@ -23,7 +23,7 @@ class BaseProvider(object):
         Returns the name of the Data Provider (e.g., Synapse).
         :return: String
         """
-        pass
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def connected(self):
@@ -31,7 +31,7 @@ class BaseProvider(object):
         Gets if the provider is up and accessible.
         :return: True if successful
         """
-        pass
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def create_project(self, name, **kwargs):
@@ -41,7 +41,7 @@ class BaseProvider(object):
         :param kwargs:
         :return:
         """
-        pass
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def get_project(self, remote_uri):
@@ -50,7 +50,7 @@ class BaseProvider(object):
         :param remote_uri:
         :return:
         """
-        pass
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def data_pull(self, remote_id, local_path, version=None, get_latest=True):
@@ -62,7 +62,7 @@ class BaseProvider(object):
         :param get_latest:
         :return:
         """
-        pass
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def data_push(self, local_path):
@@ -71,4 +71,4 @@ class BaseProvider(object):
         :param local_path:
         :return:
         """
-        pass
+        raise NotImplementedError()

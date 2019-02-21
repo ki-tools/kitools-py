@@ -19,8 +19,8 @@ class ProjectFile(object):
         """
         :param remote_uri: The remote URI of the folder or file.
         :param local_path: The relative path from the project root to the folder or file.
-        :param version: The version of the local file.
+        :param version: The version of the file.
         """
         self.remote_uri = remote_uri
         self.local_path = local_path
-        self.version = version
+        self.version = str(version) if version else None

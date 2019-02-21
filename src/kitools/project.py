@@ -64,7 +64,7 @@ class Project(object):
         :param data_type: one of {'core', 'discovered', 'derived'}
         :param version: the version of the file to pull
         :param get_latest: pull the latest remote version (cannot be used if version is set)
-        :return: absolute path to the local file or folder.
+        :return: A single ProviderFile or a list of ProviderFiles if pulling all.
         """
         if remote_uri and not data_type:
             raise ValueError('remote_uri and data_type are required.')
@@ -75,45 +75,39 @@ class Project(object):
         result = None
 
         if remote_uri:
+            # Pull a specific file
             data_uri = DataUri.parse(remote_uri)
             data_provider = data_uri.data_provider()
             data_type = DataType(data_type)
 
-            local_dir = os.path.join(self.local_path, data_type.name)
-
-            # Pull a specific file
             project_file = self.find_project_file(remote_uri)
 
+            pull_version = version
+
+            if version is None and project_file is not None:
+                pull_version = project_file.version
+
+            provider_file = data_provider.data_pull(
+                data_uri.id,
+                data_type.to_project_path(self.local_path),
+                version=pull_version,
+                get_latest=get_latest
+            )
+
             if project_file:
-                pull_version = version or project_file.version
-                provider_file = data_provider.data_pull(
-                    data_uri.id,
-                    local_dir,
-                    version=pull_version,
-                    get_latest=get_latest
-                )
+                # Update the version if it changed
                 project_file.version = provider_file.version
-
-                local_path = os.path.join(local_dir, provider_file.name)
-                result = local_path
             else:
-                provider_file = data_provider.data_pull(
-                    data_uri.id,
-                    local_dir,
-                    version=version,
-                    get_latest=get_latest
-                )
-
-                local_path = os.path.join(local_dir, provider_file.name)
-                relative_path = os.path.relpath(local_path, start=self.local_path)
-
+                # Add the ProjectFile
+                relative_path = os.path.relpath(provider_file.local_path, start=self.local_path)
                 project_file = ProjectFile(remote_uri=data_uri.uri(), local_path=relative_path, version=version)
                 self.files.append(project_file)
-                result = local_path
 
+            result = provider_file
         else:
             # Pull all files
-            pass  # TODO: implement this
+            # TODO: implement this
+            raise NotImplementedError()
 
         self.save()
 

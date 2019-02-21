@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from .base_provider import BaseProvider
 from .provider_file import ProviderFile
 import synapseclient
@@ -35,13 +36,18 @@ class SynapseProvider(BaseProvider):
         return 'Synapse'
 
     def connected(self):
-        return SynapseProvider.client()._loggedIn() is not False
+        try:
+            return SynapseProvider.client()._loggedIn() is not False
+        except Exception as ex:
+            # TODO: log this exception
+            pass
+        return False
 
     def create_project(self, name, **kwargs):
-        pass
+        raise NotImplementedError()
 
     def get_project(self, remote_uri):
-        pass
+        raise NotImplementedError()
 
     def data_pull(self, remote_id, local_path, version=None, get_latest=True):
         if version and get_latest:
@@ -51,14 +57,36 @@ class SynapseProvider(BaseProvider):
             remote_id,
             downloadFile=True,
             downloadLocation=local_path,
+            ifcollision='overwrite.local',
             version=version
         )
 
-        if isinstance(entity, synapseclient.Folder):
-            # TODO: download all the files/folders
-            pass
+        provider_file = ProviderFile(
+            entity.id,
+            entity.name,
+            entity.get('versionNumber', None),
+            is_directory=isinstance(entity, synapseclient.Folder),
+            local_path=os.path.join(local_path, entity.name),
+            raw=entity
+        )
 
-        return ProviderFile(entity.id, entity.name, str(entity.versionNumber), entity)
+        if provider_file.is_directory:
+            if version is not None:
+                raise ValueError('version cannot be set when pulling a folder.')
+
+            # Create the local directory for the folder.
+            if not os.path.exists(provider_file.local_path):
+                os.makedirs(provider_file.local_path)
+
+            syn_children = SynapseProvider.client().getChildren(entity, includeTypes=['folder', 'file'])
+
+            for syn_child in syn_children:
+                child_local_path = provider_file.local_path if provider_file.is_directory else local_path
+
+                child = self.data_pull(syn_child.get('id'), child_local_path, version=None, get_latest=True)
+                provider_file.children.append(child)
+
+        return provider_file
 
     def data_push(self, local_path):
-        pass
+        raise NotImplementedError()

@@ -26,14 +26,15 @@ class ProjectTemplate:
 
     def create_dirs(self):
         if not os.path.exists(self.local_path):
-            os.mkdir(self.local_path)
+            os.makedirs(self.local_path)
 
         for dirname in ProjectTemplate.project_dir_names():
             full_path = os.path.join(self.local_path, dirname)
             if not os.path.exists(full_path):
-                os.mkdir(full_path)
+                os.makedirs(full_path)
 
     def create_gitignore(self):
+        # TODO: implement this
         pass
 
     @staticmethod

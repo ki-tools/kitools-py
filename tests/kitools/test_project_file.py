@@ -16,7 +16,7 @@ import pytest
 from src.kitools import ProjectFile
 
 
-def test__init__():
+def test___init__():
     test_remote_uri = 'syn:syn123'
     test_path = '/tmp/test.csv'
     test_version = '1.2'
@@ -25,3 +25,8 @@ def test__init__():
     assert project_file.remote_uri == test_remote_uri
     assert project_file.local_path == test_path
     assert project_file.version == test_version
+
+    # Ensure version is a string
+    assert ProjectFile(version=None).version is None
+    assert ProjectFile(version=1).version == '1'
+    assert ProjectFile(version='').version is None

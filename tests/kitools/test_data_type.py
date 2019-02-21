@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import os
 from src.kitools import DataType
 
 
@@ -28,3 +29,10 @@ def test___init__():
     with pytest.raises(ValueError) as ex:
         DataType('not-a-valid-type')
     assert str(ex.value) == 'Invalid data type: not-a-valid-type'
+
+
+def test_to_project_path(mk_tempdir):
+    temp_dir = mk_tempdir()
+    for type in DataType.ALL:
+        dt = DataType(type)
+        assert dt.to_project_path(temp_dir) == os.path.join(temp_dir, 'data', dt.name)

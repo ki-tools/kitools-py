@@ -17,13 +17,13 @@ import os
 from src.kitools.project_template import ProjectTemplate
 
 
-def test_write(new_temp_dir):
+def test_write(mk_tempdir):
     pass
 
 
-def test_create_dirs(new_temp_dir):
+def test_create_dirs(mk_tempdir):
     pass
 
 
-def test_create_gitignore(new_temp_dir):
+def test_create_gitignore(mk_tempdir):
     pass

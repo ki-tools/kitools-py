@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 
 class DataType(object):
     CORE = 'core'
@@ -28,3 +30,11 @@ class DataType(object):
             raise ValueError('Invalid data type: {0}'.format(name))
 
         self.name = name
+
+    def to_project_path(self, project_path):
+        """
+        Gets the full directory path for the data_type.
+        :param project_path:
+        :return:
+        """
+        return os.path.join(project_path, 'data', self.name)

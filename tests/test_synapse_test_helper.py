@@ -53,7 +53,9 @@ def test_dispose_of(syn_test_helper):
     assert len(syn_test_helper._trash) == 4
 
 
-def test_dispose(syn_client, syn_test_helper, temp_file):
+def test_dispose(syn_client, syn_test_helper, mk_tempfile):
+    temp_file = mk_tempfile()
+
     project = syn_client.store(Project(name=syn_test_helper.uniq_name()))
 
     folder = syn_client.store(
