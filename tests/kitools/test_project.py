@@ -14,18 +14,151 @@
 
 import pytest
 import os
+import pytest
+import os
 import json as JSON
-from src.kitools import Project, ProjectFile
-from src.kitools import DataUri
-import synapseclient
+import uuid
+from src.kitools import Project, ProjectFile, DataType, DataUri
+
+
+@pytest.fixture(scope='session')
+def mk_project(syn_project, mk_tempdir, mk_uniq_string, mk_fake_project_file):
+    def _mk(dir=None,
+            with_fake_project_files=False,
+            with_fake_project_files_count=1):
+
+        project = Project((dir or mk_tempdir()),
+                          project_uri=DataUri(scheme='syn', id=syn_project.id).uri(),
+                          title=mk_uniq_string(),
+                          description=mk_uniq_string())
+
+        if with_fake_project_files:
+            for _ in range(with_fake_project_files_count):
+                project.files.append(mk_fake_project_file(project.local_path))
+
+        project.save()
+        return project
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_uniq_string():
+    def _mk():
+        return str(uuid.uuid4()).replace('-', '_')
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_uniq_integer():
+    def _mk():
+        return str(uuid.uuid4().int)
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_fake_uri(mk_uniq_integer):
+    def _mk(scheme='syn'):
+        return DataUri(scheme=scheme, id='syn:syn{0}'.format(mk_uniq_integer())).uri()
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_fake_project_file(mk_tempdir, mk_fake_uri, mk_uniq_string):
+    def _mk(project_path, data_type=DataType.CORE):
+        file_path = os.path.join(
+            DataType(data_type).to_project_path(project_path),
+            '{0}.csv'.format(mk_uniq_string()))
+
+        rel_path = ProjectFile.to_relative_path(file_path, project_path)
+        return ProjectFile(remote_uri=mk_fake_uri(), local_path=rel_path, version='1')
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def syn_project_files(syn_project, syn_test_helper, mk_tempfile, write_file):
+    """
+    Creates 3 files in the root of the Synapse Project with each file having 3 versions.
+    """
+    syn_files = []
+
+    # Create 3 files in the syn_project.
+    for _ in range(3):
+        temp_file = mk_tempfile()
+
+        # Create 3 versions of each file.
+        syn_file = None
+
+        for version_num in range(1, 4):
+            write_file(temp_file, 'version{0}'.format(version_num))
+
+            syn_file = syn_test_helper.create_file(
+                path=temp_file,
+                parent=syn_project,
+                name=os.path.basename(temp_file))
+
+        syn_files.append(syn_file)
+
+    return syn_files
+
+
+@pytest.fixture(scope='session')
+def syn_project_folders(syn_project, syn_test_helper):
+    """
+    Creates a 3 folder hierarchy in the root of the Synapse Project.
+    """
+    syn_folders = []
+
+    # Create a folder structure 3 levels deep
+    parent = syn_project
+    for count in range(1, 4):
+        syn_folder = syn_test_helper.create_folder(name='Folder{0}'.format(count), parent=parent)
+        parent = syn_folder
+        syn_folders.append(syn_folder)
+
+    return syn_folders
+
+
+@pytest.fixture(scope='session')
+def syn_project_folders_and_files(syn_project, syn_test_helper, mk_tempfile, write_file):
+    """
+    Creates a 3 folder hierarchy in the root of the Synapse Project with each folder
+    having one file with 3 versions of the file.
+    """
+    syn_folders = []
+    syn_files = []
+
+    # Create a folder structure 3 levels deep
+    parent = syn_project
+    for count in range(1, 4):
+        syn_folder = syn_test_helper.create_folder(name='Folder{0}'.format(count), parent=parent)
+
+        # Create 3 versions of the file in this folder.
+        temp_file = mk_tempfile()
+
+        syn_file = None
+        for version_num in range(1, 4):
+            write_file(temp_file, 'version{0}'.format(version_num))
+
+            syn_file = syn_test_helper.create_file(
+                path=temp_file,
+                parent=syn_folder,
+                name=os.path.basename(temp_file))
+        syn_files.append(syn_file)
+
+        parent = syn_folder
+        syn_folders.append(syn_folder)
+
+    return syn_folders, syn_files
 
 
 def assert_matches_project(projectA, projectB):
     """
     Asserts that two Projects match each other.
-    :param projectA:
-    :param projectB:
-    :return: None
     """
     assert projectA.local_path == projectB.local_path
     assert projectA._config_path == projectB._config_path
@@ -46,8 +179,6 @@ def assert_matches_project(projectA, projectB):
 def assert_matches_config(project):
     """
     Asserts that a Project's config matches the Project.
-    :param project:
-    :return: None
     """
     json = None
     with open(project._config_path) as f:
@@ -65,225 +196,222 @@ def assert_matches_config(project):
         assert file
 
 
-def test___init__(mk_tempdir):
+def test_it_sets_the_project_paths(mk_project, mk_tempdir):
     temp_dir = mk_tempdir()
-
-    project = Project(temp_dir)
-
-    # Sets the paths
+    project = mk_project(dir=temp_dir)
     assert project.local_path == temp_dir
     assert project._config_path == os.path.join(temp_dir, Project.CONFIG_FILENAME)
 
-    # Created the config file.
+
+def test_it_creates_a_config_file_from_the_constructor(mk_project):
+    project = mk_project(with_fake_project_files=True)
+
+    # Delete the config file
+    os.remove(project._config_path)
+    assert os.path.exists(project._config_path) is False
+
+    new_project = Project(project.local_path)
+
+    assert os.path.isfile(new_project._config_path)
+    assert_matches_config(new_project)
+
+
+def test_it_loads_the_config_file_from_the_constructor(mk_project, syn_project_files):
+    project = mk_project()
+    other_project = Project(project.local_path)
+    assert_matches_config(other_project)
+    assert_matches_project(other_project, project)
+
+
+def test_it_loads_the_config_file(mk_project):
+    project = mk_project(with_fake_project_files=True)
+
+    other_project = Project(project.local_path)
+    other_project.title = None
+    other_project.description = None
+    other_project.project_uri = None
+    other_project.files.clear()
+
+    other_project.load()
+    assert_matches_project(other_project, project)
+
+
+def test_it_loads_the_config_file_when_it_exists(mk_project):
+    project = mk_project()
     assert os.path.isfile(project._config_path)
-
-    # Created the dir structure
-    # TODO: test this.
-
-    # Load the project and make sure it matches
-    assert_matches_project(project, Project(temp_dir))
-
-
-def test_load(mk_project):
-    test_project = mk_project()
-
-    # Test loading from the constructor.
-    project = Project(test_project.local_path)
-    assert_matches_project(project, test_project)
-
-    # Make sure it loads successfully.
     assert project.load() is True
 
-    os.remove(project._config_path)
 
-    # Does not load since the config file has been deleted.
+def test_it_does_not_load_the_config_file_when_it_does_not_exist(mk_project):
+    project = mk_project()
+    os.remove(project._config_path)
+    assert os.path.isfile(project._config_path) is False
     assert project.load() is False
 
 
-def test_save(mk_project):
-    test_project = mk_project()
+def test_it_creates_a_config_file_when_saved(mk_project, syn_project_files):
+    project = mk_project()
 
-    # Remove the config file
-    os.remove(test_project._config_path)
-    assert os.path.isfile(test_project._config_path) is False
+    # Delete the config file
+    os.remove(project._config_path)
+    assert os.path.exists(project._config_path) is False
 
-    test_project.save()
+    # Save a new config file
+    project.save()
 
-    assert os.path.isfile(test_project._config_path) is True
-    assert_matches_config(test_project)
+    assert os.path.isfile(project._config_path)
+    assert_matches_config(project)
 
 
-def test_get_project_file(mk_project):
-    test_project = mk_project(with_files=True)
+def test_it_updates_the_config_file_when_saved(mk_project, mk_fake_uri, mk_fake_project_file):
+    project = mk_project()
+    project.title = str(uuid.uuid4())
+    project.description = str(uuid.uuid4())
+    project.project_uri = mk_fake_uri()
+    project.files.append(mk_fake_project_file(project.local_path))
 
-    assert len(test_project.files) > 0
+    project.save()
+    assert_matches_config(project)
 
-    for project_file in test_project.files:
-        found = test_project.find_project_file(project_file.remote_uri)
+
+def test_it_creates_the_project_dir_structure(mk_project):
+    # TODO: Test this.
+    pass
+
+
+def test_it_finds_a_project_file(mk_project):
+    project = mk_project(with_fake_project_files=True, with_fake_project_files_count=3)
+    assert len(project.files) == 3
+
+    for project_file in project.files:
+        found = project.find_project_file(project_file.remote_uri)
         assert found == project_file
 
 
-def test_data_pull_exceptions(syn_client, new_syn_project, mk_project, mk_tempdir):
-    test_project = mk_project(with_project=new_syn_project)
+def test_it_does_not_find_a_project_file(mk_project, mk_fake_uri):
+    project = mk_project()
+    assert project.find_project_file(mk_fake_uri()) is None
 
-    syn_folder = syn_client.store(synapseclient.Folder(name='folder', parent=new_syn_project))
-    syn_folder_uri = DataUri(scheme='syn', id=syn_folder.id).uri()
 
-    # Pull a remote_uri with no data_type specified
+def test_it_pulls_a_file_and_adds_it_to_the_project(mk_project, syn_project_files):
+    project = mk_project()
+    assert len(project.files) == 0
+
+    for syn_file in syn_project_files:
+        syn_uri = DataUri(scheme='syn', id=syn_file.id).uri()
+
+        # Pull the file.
+        project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
+        project_file = project.find_project_file(syn_uri)
+        assert project_file
+
+        # Does not add duplicate ProjectFile
+        project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
+
+    assert len(project.files) == 3
+
+
+def test_it_pulls_a_folder_and_adds_it_to_the_project(mk_project, syn_project_folders):
+    project = mk_project()
+    assert len(project.files) == 0
+
+    for syn_folder in syn_project_folders:
+        syn_folder_uri = DataUri(scheme='syn', id=syn_folder.id).uri()
+
+        # Pull the folder.
+        project.data_pull(remote_uri=syn_folder_uri, data_type=DataType.CORE, version=None, get_latest=True)
+        project_file = project.find_project_file(syn_folder_uri)
+        assert project_file
+
+        # Does not add duplicate ProjectFile
+        project.data_pull(remote_uri=syn_folder_uri, data_type=DataType.CORE, version=None, get_latest=True)
+
+    assert len(project.files) == 3
+
+
+def test_it_pulls_the_current_version_of_a_file(mk_project, syn_project_files, read_file):
+    project = mk_project()
+    assert len(project.files) == 0
+
+    for syn_file in syn_project_files:
+        syn_uri = DataUri(scheme='syn', id=syn_file.id).uri()
+
+        # Pull the current version of the file.
+        pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
+        assert pfile.version == '3'
+
+        project_file = project.find_project_file(syn_uri)
+        # Version was not specified so it should be None in the ProjectFile.
+        assert project_file.version is None
+
+        assert read_file(pfile.local_path) == 'version3'
+
+
+def test_it_pulls_a_specific_version_of_a_file(mk_project, syn_project_files, read_file):
+    project = mk_project()
+    assert len(project.files) == 0
+
+    for syn_file in syn_project_files:
+        syn_uri = DataUri(scheme='syn', id=syn_file.id).uri()
+
+        # Pull the version 2 of the file.
+        pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version='2', get_latest=False)
+        assert pfile.version == '2'
+
+        project_file = project.find_project_file(syn_uri)
+        # Version was specified so it should be that version in the ProjectFile.
+        assert project_file.version == '2'
+
+        assert read_file(pfile.local_path) == 'version2'
+
+
+def test_it_pulls_the_current_version_of_files_in_a_folder(mk_project, syn_project_folders_and_files, read_file):
+    project = mk_project()
+    assert len(project.files) == 0
+
+    syn_project_folders = syn_project_folders_and_files[0]
+
+    def assert_child_file_version(pfile):
+        if not pfile.is_directory:
+            assert read_file(pfile.local_path) == 'version3'
+        for pchild in pfile.children:
+            assert_child_file_version(pchild)
+
+    for syn_folder in syn_project_folders:
+        syn_uri = DataUri(scheme='syn', id=syn_folder.id).uri()
+
+        # Pull the folder.
+        pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
+        assert pfile.version is None
+
+        project_file = project.find_project_file(syn_uri)
+        # Folders never have a version in the ProjectFile.
+        assert project_file.version is None
+
+        # All the pulled files are the latest version.
+        assert_child_file_version(pfile)
+
+
+def test_it_raises_when_pulling_a_specific_version_for_a_folder(mk_project, syn_project_folders):
+    project = mk_project()
+    syn_folder_uri = DataUri(scheme='syn', id=syn_project_folders[0].id).uri()
+
+    # Pull the file.
     with pytest.raises(ValueError) as ex:
-        test_project.data_pull(remote_uri=syn_folder_uri, data_type=None)
-    assert str(ex.value) == 'remote_uri and data_type are required.'
-
-    # Pull a specific version of a folder
-    with pytest.raises(ValueError) as ex:
-        test_project.data_pull(remote_uri=syn_folder_uri, data_type='core', version='1', get_latest=False)
+        project.data_pull(remote_uri=syn_folder_uri, data_type=DataType.CORE, version='1', get_latest=False)
     assert str(ex.value) == 'version cannot be set when pulling a folder.'
 
-    # Get version and latest
+
+def test_it_raises_when_remote_uri_is_present_and_data_type_is_none(mk_project, mk_fake_uri):
+    project = mk_project()
+
     with pytest.raises(ValueError) as ex:
-        test_project.data_pull(remote_uri=syn_folder_uri, data_type='core', version='1', get_latest=True)
+        project.data_pull(remote_uri=mk_fake_uri(), data_type=None)
+    assert str(ex.value) == 'remote_uri and data_type are required.'
+
+
+def test_it_raises_when_version_and_get_latest_are_set(mk_project, mk_fake_uri):
+    project = mk_project()
+    with pytest.raises(ValueError) as ex:
+        project.data_pull(remote_uri=mk_fake_uri(), data_type='core', version='1', get_latest=True)
     assert str(ex.value) == 'version and get_latest cannot both be set.'
-
-
-def test_data_pull_adds_file_to_project(syn_test_helper, syn_project, mk_project):
-    test_project = mk_project(with_project=syn_project, with_files=True)
-
-    syn_file_uri = test_project.files[0].remote_uri
-
-    test_project.files.clear()
-
-    assert len(test_project.files) == 0
-
-    presult = test_project.data_pull(remote_uri=syn_file_uri, data_type='core', version=None, get_latest=True)
-
-    assert len(test_project.files) == 1
-
-    project_file = test_project.find_project_file(syn_file_uri)
-
-    # Has the correct values
-    assert project_file.remote_uri == syn_file_uri
-    assert project_file.local_path == ProjectFile.to_relative_path(presult.local_path, test_project.local_path)
-    assert project_file.version is None
-
-    # Does not duplicate the ProjectFile
-    test_project.data_pull(remote_uri=syn_file_uri, data_type='core', version=None, get_latest=True)
-    assert len(test_project.files) == 1
-
-
-def test_data_pull_adds_folder_to_project(syn_test_helper, syn_project, mk_project, mk_tempfile, write_file):
-    test_project = mk_project(with_project=syn_project)
-
-    temp_file1 = mk_tempfile()
-    syn_folder1 = syn_test_helper.create_folder(name='folder1', parent=syn_project)
-    syn_file1 = syn_test_helper.create_file(path=temp_file1, parent=syn_folder1)
-
-    temp_file2 = mk_tempfile()
-    syn_folder2 = syn_test_helper.create_folder(name='folder2', parent=syn_folder1)
-    syn_file2 = syn_test_helper.create_file(path=temp_file2, parent=syn_folder2)
-
-    temp_file3 = mk_tempfile()
-    syn_folder3 = syn_test_helper.create_folder(name='folder3', parent=syn_folder2)
-    syn_file3 = syn_test_helper.create_file(path=temp_file3, parent=syn_folder3)
-
-    syn_folder_uri = DataUri(scheme='syn', id=syn_folder1.id).uri()
-
-    test_project.files.clear()
-    assert len(test_project.files) == 0
-
-    pfolder1 = test_project.data_pull(remote_uri=syn_folder_uri, data_type='core', version=None, get_latest=True)
-
-    assert len(test_project.files) == 1
-
-    project_file = test_project.find_project_file(syn_folder_uri)
-
-    assert project_file.remote_uri == syn_folder_uri
-    assert project_file.local_path == ProjectFile.to_relative_path(pfolder1.local_path, test_project.local_path)
-    assert project_file.version is None
-
-    assert os.path.isdir(project_file.to_absolute_path(test_project.local_path))
-
-    # Does not duplicate the ProjectFile
-    pfolder1 = test_project.data_pull(remote_uri=syn_folder_uri, data_type='core', version=None, get_latest=True)
-    assert len(test_project.files) == 1
-
-    # Downloaded all the files and folders
-    # file1
-    pfile1 = next((f for f in pfolder1.children if f.id == syn_file1.id), None)
-    assert os.path.isfile(pfile1.local_path)
-
-    # folder2
-    pfolder2 = pfolder1.children[1]
-    assert os.path.isdir(pfolder2.local_path)
-    assert pfolder2.id == syn_folder2.id
-
-    # file2
-    pfile2 = pfolder2.children[0]
-    assert os.path.isfile(pfile2.local_path)
-    assert pfile2.id == syn_file2.id
-
-    # folder3
-    pfolder3 = pfolder2.children[1]
-    assert os.path.isdir(pfolder3.local_path)
-    assert pfolder3.id == syn_folder3.id
-
-    # file3
-    pfile3 = pfolder3.children[0]
-    assert os.path.isfile(pfile3.local_path)
-    assert pfile3.id == syn_file3.id
-
-
-def test_data_pull_get_latest_version(syn_test_helper, syn_project, mk_project):
-    test_project = mk_project(with_project=syn_project, with_files=True, with_files_versions=2)
-
-    syn_file_uri = test_project.files[0].remote_uri
-
-    test_project.files.clear()
-
-    pfile = test_project.data_pull(remote_uri=syn_file_uri, data_type='core', version=None, get_latest=True)
-    assert pfile.version == '2'
-
-    project_file = test_project.find_project_file(syn_file_uri)
-    assert project_file.version is None
-
-
-def test_data_pull_get_specific_version(syn_test_helper, syn_project, mk_project):
-    test_project = mk_project(with_project=syn_project, with_files=True, with_files_versions=3)
-
-    syn_file_uri = test_project.files[0].remote_uri
-
-    test_project.files.clear()
-
-    # Get version and set the version in the ProjectFile
-    pfile = test_project.data_pull(remote_uri=syn_file_uri, data_type='core', version='2', get_latest=False)
-    assert pfile.version == '2'
-    project_file = test_project.find_project_file(syn_file_uri)
-    assert project_file.version == '2'
-
-    # Gets the version from the ProjectFile
-    pfile = test_project.data_pull(remote_uri=syn_file_uri, data_type='core', version=None, get_latest=False)
-    assert pfile.version == '2'
-    project_file = test_project.find_project_file(syn_file_uri)
-    assert project_file.version == '2'
-
-    # Get version 1 and update the version in the ProjectFile
-    pfile = test_project.data_pull(remote_uri=syn_file_uri, data_type='core', version='1', get_latest=False)
-    assert pfile.version == '1'
-    project_file = test_project.find_project_file(syn_file_uri)
-    assert project_file.version == '1'
-
-    # Get the latest version (3) and clear the version on the ProjectFile
-    # so we always get the latest version when pulling.
-    pfile = test_project.data_pull(remote_uri=syn_file_uri, data_type='core', version=None, get_latest=True)
-    assert pfile.version == '3'
-    project_file = test_project.find_project_file(syn_file_uri)
-    assert project_file.version is None
-
-
-def test_data_pull_folder():
-    # TODO:
-    pass
-
-
-def test_data_all():
-    # TODO:
-    pass

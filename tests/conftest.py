@@ -96,96 +96,7 @@ def new_syn_project(new_syn_test_helper):
     return new_syn_test_helper.create_project()
 
 
-@pytest.fixture()
-def new_test_project(mk_tempdir):
-    """
-    Provides a test Project with one ProjectFile.
-    :return: Project
-    """
-    temp_dir = mk_tempdir()
-
-    project = Project(temp_dir)
-    project.title = 'My Project Title'
-    project.description = 'My Project Description'
-    project.project_uri = 'syn:syn001'
-    project.files.append(
-        ProjectFile(remote_uri='syn:syn002',
-                    local_path=os.path.join('data', 'core', 'file1.csv'),
-                    version='1.2'
-                    )
-    )
-    project.save()
-
-    return project
-
-
-@pytest.fixture()
-def mk_project(mk_tempdir, mk_tempfile, write_file, syn_test_helper):
-    def _mkproject(
-            with_project=False,
-            with_project_scheme='syn',
-            with_files=False,
-            with_files_count=1,
-            with_files_versions=1,
-            **kwargs):
-
-        if kwargs is None:
-            kwargs = {}
-
-        project_path = mk_tempdir()
-        provider_project = None
-        project_files = []
-
-        if with_project or with_files:
-            if isinstance(with_project, bool):
-                if with_project_scheme == 'syn':
-                    provider_project = syn_test_helper.create_project()
-                else:
-                    raise ValueError('Invalid scheme: {0}'.format(with_project_scheme))
-            else:
-                provider_project = with_project
-
-        if with_files:
-            if with_project_scheme == 'syn':
-                for i in range(with_files_count):
-
-                    syn_file = None
-                    temp_file = mk_tempfile(content='version0')
-
-                    for fileversion in range(with_files_versions):
-                        write_file(temp_file, 'version{0}'.format(fileversion + 1))
-                        syn_file = syn_test_helper.create_file(
-                            name=os.path.basename(temp_file),
-                            path=temp_file,
-                            parent=provider_project)
-
-                    remote_uri = DataUri(scheme='syn', id=syn_file.id).uri()
-                    local_path = ProjectFile.to_relative_path(temp_file, project_path)
-
-                    project_files.append(ProjectFile(remote_uri=remote_uri, local_path=local_path))
-            else:
-                raise ValueError('Invalid scheme: {0}'.format(with_project_scheme))
-
-        project_uri = DataUri(scheme=with_project_scheme)
-        if provider_project:
-            project_uri.id = provider_project.id
-        else:
-            project_uri.id = DataUri.parse(kwargs.get('project_uri', '{0}:123456'.format(with_project_scheme))).id
-
-        project = Project(
-            project_path,
-            title=kwargs.get('title', 'My Project Title'),
-            description=kwargs.get('description', 'My Project Description'),
-            project_uri=project_uri.uri(),
-            files=project_files
-        )
-
-        return project
-
-    yield _mkproject
-
-
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def mk_tempdir():
     created = []
 
@@ -201,7 +112,7 @@ def mk_tempdir():
             shutil.rmtree(path)
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def mk_tempfile(mk_tempdir, syn_test_helper):
     temp_dir = mk_tempdir()
 
@@ -217,7 +128,7 @@ def mk_tempfile(mk_tempdir, syn_test_helper):
         shutil.rmtree(temp_dir)
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def write_file():
     def _write(file, content):
         with open(file, mode='w') as f:
@@ -226,7 +137,7 @@ def write_file():
     yield _write
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def read_file():
     def _read(file):
         with open(file, mode='r') as f:
@@ -235,7 +146,7 @@ def read_file():
     yield _read
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def delete_file():
     def _delete(file):
         if os.path.isfile(file):

@@ -14,7 +14,6 @@
 
 import os
 import json as JSON
-
 from .project_template import ProjectTemplate
 from .project_file import ProjectFile
 from .data_type import DataType
@@ -123,8 +122,9 @@ class Project(object):
         """
         Takes the file at local_path and uploads it to the remote project,
         or uploads all project files (with changes).
-
         :param local_path:
+        :param data_type:
+        :param remote_uri:
         :return:
         """
         result = None
