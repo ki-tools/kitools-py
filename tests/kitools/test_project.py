@@ -22,64 +22,6 @@ from src.kitools import Project, ProjectFile, DataType, DataUri
 
 
 @pytest.fixture(scope='session')
-def mk_project(syn_project, mk_tempdir, mk_uniq_string, mk_fake_project_file):
-    def _mk(dir=None,
-            with_fake_project_files=False,
-            with_fake_project_files_count=1):
-
-        project = Project((dir or mk_tempdir()),
-                          project_uri=DataUri(scheme='syn', id=syn_project.id).uri(),
-                          title=mk_uniq_string(),
-                          description=mk_uniq_string())
-
-        if with_fake_project_files:
-            for _ in range(with_fake_project_files_count):
-                project.files.append(mk_fake_project_file(project.local_path))
-
-        project.save()
-        return project
-
-    yield _mk
-
-
-@pytest.fixture(scope='session')
-def mk_uniq_string():
-    def _mk():
-        return str(uuid.uuid4()).replace('-', '_')
-
-    yield _mk
-
-
-@pytest.fixture(scope='session')
-def mk_uniq_integer():
-    def _mk():
-        return str(uuid.uuid4().int)
-
-    yield _mk
-
-
-@pytest.fixture(scope='session')
-def mk_fake_uri(mk_uniq_integer):
-    def _mk(scheme='syn'):
-        return DataUri(scheme=scheme, id='syn:syn{0}'.format(mk_uniq_integer())).uri()
-
-    yield _mk
-
-
-@pytest.fixture(scope='session')
-def mk_fake_project_file(mk_tempdir, mk_fake_uri, mk_uniq_string):
-    def _mk(project_path, data_type=DataType.CORE):
-        file_path = os.path.join(
-            DataType(data_type).to_project_path(project_path),
-            '{0}.csv'.format(mk_uniq_string()))
-
-        rel_path = ProjectFile.to_relative_path(file_path, project_path)
-        return ProjectFile(remote_uri=mk_fake_uri(), local_path=rel_path, version='1')
-
-    yield _mk
-
-
-@pytest.fixture(scope='session')
 def syn_project_files(syn_project, syn_test_helper, mk_tempfile, write_file):
     """
     Creates 3 files in the root of the Synapse Project with each file having 3 versions.
@@ -171,7 +113,7 @@ def assert_matches_project(projectA, projectB):
     for fileA in projectA.files:
         fileB = next((b for b in projectB.files if
                       b.remote_uri == fileA.remote_uri and
-                      b.local_path == fileA.local_path and
+                      b.rel_path == fileA.rel_path and
                       b.version == fileA.version), None)
         assert fileB
 
@@ -191,7 +133,7 @@ def assert_matches_config(project):
     for jfile in json.get('files'):
         file = next((f for f in project.files if
                      f.remote_uri == jfile['remote_uri'] and
-                     f.local_path == jfile['local_path'] and
+                     f.rel_path == jfile['rel_path'] and
                      f.version == jfile['version']), None)
         assert file
 
@@ -217,7 +159,7 @@ def test_it_creates_a_config_file_from_the_constructor(mk_project):
 
 
 def test_it_loads_the_config_file_from_the_constructor(mk_project, syn_project_files):
-    project = mk_project()
+    project = mk_project(with_fake_project_files=True)
     other_project = Project(project.local_path)
     assert_matches_config(other_project)
     assert_matches_project(other_project, project)
@@ -237,20 +179,20 @@ def test_it_loads_the_config_file(mk_project):
 
 
 def test_it_loads_the_config_file_when_it_exists(mk_project):
-    project = mk_project()
+    project = mk_project(with_fake_project_files=True)
     assert os.path.isfile(project._config_path)
     assert project.load() is True
 
 
 def test_it_does_not_load_the_config_file_when_it_does_not_exist(mk_project):
-    project = mk_project()
+    project = mk_project(with_fake_project_files=True)
     os.remove(project._config_path)
     assert os.path.isfile(project._config_path) is False
     assert project.load() is False
 
 
 def test_it_creates_a_config_file_when_saved(mk_project, syn_project_files):
-    project = mk_project()
+    project = mk_project(with_fake_project_files=True)
 
     # Delete the config file
     os.remove(project._config_path)
@@ -264,11 +206,11 @@ def test_it_creates_a_config_file_when_saved(mk_project, syn_project_files):
 
 
 def test_it_updates_the_config_file_when_saved(mk_project, mk_fake_uri, mk_fake_project_file):
-    project = mk_project()
+    project = mk_project(with_fake_project_files=True)
     project.title = str(uuid.uuid4())
     project.description = str(uuid.uuid4())
     project.project_uri = mk_fake_uri()
-    project.files.append(mk_fake_project_file(project.local_path))
+    project.files.append(mk_fake_project_file(project))
 
     project.save()
     assert_matches_config(project)
@@ -279,18 +221,32 @@ def test_it_creates_the_project_dir_structure(mk_project):
     pass
 
 
-def test_it_finds_a_project_file(mk_project):
+def test_it_finds_a_project_file_by_uri(mk_project):
     project = mk_project(with_fake_project_files=True, with_fake_project_files_count=3)
     assert len(project.files) == 3
 
     for project_file in project.files:
-        found = project.find_project_file(project_file.remote_uri)
+        found = project.find_project_file_by_uri(project_file.remote_uri)
+        assert found == project_file
+
+
+def test_it_finds_a_project_file_by_path(mk_project):
+    project = mk_project(with_fake_project_files=True, with_fake_project_files_count=3)
+    assert len(project.files) == 3
+
+    for project_file in project.files:
+        # Absolute path
+        found = project.find_project_file_by_path(project_file.abs_path)
+        assert found == project_file
+
+        # Relative path
+        found = project.find_project_file_by_path(project_file.rel_path)
         assert found == project_file
 
 
 def test_it_does_not_find_a_project_file(mk_project, mk_fake_uri):
     project = mk_project()
-    assert project.find_project_file(mk_fake_uri()) is None
+    assert project.find_project_file_by_uri(mk_fake_uri()) is None
 
 
 def test_it_pulls_a_file_and_adds_it_to_the_project(mk_project, syn_project_files):
@@ -302,7 +258,7 @@ def test_it_pulls_a_file_and_adds_it_to_the_project(mk_project, syn_project_file
 
         # Pull the file.
         project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
-        project_file = project.find_project_file(syn_uri)
+        project_file = project.find_project_file_by_uri(syn_uri)
         assert project_file
 
         # Does not add duplicate ProjectFile
@@ -320,7 +276,7 @@ def test_it_pulls_a_folder_and_adds_it_to_the_project(mk_project, syn_project_fo
 
         # Pull the folder.
         project.data_pull(remote_uri=syn_folder_uri, data_type=DataType.CORE, version=None, get_latest=True)
-        project_file = project.find_project_file(syn_folder_uri)
+        project_file = project.find_project_file_by_uri(syn_folder_uri)
         assert project_file
 
         # Does not add duplicate ProjectFile
@@ -340,7 +296,7 @@ def test_it_pulls_the_current_version_of_a_file(mk_project, syn_project_files, r
         pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
         assert pfile.version == '3'
 
-        project_file = project.find_project_file(syn_uri)
+        project_file = project.find_project_file_by_uri(syn_uri)
         # Version was not specified so it should be None in the ProjectFile.
         assert project_file.version is None
 
@@ -358,7 +314,7 @@ def test_it_pulls_a_specific_version_of_a_file(mk_project, syn_project_files, re
         pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version='2', get_latest=False)
         assert pfile.version == '2'
 
-        project_file = project.find_project_file(syn_uri)
+        project_file = project.find_project_file_by_uri(syn_uri)
         # Version was specified so it should be that version in the ProjectFile.
         assert project_file.version == '2'
 
@@ -384,7 +340,7 @@ def test_it_pulls_the_current_version_of_files_in_a_folder(mk_project, syn_proje
         pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
         assert pfile.version is None
 
-        project_file = project.find_project_file(syn_uri)
+        project_file = project.find_project_file_by_uri(syn_uri)
         # Folders never have a version in the ProjectFile.
         assert project_file.version is None
 
@@ -407,7 +363,7 @@ def test_it_raises_when_remote_uri_is_present_and_data_type_is_none(mk_project, 
 
     with pytest.raises(ValueError) as ex:
         project.data_pull(remote_uri=mk_fake_uri(), data_type=None)
-    assert str(ex.value) == 'remote_uri and data_type are required.'
+    assert str(ex.value) == 'Invalid data type: None'
 
 
 def test_it_raises_when_version_and_get_latest_are_set(mk_project, mk_fake_uri):
@@ -415,3 +371,30 @@ def test_it_raises_when_version_and_get_latest_are_set(mk_project, mk_fake_uri):
     with pytest.raises(ValueError) as ex:
         project.data_pull(remote_uri=mk_fake_uri(), data_type='core', version='1', get_latest=True)
     assert str(ex.value) == 'version and get_latest cannot both be set.'
+
+
+def test_it_pushes_a_file_to_a_synapse_project(syn_project, mk_project, write_file):
+    project = mk_project()
+    filename = 'test.csv'
+    file_path = os.path.join(DataType(DataType.CORE).to_project_path(project.local_path), filename)
+    write_file(file_path, 'version1')
+
+    assert len(project.files) == 0
+
+    pfile = project.data_push(file_path, data_type=DataType.CORE)
+    assert pfile
+
+    assert len(project.files) == 1
+    # TODO: finish asserts
+
+
+def test_it_pushes_a_file_to_a_synapse_folder(syn_project, mk_project, write_file):
+    # TODO:
+    pass
+
+
+def test_it_pushes_a_file_to_a_synapse_file(syn_project, mk_project, write_file):
+    # TODO:
+    pass
+
+# TODO: add more data_push tests

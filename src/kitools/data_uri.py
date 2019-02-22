@@ -41,7 +41,7 @@ class DataUri(object):
     @staticmethod
     def parse(uri):
         if not uri:
-            raise ValueError('URI must be specified.')
+            raise ValueError('uri must be specified.')
 
         # Clean up the URI.
         uri = uri.strip().replace(' ', '')
@@ -55,6 +55,6 @@ class DataUri(object):
         id = segments[1]
 
         if scheme not in DataUri.SCHEMES:
-            raise ValueError('Invalid scheme: {0}'.format(scheme))
+            raise ValueError('Invalid URI scheme: {0}'.format(scheme))
 
         return DataUri(scheme=scheme, id=id)

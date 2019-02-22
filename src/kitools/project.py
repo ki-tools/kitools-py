@@ -47,13 +47,21 @@ class Project(object):
         self.save()
         return self
 
-    def find_project_file(self, remote_uri):
+    def find_project_file_by_uri(self, remote_uri):
         """
         Gets a ProjectFile by remote_uri
         :param remote_uri:
         :return: ProjectFile or None
         """
         return next((f for f in self.files if f.remote_uri == remote_uri), None)
+
+    def find_project_file_by_path(self, local_path):
+        """
+        Gets a ProjectFile by remote_uri
+        :param remote_uri:
+        :return: ProjectFile or None
+        """
+        return next((f for f in self.files if f.abs_path == local_path or f.rel_path == local_path), None)
 
     def data_pull(self, remote_uri=None, data_type=None, version=None, get_latest=True):
         """
@@ -66,9 +74,6 @@ class Project(object):
         :param get_latest: pull the latest remote version (cannot be used if version is set)
         :return: A single ProviderFile or a list of ProviderFiles if pulling all.
         """
-        if remote_uri and not data_type:
-            raise ValueError('remote_uri and data_type are required.')
-
         if version and get_latest:
             raise ValueError('version and get_latest cannot both be set.')
 
@@ -80,7 +85,7 @@ class Project(object):
             data_provider = data_uri.data_provider()
             data_type = DataType(data_type)
 
-            project_file = self.find_project_file(remote_uri)
+            project_file = self.find_project_file_by_uri(remote_uri)
 
             pull_version = version
 
@@ -103,10 +108,8 @@ class Project(object):
                     # Set the version
                     project_file.version = provider_file.version
             else:
-                # Add the ProjectFile
-                relative_path = ProjectFile.to_relative_path(provider_file.local_path, self.local_path)
-                project_file = ProjectFile(remote_uri=data_uri.uri(), local_path=relative_path, version=version)
-                self.files.append(project_file)
+                # Add a ProjectFile
+                self.__add_project_file(provider_file, data_uri.uri(), version=version)
 
             result = provider_file
         else:
@@ -129,11 +132,56 @@ class Project(object):
         """
         result = None
 
-        data_uri = DataUri.parse(remote_uri or self.project_uri)
-        data_provider = data_uri.data_provider()
-        data_type = DataType(data_type)
+        if not os.path.isfile(local_path):
+            raise ValueError('local_path must be a file.')
+
+        if local_path:
+            # Push a specific file
+            local_path = os.path.abspath(local_path)
+
+            # Push to a specific remote_uri otherwise push to the main project.
+            data_uri = DataUri.parse(remote_uri or self.project_uri)
+            data_provider = data_uri.data_provider()
+            data_type = DataType(data_type)
+
+            # TODO: Make sure the file is in the correct folder based on the data_type.
+
+            provider_file = data_provider.data_push(data_uri.id, local_path)
+
+            # Update the data_uri now that the file has been stored.
+            data_uri = DataUri(scheme=data_uri.scheme, id=provider_file.id)
+
+            # See if the file is already in the project
+            project_file = self.find_project_file_by_uri(data_uri.uri()) or self.find_project_file_by_path(local_path)
+
+            if project_file:
+                # Make sure it's the same file
+                if project_file.abs_path != local_path:
+                    raise Exception('Existing project file found but does not match file path: {0} : {1}'.format(
+                        project_file.abs_path, local_path))
+
+                if project_file.remote_uri != data_uri.uri():
+                    raise Exception('Existing project file found but has different remote_uri: {0} : {1}'.format(
+                        project_file.remote_uri, data_uri.uri()))
+            else:
+                # Add a ProjectFile
+                self.__add_project_file(provider_file, data_uri.uri())
+
+            result = provider_file
+        else:
+            # Push all files
+            # TODO: implement this
+            raise NotImplementedError()
 
         return result
+
+    def __add_project_file(self, provider_file, remote_uri, version=None):
+        project_file = ProjectFile(self,
+                                   remote_uri=remote_uri,
+                                   local_path=provider_file.local_path,
+                                   version=version)
+        self.files.append(project_file)
+        return project_file
 
     def data_list(self):
         """
@@ -183,13 +231,12 @@ class Project(object):
     def _project_file_to_json(self, project_file):
         return {
             'remote_uri': project_file.remote_uri,
-            'local_path': project_file.local_path,
+            'rel_path': project_file.rel_path,
             'version': project_file.version
         }
 
     def _json_to_project_file(self, json):
-        return ProjectFile(
-            remote_uri=json.get('remote_uri'),
-            local_path=json.get('local_path'),
-            version=json.get('version')
-        )
+        return ProjectFile(self,
+                           remote_uri=json.get('remote_uri'),
+                           local_path=json.get('rel_path'),
+                           version=json.get('version'))

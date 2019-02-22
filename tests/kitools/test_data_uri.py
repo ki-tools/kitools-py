@@ -32,7 +32,7 @@ def test___init__():
 
     with pytest.raises(ValueError) as ex:
         DataUri.parse(None)
-    assert str(ex.value) == 'URI must be specified.'
+    assert str(ex.value) == 'uri must be specified.'
 
     for bad_uri in ['syn', 'syn123', 'syn:123:abc']:
         with pytest.raises(ValueError) as ex:

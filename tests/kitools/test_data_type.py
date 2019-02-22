@@ -24,7 +24,7 @@ def test___init__():
 
     with pytest.raises(ValueError) as ex:
         DataType(None)
-    assert str(ex.value) == 'Name must be specified.'
+    assert str(ex.value) == 'Invalid data type: None'
 
     with pytest.raises(ValueError) as ex:
         DataType('not-a-valid-type')

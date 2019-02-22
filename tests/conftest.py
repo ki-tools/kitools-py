@@ -17,6 +17,7 @@ import os
 import tempfile
 import shutil
 import json
+import uuid
 from src.kitools import Project, ProjectFile, DataUri, DataType
 from tests.synapse_test_helper import SynapseTestHelper
 import synapseclient
@@ -97,15 +98,73 @@ def new_syn_project(new_syn_test_helper):
 
 
 @pytest.fixture(scope='session')
+def mk_project(syn_project, mk_tempdir, mk_uniq_string, mk_fake_project_file):
+    def _mk(dir=None,
+            with_fake_project_files=False,
+            with_fake_project_files_count=1):
+
+        project = Project((dir or mk_tempdir()),
+                          project_uri=DataUri(scheme='syn', id=syn_project.id).uri(),
+                          title=mk_uniq_string(),
+                          description=mk_uniq_string())
+
+        if with_fake_project_files:
+            for _ in range(with_fake_project_files_count):
+                project.files.append(mk_fake_project_file(project))
+
+        project.save()
+        return project
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_uniq_string():
+    def _mk():
+        return str(uuid.uuid4()).replace('-', '_')
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_uniq_integer():
+    def _mk():
+        return str(uuid.uuid4().int)
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_fake_uri(mk_uniq_integer):
+    def _mk(scheme='syn'):
+        return DataUri(scheme=scheme, id='{0}{1}'.format(scheme, mk_uniq_integer())).uri()
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def mk_fake_project_file(mk_tempdir, mk_fake_uri, mk_uniq_string, write_file):
+    def _mk(project, data_type=DataType.CORE):
+        file_path = os.path.join(DataType(data_type).to_project_path(project.local_path),
+                                 '{0}.csv'.format(mk_uniq_string()))
+
+        write_file(file_path, mk_uniq_string())
+
+        return ProjectFile(project, remote_uri=mk_fake_uri(), local_path=file_path, version='1')
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
 def mk_tempdir():
     created = []
 
-    def _mktempdir():
+    def _mk():
         path = tempfile.mkdtemp()
         created.append(path)
         return path
 
-    yield _mktempdir
+    yield _mk
 
     for path in created:
         if os.path.isdir(path):
@@ -116,13 +175,13 @@ def mk_tempdir():
 def mk_tempfile(mk_tempdir, syn_test_helper):
     temp_dir = mk_tempdir()
 
-    def _mktempfile(content=syn_test_helper.uniq_name()):
+    def _mk(content=syn_test_helper.uniq_name()):
         fd, tmp_filename = tempfile.mkstemp(dir=temp_dir)
         with os.fdopen(fd, 'w') as tmp:
             tmp.write(content)
         return tmp_filename
 
-    yield _mktempfile
+    yield _mk
 
     if os.path.isdir(temp_dir):
         shutil.rmtree(temp_dir)

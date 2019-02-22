@@ -22,10 +22,7 @@ class DataType(object):
     ALL = [CORE, DISCOVERED, DERIVED]
 
     def __init__(self, name):
-        if not name:
-            raise ValueError('Name must be specified.')
-
-        name = name.lower()
+        name = name.lower() if name else None
         if name not in self.ALL:
             raise ValueError('Invalid data type: {0}'.format(name))
 

@@ -17,32 +17,55 @@ import os
 
 class ProjectFile(object):
 
-    def __init__(self, remote_uri=None, local_path=None, version=None):
+    def __init__(self, project, remote_uri, local_path, version=None):
         """
         :param remote_uri: The remote URI of the folder or file.
-        :param local_path: The relative path from the project root to the folder or file.
+        :param local_path: The relative (from the project root) or absolute path to the folder or file.
         :param version: The version of the file.
         """
-        self.remote_uri = remote_uri
-        self.local_path = local_path
-        self.version = str(version) if version else None
+        self._project = project
+        self._remote_uri = remote_uri
+        self._local_path = None
 
-    def to_absolute_path(self, root_path):
+        if os.path.exists(local_path):
+            self._local_path = local_path
+        else:
+            full_path = os.path.join(self.project.local_path, local_path)
+            if os.path.exists(full_path):
+                self._local_path = full_path
+            else:
+                raise FileNotFoundError('Could not find file: {0}'.format(local_path))
+
+        self._version = str(version) if version else None
+
+    @property
+    def project(self):
+        return self._project
+
+    @property
+    def remote_uri(self):
+        return self._remote_uri
+
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, value):
+        self._version = value
+
+    @property
+    def abs_path(self):
         """
-        Gets the absolute path from a root path.
-        :param root_path:
+        Gets the absolute path to the file.
         :return:
         """
-        root_path = os.path.abspath(root_path)
-        return os.path.join(root_path, self.local_path)
+        return os.path.join(self.project.local_path, self.rel_path)
 
-    @staticmethod
-    def to_relative_path(child_path, root_path):
+    @property
+    def rel_path(self):
         """
-        Gets the relative path of a child file for folder from a root path.
-        :param root_path:
-        :param child_path:
+        Gets the path of the file relative to the project's root directory.
         :return:
         """
-        root_path = os.path.abspath(root_path)
-        return os.path.relpath(child_path, start=root_path)
+        return os.path.relpath(self._local_path, start=self.project.local_path)

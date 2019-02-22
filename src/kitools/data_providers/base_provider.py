@@ -65,9 +65,10 @@ class BaseProvider(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def data_push(self, local_path):
+    def data_push(self, remote_id, local_path):
         """
         Uploads a file for folder to a data provider from a local directory.
+        :param remote_id:
         :param local_path:
         :return:
         """

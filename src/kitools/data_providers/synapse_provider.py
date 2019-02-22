@@ -88,5 +88,30 @@ class SynapseProvider(BaseProvider):
 
         return provider_file
 
-    def data_push(self, local_path):
-        raise NotImplementedError()
+    def data_push(self, remote_id, local_path):
+        remote_entity = None
+        try:
+            remote_entity = SynapseProvider.client().get(remote_id)
+        except Exception as ex:
+            # TODO: log this
+            pass
+
+        syn_parent_id = None
+
+        if isinstance(remote_entity, synapseclient.Project) or isinstance(remote_entity, synapseclient.Folder):
+            syn_parent_id = remote_entity.id
+        else:
+            syn_parent_id = remote_entity.get('parentId')
+
+        entity = SynapseProvider.client().store(synapseclient.File(path=local_path, parent=syn_parent_id))
+
+        provider_file = ProviderFile(
+            entity.id,
+            entity.name,
+            entity.get('versionNumber', None),
+            is_directory=isinstance(entity, synapseclient.Folder),
+            local_path=entity.get('path', os.path.join(local_path, entity.name)),
+            raw=entity
+        )
+
+        return provider_file

@@ -14,37 +14,44 @@
 
 import pytest
 import os
-from src.kitools import ProjectFile
+from src.kitools import ProjectFile, DataType
 
 
-def test___init__():
-    test_remote_uri = 'syn:syn123'
-    test_path = '/tmp/test.csv'
-    test_version = '1.2'
-    project_file = ProjectFile(remote_uri=test_remote_uri, local_path=test_path, version=test_version)
-
-    assert project_file.remote_uri == test_remote_uri
-    assert project_file.local_path == test_path
-    assert project_file.version == test_version
-
-    # Ensure version is a string
-    assert ProjectFile(version=None).version is None
-    assert ProjectFile(version=1).version == '1'
-    assert ProjectFile(version='').version is None
+@pytest.fixture(scope='session')
+def project(mk_project):
+    return mk_project()
 
 
-def test_to_absolute_path():
-    rel_path = os.path.join('one', 'two', 'three')
-    project_file = ProjectFile(local_path=rel_path)
-    root_path = os.path.join('/', 'tmp', 'project')
+@pytest.fixture(scope='session')
+def fake_uri(mk_fake_uri):
+    return mk_fake_uri()
 
-    abs_path = project_file.to_absolute_path(root_path)
-    assert abs_path == os.path.join(root_path, rel_path)
 
-def test_to_relative_path():
-    root_path = os.path.join('/', 'tmp', 'project')
-    expected_rel_path = os.path.join('one', 'two', 'three')
-    child_path = os.path.join(root_path, expected_rel_path)
+@pytest.fixture(scope='session')
+def file_abs_path(project, write_file):
+    path = os.path.join(DataType(DataType.CORE).to_project_path(project.local_path), 'test.csv')
+    write_file(path, 'test file')
+    return path
 
-    rel_path = ProjectFile.to_relative_path(child_path, root_path)
-    assert rel_path == expected_rel_path
+
+@pytest.fixture(scope='session')
+def file_rel_path(project, file_abs_path):
+    return os.path.relpath(file_abs_path, start=project.local_path)
+
+
+def test_it_parses_a_abs_path(project, fake_uri, file_abs_path, file_rel_path):
+    project_file = ProjectFile(project, fake_uri, file_abs_path)
+    assert project_file.abs_path == file_abs_path
+    assert project_file.rel_path == file_rel_path
+
+
+def test_it_parses_a_rel_path(project, fake_uri, file_abs_path, file_rel_path):
+    project_file = ProjectFile(project, fake_uri, file_rel_path)
+    assert project_file.abs_path == file_abs_path
+    assert project_file.rel_path == file_rel_path
+
+
+def test_it_converts_version_to_a_string(project, fake_uri, file_abs_path):
+    assert ProjectFile(project, fake_uri, file_abs_path, version=None).version is None
+    assert ProjectFile(project, fake_uri, file_abs_path, version=1).version == '1'
+    assert ProjectFile(project, fake_uri, file_abs_path, version='').version is None
