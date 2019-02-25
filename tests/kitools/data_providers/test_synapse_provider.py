@@ -172,3 +172,8 @@ def test_data_pull_folder(syn_client, new_syn_project, mk_tempdir, mk_tempfile, 
         assert pfile3.version == str(i)
         assert len(pfile3.children) == 0
         assert read_file(pfile3.local_path) == 'folder3_file_version{0}'.format(i)
+
+
+def test_data_push():
+    # TODO: test this
+    pass

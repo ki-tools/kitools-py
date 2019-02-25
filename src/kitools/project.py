@@ -14,6 +14,7 @@
 
 import os
 import json as JSON
+from beautifultable import BeautifulTable
 from .project_template import ProjectTemplate
 from .project_file import ProjectFile
 from .data_type import DataType
@@ -109,7 +110,7 @@ class Project(object):
                     project_file.version = provider_file.version
             else:
                 # Add a ProjectFile
-                self.__add_project_file(provider_file, data_uri.uri(), version=version)
+                self.__add_project_file(provider_file, data_uri.uri, version=version)
 
             result = provider_file
         else:
@@ -149,10 +150,10 @@ class Project(object):
             provider_file = data_provider.data_push(data_uri.id, local_path)
 
             # Update the data_uri now that the file has been stored.
-            data_uri = DataUri(scheme=data_uri.scheme, id=provider_file.id)
+            data_uri = DataUri(data_uri.scheme, provider_file.id)
 
             # See if the file is already in the project
-            project_file = self.find_project_file_by_uri(data_uri.uri()) or self.find_project_file_by_path(local_path)
+            project_file = self.find_project_file_by_uri(data_uri.uri) or self.find_project_file_by_path(local_path)
 
             if project_file:
                 # Make sure it's the same file
@@ -160,12 +161,12 @@ class Project(object):
                     raise Exception('Existing project file found but does not match file path: {0} : {1}'.format(
                         project_file.abs_path, local_path))
 
-                if project_file.remote_uri != data_uri.uri():
+                if project_file.remote_uri != data_uri.uri:
                     raise Exception('Existing project file found but has different remote_uri: {0} : {1}'.format(
-                        project_file.remote_uri, data_uri.uri()))
+                        project_file.remote_uri, data_uri.uri))
             else:
                 # Add a ProjectFile
-                self.__add_project_file(provider_file, data_uri.uri())
+                self.__add_project_file(provider_file, data_uri.uri)
 
             result = provider_file
         else:
@@ -186,8 +187,16 @@ class Project(object):
     def data_list(self):
         """
         Prints out a nice table of all the available project file entries.
+        :return: BeautifulTable
         """
-        return None
+        table = BeautifulTable(max_width=1000)
+        table.set_style(BeautifulTable.STYLE_BOX)
+        table.column_headers = ['Remote URI', 'Pinned Version', 'Path']
+        for pf in self.files:
+            table.append_row([pf.remote_uri, pf.version, pf.rel_path])
+
+        print(table)
+        return table
 
     def load(self):
         """

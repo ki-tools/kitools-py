@@ -93,7 +93,7 @@ class SynapseProvider(BaseProvider):
         try:
             remote_entity = SynapseProvider.client().get(remote_id)
         except Exception as ex:
-            # TODO: log this
+            # TODO: log this?
             pass
 
         syn_parent_id = None

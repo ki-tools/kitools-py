@@ -22,6 +22,7 @@ setuptools.setup(
         "Operating System :: OS Independent"
     ),
     install_requires=[
-        'synapseclient==1.9.2'
+        'synapseclient==1.9.2',
+        'beautifultable==0.7.0'
     ]
 )

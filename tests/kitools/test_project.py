@@ -158,7 +158,7 @@ def test_it_creates_a_config_file_from_the_constructor(mk_project):
     assert_matches_config(new_project)
 
 
-def test_it_loads_the_config_file_from_the_constructor(mk_project, syn_project_files):
+def test_it_loads_the_config_file_from_the_constructor(mk_project):
     project = mk_project(with_fake_project_files=True)
     other_project = Project(project.local_path)
     assert_matches_config(other_project)
@@ -191,7 +191,7 @@ def test_it_does_not_load_the_config_file_when_it_does_not_exist(mk_project):
     assert project.load() is False
 
 
-def test_it_creates_a_config_file_when_saved(mk_project, syn_project_files):
+def test_it_creates_a_config_file_when_saved(mk_project):
     project = mk_project(with_fake_project_files=True)
 
     # Delete the config file
@@ -254,7 +254,7 @@ def test_it_pulls_a_file_and_adds_it_to_the_project(mk_project, syn_project_file
     assert len(project.files) == 0
 
     for syn_file in syn_project_files:
-        syn_uri = DataUri(scheme='syn', id=syn_file.id).uri()
+        syn_uri = DataUri('syn', syn_file.id).uri
 
         # Pull the file.
         project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
@@ -267,12 +267,17 @@ def test_it_pulls_a_file_and_adds_it_to_the_project(mk_project, syn_project_file
     assert len(project.files) == 3
 
 
+def test_it_does_not_pull_a_file_unless_the_remote_file_changed():
+    # TODO: test this
+    pass
+
+
 def test_it_pulls_a_folder_and_adds_it_to_the_project(mk_project, syn_project_folders):
     project = mk_project()
     assert len(project.files) == 0
 
     for syn_folder in syn_project_folders:
-        syn_folder_uri = DataUri(scheme='syn', id=syn_folder.id).uri()
+        syn_folder_uri = DataUri('syn', syn_folder.id).uri
 
         # Pull the folder.
         project.data_pull(remote_uri=syn_folder_uri, data_type=DataType.CORE, version=None, get_latest=True)
@@ -290,7 +295,7 @@ def test_it_pulls_the_current_version_of_a_file(mk_project, syn_project_files, r
     assert len(project.files) == 0
 
     for syn_file in syn_project_files:
-        syn_uri = DataUri(scheme='syn', id=syn_file.id).uri()
+        syn_uri = DataUri('syn', syn_file.id).uri
 
         # Pull the current version of the file.
         pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
@@ -308,7 +313,7 @@ def test_it_pulls_a_specific_version_of_a_file(mk_project, syn_project_files, re
     assert len(project.files) == 0
 
     for syn_file in syn_project_files:
-        syn_uri = DataUri(scheme='syn', id=syn_file.id).uri()
+        syn_uri = DataUri('syn', syn_file.id).uri
 
         # Pull the version 2 of the file.
         pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version='2', get_latest=False)
@@ -334,7 +339,7 @@ def test_it_pulls_the_current_version_of_files_in_a_folder(mk_project, syn_proje
             assert_child_file_version(pchild)
 
     for syn_folder in syn_project_folders:
-        syn_uri = DataUri(scheme='syn', id=syn_folder.id).uri()
+        syn_uri = DataUri('syn', syn_folder.id).uri
 
         # Pull the folder.
         pfile = project.data_pull(remote_uri=syn_uri, data_type=DataType.CORE, version=None, get_latest=True)
@@ -350,7 +355,7 @@ def test_it_pulls_the_current_version_of_files_in_a_folder(mk_project, syn_proje
 
 def test_it_raises_when_pulling_a_specific_version_for_a_folder(mk_project, syn_project_folders):
     project = mk_project()
-    syn_folder_uri = DataUri(scheme='syn', id=syn_project_folders[0].id).uri()
+    syn_folder_uri = DataUri('syn', syn_project_folders[0].id).uri
 
     # Pull the file.
     with pytest.raises(ValueError) as ex:
@@ -373,28 +378,145 @@ def test_it_raises_when_version_and_get_latest_are_set(mk_project, mk_fake_uri):
     assert str(ex.value) == 'version and get_latest cannot both be set.'
 
 
-def test_it_pushes_a_file_to_a_synapse_project(syn_project, mk_project, write_file):
+def test_it_pushes_a_file_to_a_synapse_project(syn_test_helper, syn_project, mk_project, write_file, mk_uniq_string):
     project = mk_project()
-    filename = 'test.csv'
+    filename = '{0}.csv'.format(mk_uniq_string())
     file_path = os.path.join(DataType(DataType.CORE).to_project_path(project.local_path), filename)
     write_file(file_path, 'version1')
 
     assert len(project.files) == 0
 
-    pfile = project.data_push(file_path, data_type=DataType.CORE)
-    assert pfile
+    pfile = project.data_push(file_path, data_type=DataType.CORE, remote_uri=None)
+    assert pfile.name == filename
+    assert pfile.local_path == file_path
+    assert pfile.version == '1'
+    assert pfile.is_directory is False
+    assert len(pfile.children) == 0
 
     assert len(project.files) == 1
-    # TODO: finish asserts
+
+    remote_uri = DataUri('syn', pfile.id).uri
+
+    project_file = project.find_project_file_by_uri(remote_uri)
+    assert project_file.project == project
+    assert project_file.version is None
+    assert project_file.abs_path == file_path
+    assert project_file.rel_path == 'data{0}core{0}{1}'.format(os.sep, filename)
+
+    syn_entity = syn_test_helper.client().get(DataUri.parse(project_file.remote_uri).id)
+    assert syn_entity.get('parentId') == syn_project.id
 
 
-def test_it_pushes_a_file_to_a_synapse_folder(syn_project, mk_project, write_file):
-    # TODO:
+def test_it_does_not_push_a_file_unless_the_local_file_has_changed():
+    # TODO: test this
     pass
 
 
-def test_it_pushes_a_file_to_a_synapse_file(syn_project, mk_project, write_file):
-    # TODO:
+def test_it_pushes_a_file_to_a_synapse_folder(syn_test_helper, syn_project, mk_project, write_file, mk_uniq_string):
+    project = mk_project()
+    filename = '{0}.csv'.format(mk_uniq_string())
+    file_path = os.path.join(DataType(DataType.CORE).to_project_path(project.local_path), filename)
+    write_file(file_path, 'version1')
+
+    syn_folder = syn_test_helper.create_folder(parent=syn_project)
+
+    remote_uri = DataUri('syn', syn_folder.id).uri
+
+    assert len(project.files) == 0
+
+    pfile = project.data_push(file_path, data_type=DataType.CORE, remote_uri=remote_uri)
+    assert pfile.name == filename
+    assert pfile.local_path == file_path
+    assert pfile.version == '1'
+    assert pfile.is_directory is False
+    assert len(pfile.children) == 0
+
+    assert len(project.files) == 1
+
+    file_remote_uri = DataUri('syn', pfile.id).uri
+
+    project_file = project.find_project_file_by_uri(file_remote_uri)
+    assert project_file.project == project
+    assert project_file.version is None
+    assert project_file.abs_path == file_path
+    assert project_file.rel_path == 'data{0}core{0}{1}'.format(os.sep, filename)
+
+    syn_entity = syn_test_helper.client().get(DataUri.parse(project_file.remote_uri).id)
+    assert syn_entity.get('parentId') == syn_folder.id
+
+
+def test_it_pushes_a_file_to_a_synapse_file(syn_test_helper, syn_project, mk_project, write_file, mk_uniq_string):
+    project = mk_project()
+    filename = '{0}.csv'.format(mk_uniq_string())
+    file_path = os.path.join(DataType(DataType.CORE).to_project_path(project.local_path), filename)
+    write_file(file_path, 'version1')
+
+    syn_file = syn_test_helper.create_file(name=filename, path=file_path, parent=syn_project)
+
+    # Write a new version is it gets uploaded
+    write_file(file_path, 'version2')
+
+    remote_uri = DataUri('syn', syn_file.id).uri
+
+    assert len(project.files) == 0
+
+    pfile = project.data_push(file_path, data_type=DataType.CORE, remote_uri=remote_uri)
+    assert pfile.name == filename
+    assert pfile.local_path == file_path
+    assert pfile.version == '2'
+    assert pfile.is_directory is False
+    assert len(pfile.children) == 0
+
+    assert len(project.files) == 1
+
+    project_file = project.find_project_file_by_uri(remote_uri)
+    assert project_file.project == project
+    assert project_file.version is None
+    assert project_file.abs_path == file_path
+    assert project_file.rel_path == 'data{0}core{0}{1}'.format(os.sep, filename)
+
+    syn_entity = syn_test_helper.client().get(DataUri.parse(project_file.remote_uri).id)
+    assert syn_entity.id == syn_file.id
+    assert syn_entity.get('parentId') == syn_project.id
+
+
+def test_it_raises_an_error_if_the_local_path_does_not_exist(mk_project, mk_tempfile):
+    project = mk_project()
+
+    temp_file = mk_tempfile()
+    os.remove(temp_file)
+    assert os.path.exists(temp_file) is False
+
+    with pytest.raises(ValueError) as ex:
+        project.data_push(temp_file, data_type=DataType.CORE, remote_uri=None)
+    assert str(ex.value) == 'local_path must be a file.'
+
+
+def test_it_raises_an_error_if_the_local_path_is_not_file(mk_project, mk_tempdir):
+    project = mk_project()
+
+    temp_dir = mk_tempdir()
+    os.rmdir(temp_dir)
+    assert os.path.exists(temp_dir) is False
+
+    with pytest.raises(ValueError) as ex:
+        project.data_push(temp_dir, data_type=DataType.CORE, remote_uri=None)
+    assert str(ex.value) == 'local_path must be a file.'
+
+
+def test_it_raises_an_error_if_the_local_is_not_in_one_of_the_data_type_dirs():
+    # TODO: test this
     pass
 
-# TODO: add more data_push tests
+
+def test_it_prints_out_all_the_project_files(mk_project):
+    project = mk_project(with_fake_project_files=True, with_fake_project_files_count=3)
+    table = project.data_list()
+
+    index = 0
+    for pf in project.files:
+        row = table[index]
+        assert row[0] == pf.remote_uri
+        assert row[1] == pf.version
+        assert row[2] == pf.rel_path
+        index += 1

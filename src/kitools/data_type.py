@@ -26,7 +26,11 @@ class DataType(object):
         if name not in self.ALL:
             raise ValueError('Invalid data type: {0}'.format(name))
 
-        self.name = name
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
 
     def to_project_path(self, project_path):
         """

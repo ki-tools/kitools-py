@@ -28,10 +28,19 @@ class DataUri(object):
         }
     }
 
-    def __init__(self, scheme=None, id=None):
-        self.scheme = scheme
-        self.id = id
+    def __init__(self, scheme, id):
+        self._scheme = scheme
+        self._id = id
 
+    @property
+    def scheme(self):
+        return self._scheme
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
     def uri(self):
         return '{0}:{1}'.format(self.scheme, self.id)
 
@@ -57,4 +66,4 @@ class DataUri(object):
         if scheme not in DataUri.SCHEMES:
             raise ValueError('Invalid URI scheme: {0}'.format(scheme))
 
-        return DataUri(scheme=scheme, id=id)
+        return DataUri(scheme, id)

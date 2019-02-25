@@ -25,7 +25,7 @@ def test___init__():
         duri = DataUri.parse(uri)
         assert duri.scheme == scheme
         assert duri.id == id
-        assert duri.uri() == uri.lower()
+        assert duri.uri == uri.lower()
 
         if scheme == 'syn':
             assert isinstance(duri.data_provider(), SynapseProvider)

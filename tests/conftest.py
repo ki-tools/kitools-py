@@ -104,7 +104,7 @@ def mk_project(syn_project, mk_tempdir, mk_uniq_string, mk_fake_project_file):
             with_fake_project_files_count=1):
 
         project = Project((dir or mk_tempdir()),
-                          project_uri=DataUri(scheme='syn', id=syn_project.id).uri(),
+                          project_uri=DataUri('syn', syn_project.id).uri,
                           title=mk_uniq_string(),
                           description=mk_uniq_string())
 
@@ -137,7 +137,7 @@ def mk_uniq_integer():
 @pytest.fixture(scope='session')
 def mk_fake_uri(mk_uniq_integer):
     def _mk(scheme='syn'):
-        return DataUri(scheme=scheme, id='{0}{1}'.format(scheme, mk_uniq_integer())).uri()
+        return DataUri(scheme, '{0}{1}'.format(scheme, mk_uniq_integer())).uri
 
     yield _mk
 

@@ -17,11 +17,40 @@ class ProviderFile(object):
     """
     Encapsulates a file/folder from a provider.
     """
+
     def __init__(self, id, name, version, local_path=None, raw=None, is_directory=False, children=None):
-        self.id = id
-        self.name = name
-        self.version = str(version) if version else None
-        self.local_path = local_path
-        self.raw = raw
-        self.is_directory = is_directory
-        self.children = children or []
+        self._id = id
+        self._name = name
+        self._version = str(version) if version else None
+        self._local_path = local_path
+        self._is_directory = is_directory
+        self._children = children or []
+        self._raw = raw
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def version(self):
+        return self._version
+
+    @property
+    def local_path(self):
+        return self._local_path
+
+    @property
+    def is_directory(self):
+        return self._is_directory
+
+    @property
+    def children(self):
+        return self._children
+
+    @property
+    def raw(self):
+        return self._raw

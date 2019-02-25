@@ -1,4 +1,5 @@
 synapseclient==1.9.2
+beautifultable==0.7.0
 wheel
 autopep8
 pylint
