@@ -25,28 +25,28 @@ class Project(object):
     CONFIG_FILENAME = 'project.json'
 
     def __init__(self, local_path, title=None, description=None, project_uri=None, files=None):
-        self.local_path = os.path.abspath(local_path) if local_path else None
+        if not local_path or local_path.strip() == '':
+            raise ValueError('local_path is required.')
+
+        self.local_path = os.path.abspath(local_path)
         self.title = title
         self.description = description
         self.project_uri = project_uri
         self.files = files or []
-
-        if not local_path or local_path.strip() == '':
-            raise ValueError('local_path is required.')
 
         self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
 
         self._loaded = False
 
         if self.load():
-            print('Project loaded from: {0}'.format(self.local_path))
+            print('Project successfully loaded and ready to use.')
             self._loaded = True
         else:
-            if self._create():
+            if self._init_project():
                 self._loaded = True
-                print('Project created successfully.')
+                print('Project initialized successfully and ready to use.')
             else:
-                print('Project creation failed.')
+                print('Project initialization failed.')
 
     def _ensure_loaded(self):
         """
@@ -56,18 +56,18 @@ class Project(object):
         if not self._loaded:
             raise Exception('Project configuration not created or loaded.')
 
-    def _create(self):
+    def _init_project(self):
         """
         Configures and creates the project.
         :return:
         """
-        if not self._create_local_path():
+        if not self._init_local_path():
             return False
 
-        if not self._create_title():
+        if not self._init_title():
             return False
 
-        if not self._create_project_uri():
+        if not self._init_project_uri():
             return False
 
         ProjectTemplate(self.local_path).write()
@@ -75,7 +75,7 @@ class Project(object):
         self.save()
         return True
 
-    def _create_local_path(self):
+    def _init_local_path(self):
         """
         Ensures the local_path is set.
         :return:
@@ -83,7 +83,7 @@ class Project(object):
         answer = input('Create project in: {0} [y/n]: '.format(self.local_path))
         return answer and answer.strip().lower() == 'y'
 
-    def _create_title(self):
+    def _init_title(self):
         """
         Ensure the title is set.
         :return:
@@ -92,34 +92,35 @@ class Project(object):
             self.title = input('Project title: ')
         return True
 
-    def _create_project_uri(self):
+    def _init_project_uri(self):
         """
         Ensures the project_uri is set and valid.
         :return:
         """
         if not self.project_uri:
-            answer = input('Create remote project or use existing? [c/e]: ')
             while True:
+                answer = input('Create remote project or use existing? [c/e]: ')
                 if answer == 'c':
-                    return self._create_project_uri_new()
+                    return self._init_project_uri_new()
                 elif answer == 'e':
-                    return self._create_project_uri_existing()
+                    return self._init_project_uri_existing()
                 else:
                     print('Invalid input. Enter "c" to create a new project or "e" to use an existing project.')
         else:
-            return self._create_project_uri_existing()
+            return self._init_project_uri_existing()
 
-    def _create_project_uri_new(self):
+    def _init_project_uri_new(self):
         """
         Creates a new remote project and sets the project_uri.
         :return: True or False
         """
         data_uri = DataUri(DataUri.default_scheme(), None)
+        data_provider = data_uri.data_provider()
 
         while True:
             try:
                 project_name = input('Remote project name: ')
-                remote_project = data_uri.data_provider().create_project(project_name)
+                remote_project = data_provider.create_project(project_name)
                 self.project_uri = DataUri(DataUri.default_scheme(), remote_project.id).uri
                 print('Remote project created at URI: {0}'.format(self.project_uri))
                 return True
@@ -131,7 +132,7 @@ class Project(object):
 
         return False
 
-    def _create_project_uri_existing(self):
+    def _init_project_uri_existing(self):
         """
         Sets the project_uri to an existing remote project.
         :return:
@@ -161,9 +162,9 @@ class Project(object):
         try:
             data_uri = DataUri.parse(project_uri)
             data_provider = data_uri.data_provider()
+
             remote_project = data_provider.get_project(data_uri.id)
-            if remote_project:
-                return True
+            return remote_project is not None
         except Exception as ex:
             print('Invalid project URI: {0}'.format(str(ex)))
 

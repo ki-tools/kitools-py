@@ -97,11 +97,32 @@ def new_syn_project(new_syn_test_helper):
     return new_syn_test_helper.create_project()
 
 
-@pytest.fixture(scope='session')
-def mk_project(syn_project, mk_tempdir, mk_uniq_string, mk_fake_project_file):
+@pytest.fixture()
+def mk_project(mocker, syn_project, mk_tempdir, mk_uniq_string, mk_fake_project_file):
+    def _input_mock(prompt):
+        if 'Create project in:' in prompt:
+            return 'y'
+        elif 'Project title:' in prompt:
+            return mk_uniq_string()
+        elif 'Create remote project or use existing? [c/e]' in prompt:
+            return 'e'
+        elif 'Remote project name:' in prompt:
+            return mk_uniq_string()
+        elif 'Remote project URI (e.g.,' in prompt:
+            return DataUri('syn', syn_project.id).uri
+        elif 'Try again? [y/n]:' in prompt:
+            return 'y'
+        else:
+            raise Exception('Unsupported mock input prompt: {0}'.format(prompt))
+
     def _mk(dir=None,
             with_fake_project_files=False,
             with_fake_project_files_count=1):
+
+        # Mock the user input
+        mock_input = mocker.MagicMock('input')
+        mock_input.side_effect = _input_mock
+        mocker.patch('builtins.input', new=mock_input)
 
         project = Project((dir or mk_tempdir()),
                           project_uri=DataUri('syn', syn_project.id).uri,

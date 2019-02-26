@@ -49,7 +49,7 @@ class SynapseProvider(BaseProvider):
         return ProviderProject(remote_project.id, remote_project.name, raw=remote_project)
 
     def get_project(self, remote_id):
-        # This will raise an exception if the project isn't found.
+        # Note: This will raise an exception if the project isn't found.
         remote_project = SynapseProvider.client().get(synapseclient.Project(id=remote_id))
         return ProviderProject(remote_project.id, remote_project.name, raw=remote_project)
 

@@ -17,24 +17,24 @@ import os
 from src.kitools import ProjectFile, DataType
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def project(mk_project):
     return mk_project()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def fake_uri(mk_fake_uri):
     return mk_fake_uri()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def file_abs_path(project, write_file):
     path = os.path.join(DataType(DataType.CORE).to_project_path(project.local_path), 'test.csv')
     write_file(path, 'test file')
     return path
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def file_rel_path(project, file_abs_path):
     return os.path.relpath(file_abs_path, start=project.local_path)
 
