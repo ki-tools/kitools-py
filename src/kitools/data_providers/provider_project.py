@@ -12,6 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .synapse_provider import SynapseProvider
-from .provider_file import ProviderFile
-from .provider_project import ProviderProject
+
+class ProviderProject(object):
+    """
+    Encapsulates a project from a provider.
+    """
+
+    def __init__(self, id, name, raw=None):
+        self._id = id
+        self._name = name
+        self._raw = raw
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def raw(self):
+        return self._raw

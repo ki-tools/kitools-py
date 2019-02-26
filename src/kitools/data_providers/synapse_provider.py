@@ -15,6 +15,7 @@
 import os
 from .base_provider import BaseProvider
 from .provider_file import ProviderFile
+from .provider_project import ProviderProject
 import synapseclient
 
 
@@ -43,11 +44,14 @@ class SynapseProvider(BaseProvider):
             pass
         return False
 
-    def create_project(self, name, **kwargs):
-        raise NotImplementedError()
+    def create_project(self, name):
+        remote_project = SynapseProvider.client().store(synapseclient.Project(name=name))
+        return ProviderProject(remote_project.id, remote_project.name, raw=remote_project)
 
-    def get_project(self, remote_uri):
-        raise NotImplementedError()
+    def get_project(self, remote_id):
+        # This will raise an exception if the project isn't found.
+        remote_project = SynapseProvider.client().get(synapseclient.Project(id=remote_id))
+        return ProviderProject(remote_project.id, remote_project.name, raw=remote_project)
 
     def data_pull(self, remote_id, local_path, version=None, get_latest=True):
         if version and get_latest:

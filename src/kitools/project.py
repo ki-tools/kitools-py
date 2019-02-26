@@ -25,28 +25,149 @@ class Project(object):
     CONFIG_FILENAME = 'project.json'
 
     def __init__(self, local_path, title=None, description=None, project_uri=None, files=None):
-        self.local_path = local_path
+        self.local_path = os.path.abspath(local_path) if local_path else None
         self.title = title
         self.description = description
         self.project_uri = project_uri
         self.files = files or []
 
+        if not local_path or local_path.strip() == '':
+            raise ValueError('local_path is required.')
+
         self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
 
-        if not self.load():
-            self.create(title=self.title, description=self.description, project_uri=self.project_uri)
+        self._loaded = False
 
-    def create(self, title=None, description=None, project_uri=None):
-        # TODO: Prompt for empty param values.
+        if self.load():
+            print('Project loaded from: {0}'.format(self.local_path))
+            self._loaded = True
+        else:
+            if self._create():
+                self._loaded = True
+                print('Project created successfully.')
+            else:
+                print('Project creation failed.')
+
+    def _ensure_loaded(self):
+        """
+        Ensures the project has been successfully loaded and created.
+        :return:
+        """
+        if not self._loaded:
+            raise Exception('Project configuration not created or loaded.')
+
+    def _create(self):
+        """
+        Configures and creates the project.
+        :return:
+        """
+        if not self._create_local_path():
+            return False
+
+        if not self._create_title():
+            return False
+
+        if not self._create_project_uri():
+            return False
 
         ProjectTemplate(self.local_path).write()
 
-        self.title = title
-        self.description = description
-        self.project_uri = project_uri
-
         self.save()
-        return self
+        return True
+
+    def _create_local_path(self):
+        """
+        Ensures the local_path is set.
+        :return:
+        """
+        answer = input('Create project in: {0} [y/n]: '.format(self.local_path))
+        return answer and answer.strip().lower() == 'y'
+
+    def _create_title(self):
+        """
+        Ensure the title is set.
+        :return:
+        """
+        while self.title is None or self.title.strip() == '':
+            self.title = input('Project title: ')
+        return True
+
+    def _create_project_uri(self):
+        """
+        Ensures the project_uri is set and valid.
+        :return:
+        """
+        if not self.project_uri:
+            answer = input('Create remote project or use existing? [c/e]: ')
+            while True:
+                if answer == 'c':
+                    return self._create_project_uri_new()
+                elif answer == 'e':
+                    return self._create_project_uri_existing()
+                else:
+                    print('Invalid input. Enter "c" to create a new project or "e" to use an existing project.')
+        else:
+            return self._create_project_uri_existing()
+
+    def _create_project_uri_new(self):
+        """
+        Creates a new remote project and sets the project_uri.
+        :return: True or False
+        """
+        data_uri = DataUri(DataUri.default_scheme(), None)
+
+        while True:
+            try:
+                project_name = input('Remote project name: ')
+                remote_project = data_uri.data_provider().create_project(project_name)
+                self.project_uri = DataUri(DataUri.default_scheme(), remote_project.id).uri
+                print('Remote project created at URI: {0}'.format(self.project_uri))
+                return True
+            except Exception as ex:
+                print('Error creating remote project: {0}'.format(str(ex)))
+                answer = input('Try again? [y/n]: ')
+                if answer == 'n':
+                    break
+
+        return False
+
+    def _create_project_uri_existing(self):
+        """
+        Sets the project_uri to an existing remote project.
+        :return:
+        """
+
+        if self.project_uri and self._validate_project_uri(self.project_uri):
+            return True
+
+        data_uri = DataUri(DataUri.default_scheme(), '{0}123456'.format(DataUri.default_scheme()))
+
+        while True:
+            answer = input('Remote project URI (e.g., {0}): '.format(data_uri.uri))
+            valid_project = self._validate_project_uri(answer)
+            if valid_project:
+                self.project_uri = answer
+                print('Remote project URI: {0}'.format(self.project_uri))
+                return True
+
+        return False
+
+    def _validate_project_uri(self, project_uri):
+        """
+        Validates that a remote project exists at a specific data URI.
+        :param project_uri:
+        :return: True or False
+        """
+        try:
+            data_uri = DataUri.parse(project_uri)
+            data_provider = data_uri.data_provider()
+            remote_project = data_provider.get_project(data_uri.id)
+            if remote_project:
+                return True
+        except Exception as ex:
+            print('Invalid project URI: {0}'.format(str(ex)))
+
+        return False
 
     def find_project_file_by_uri(self, remote_uri):
         """
@@ -54,6 +175,8 @@ class Project(object):
         :param remote_uri:
         :return: ProjectFile or None
         """
+        self._ensure_loaded()
+
         return next((f for f in self.files if f.remote_uri == remote_uri), None)
 
     def find_project_file_by_path(self, local_path):
@@ -62,6 +185,8 @@ class Project(object):
         :param remote_uri:
         :return: ProjectFile or None
         """
+        self._ensure_loaded()
+
         return next((f for f in self.files if f.abs_path == local_path or f.rel_path == local_path), None)
 
     def data_pull(self, remote_uri=None, data_type=None, version=None, get_latest=True):
@@ -75,6 +200,8 @@ class Project(object):
         :param get_latest: pull the latest remote version (cannot be used if version is set)
         :return: A single ProviderFile or a list of ProviderFiles if pulling all.
         """
+        self._ensure_loaded()
+
         if version and get_latest:
             raise ValueError('version and get_latest cannot both be set.')
 
@@ -131,6 +258,8 @@ class Project(object):
         :param remote_uri:
         :return:
         """
+        self._ensure_loaded()
+
         result = None
 
         if not os.path.isfile(local_path):
@@ -177,6 +306,8 @@ class Project(object):
         return result
 
     def __add_project_file(self, provider_file, remote_uri, version=None):
+        self._ensure_loaded()
+
         project_file = ProjectFile(self,
                                    remote_uri=remote_uri,
                                    local_path=provider_file.local_path,
@@ -189,6 +320,8 @@ class Project(object):
         Prints out a nice table of all the available project file entries.
         :return: BeautifulTable
         """
+        self._ensure_loaded()
+
         table = BeautifulTable(max_width=1000)
         table.set_style(BeautifulTable.STYLE_BOX)
         table.column_headers = ['Remote URI', 'Pinned Version', 'Path']

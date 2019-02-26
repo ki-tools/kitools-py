@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .synapse_provider import SynapseProvider
-from .provider_file import ProviderFile
-from .provider_project import ProviderProject
+import pytest
+from src.kitools.data_providers import ProviderProject
+
+
+def test___init__():
+    # TODO: test this
+    pass

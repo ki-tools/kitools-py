@@ -48,6 +48,10 @@ class DataUri(object):
         return self.SCHEMES.get(self.scheme).get('data_provider')()
 
     @staticmethod
+    def default_scheme():
+        return 'syn'
+
+    @staticmethod
     def parse(uri):
         if not uri:
             raise ValueError('uri must be specified.')

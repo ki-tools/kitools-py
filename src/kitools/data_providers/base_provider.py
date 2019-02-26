@@ -34,7 +34,7 @@ class BaseProvider(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def create_project(self, name, **kwargs):
+    def create_project(self, name):
         """
         Creates a new project.
         :param name:
@@ -44,10 +44,10 @@ class BaseProvider(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def get_project(self, remote_uri):
+    def get_project(self, remote_id):
         """
         Gets a project.
-        :param remote_uri:
+        :param remote_id:
         :return:
         """
         raise NotImplementedError()
