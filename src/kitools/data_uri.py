@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from src.kitools.data_providers import SynapseProvider
+from .data_providers import SynapseProvider
 
 
 class DataUri(object):
