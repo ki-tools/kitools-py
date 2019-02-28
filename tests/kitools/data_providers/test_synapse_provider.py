@@ -55,13 +55,8 @@ def test_data_pull(syn_client, new_syn_project, mk_tempdir):
 
     # Pull a specific version of a folder
     with pytest.raises(ValueError) as ex:
-        SynapseProvider().data_pull(syn_folder.id, download_dir, version='1', get_latest=False)
+        SynapseProvider().data_pull(syn_folder.id, download_dir, version='1')
     assert str(ex.value) == 'version cannot be set when pulling a folder.'
-
-    # Get version and latest
-    with pytest.raises(ValueError) as ex:
-        SynapseProvider().data_pull(syn_folder.id, download_dir, version='1', get_latest=True)
-    assert str(ex.value) == 'version and get_latest cannot both be set.'
 
 
 def test_data_pull_file(syn_client, new_syn_project, mk_tempdir, mk_tempfile, write_file, read_file):
@@ -75,7 +70,7 @@ def test_data_pull_file(syn_client, new_syn_project, mk_tempdir, mk_tempfile, wr
     assert os.path.exists(download_dir) is False
 
     # Pulls the latest version
-    pfile = SynapseProvider().data_pull(syn_file.id, download_dir, version=None, get_latest=True)
+    pfile = SynapseProvider().data_pull(syn_file.id, download_dir, version=None)
     assert pfile.is_directory is False
     assert pfile.id == syn_file.id
     assert pfile.name == syn_file.name
@@ -87,7 +82,7 @@ def test_data_pull_file(syn_client, new_syn_project, mk_tempdir, mk_tempfile, wr
     assert os.path.exists(download_dir) is True
 
     # Pulls a specific version
-    pfile = SynapseProvider().data_pull(syn_file.id, download_dir, version='1', get_latest=False)
+    pfile = SynapseProvider().data_pull(syn_file.id, download_dir, version='1')
     assert pfile.id == syn_file.id
     assert pfile.version == '1'
     assert read_file(pfile.local_path) == 'version1'
@@ -117,7 +112,7 @@ def test_data_pull_folder(syn_client, new_syn_project, mk_tempdir, mk_tempfile, 
         # Pull the latest folders and files
 
         # folder1
-        pfolder1 = SynapseProvider().data_pull(syn_folder1.id, download_dir, version=None, get_latest=True)
+        pfolder1 = SynapseProvider().data_pull(syn_folder1.id, download_dir, version=None)
         assert pfolder1.is_directory is True
         assert os.path.isdir(pfolder1.local_path)
         assert pfolder1.id == syn_folder1.id

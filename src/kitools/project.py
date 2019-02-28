@@ -23,6 +23,7 @@ from .data_uri import DataUri
 
 class Project(object):
     CONFIG_FILENAME = 'project.json'
+    VERSION_LATEST_KEYWORD = 'latest'
 
     def __init__(self, local_path, title=None, description=None, project_uri=None, files=None):
         if not local_path or local_path.strip() == '':
@@ -39,6 +40,9 @@ class Project(object):
         self._loaded = False
 
         if self.load():
+            # Ensure the project structure exists
+            ProjectTemplate(self.local_path).write()
+
             print('Project successfully loaded and ready to use.')
             self._loaded = True
         else:
@@ -190,7 +194,7 @@ class Project(object):
 
         return next((f for f in self.files if f.abs_path == local_path or f.rel_path == local_path), None)
 
-    def data_pull(self, remote_uri=None, data_type=None, version=None, get_latest=True):
+    def data_pull(self, remote_uri=None, data_type=None, version=VERSION_LATEST_KEYWORD):
         """
         Downloads a file or a complete directory from a remote URI and adds
         the folder or file to the project manifest.
@@ -198,57 +202,86 @@ class Project(object):
         :param remote_uri: the URI of the remote file (e.g., syn:syn123456)
         :param data_type: one of {'core', 'discovered', 'derived'}
         :param version: the version of the file to pull
-        :param get_latest: pull the latest remote version (cannot be used if version is set)
         :return: A single ProviderFile or a list of ProviderFiles if pulling all.
         """
         self._ensure_loaded()
 
-        if version and get_latest:
-            raise ValueError('version and get_latest cannot both be set.')
-
-        result = None
+        get_latest = False
+        if version and version.lower().strip() == self.VERSION_LATEST_KEYWORD:
+            get_latest = True
+            version = None
 
         if remote_uri:
-            # Pull a specific file
-            data_uri = DataUri.parse(remote_uri)
-            data_provider = data_uri.data_provider()
-            data_type = DataType(data_type)
 
             project_file = self.find_project_file_by_uri(remote_uri)
 
+            if project_file:
+                if data_type and data_type != project_file.data_type:
+                    raise ValueError(
+                        'data_type: {0} does not match ProjectFile: {1}.'.format(data_type, project_file.data_type))
+
+                return self.__data_pull_existing(project_file, version=version, get_latest=get_latest)
+            else:
+                if not data_type:
+                    raise ValueError('data_type is required.')
+                return self.__data_pull_new(remote_uri, data_type, version=version)
+        else:
+            if version is not None:
+                raise ValueError('version cannot be specified when pulling all data.')
+
+            results = []
+            for project_file in self.files:
+                results.append(self.__data_pull_existing(project_file, version=None, get_latest=get_latest))
+            return results
+
+    def __data_pull_existing(self, project_file, version=None, get_latest=None):
+        data_uri = DataUri.parse(project_file.remote_uri)
+        data_provider = data_uri.data_provider()
+        data_type = DataType(project_file.data_type)
+
+        pull_version = project_file.version
+
+        if get_latest is True:
+            pull_version = None
+        elif version is not None:
             pull_version = version
 
-            if version is None and project_file is not None and not get_latest:
-                pull_version = project_file.version
+        provider_file = data_provider.data_pull(
+            data_uri.id,
+            data_type.to_project_path(self.local_path),
+            version=pull_version
+        )
 
-            provider_file = data_provider.data_pull(
-                data_uri.id,
-                data_type.to_project_path(self.local_path),
-                version=pull_version,
-                get_latest=get_latest
-            )
+        set_version = provider_file.version
 
-            if project_file:
-                # Update the version
-                if get_latest:
-                    # Set the version to None so we know to always get the latest version.
-                    project_file.version = None
-                elif version is not None:
-                    # Set the version
-                    project_file.version = provider_file.version
-            else:
-                # Add a ProjectFile
-                self.__add_project_file(provider_file, data_uri.uri, version=version)
+        if get_latest is True:
+            # Update the ProjectFile version to None so it always gets the latest.
+            set_version = None
+        elif version is not None:
+            # Update the ProjectFile to a specific version so it always gets that version.
+            set_version = version
 
-            result = provider_file
-        else:
-            # Pull all files
-            # TODO: implement this
-            raise NotImplementedError()
+        if project_file.version != set_version:
+            project_file.version = set_version
+            self.save()
 
+        return provider_file
+
+    def __data_pull_new(self, remote_uri, data_type, version=None):
+        data_uri = DataUri.parse(remote_uri)
+        data_provider = data_uri.data_provider()
+        data_type = DataType(data_type)
+
+        provider_file = data_provider.data_pull(
+            data_uri.id,
+            data_type.to_project_path(self.local_path),
+            version=version
+        )
+
+        self.__add_project_file(provider_file, data_uri.uri, version=version)
         self.save()
 
-        return result
+        return provider_file
 
     def data_push(self, local_path=None, data_type=None, remote_uri=None):
         """
@@ -297,6 +330,7 @@ class Project(object):
             else:
                 # Add a ProjectFile
                 self.__add_project_file(provider_file, data_uri.uri)
+                self.save()
 
             result = provider_file
         else:

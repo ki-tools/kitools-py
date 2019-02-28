@@ -53,13 +53,12 @@ class BaseProvider(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def data_pull(self, remote_id, local_path, version=None, get_latest=True):
+    def data_pull(self, remote_id, local_path, version=None):
         """
         Downloads a file for folder from a data provider into a local directory.
         :param remote_id:
         :param local_path:
-        :param version:
-        :param get_latest:
+        :param version: The version to pull or None for the latest version.
         :return:
         """
         raise NotImplementedError()

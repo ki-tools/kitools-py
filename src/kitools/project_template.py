@@ -34,8 +34,10 @@ class ProjectTemplate:
                 os.makedirs(full_path)
 
     def create_gitignore(self):
-        # TODO: implement this
-        pass
+        gitignore_path = os.path.join(self.local_path, '.gitignore')
+        if not os.path.isfile(gitignore_path):
+            # TODO: implement this
+            pass
 
     @staticmethod
     def project_dir_names():

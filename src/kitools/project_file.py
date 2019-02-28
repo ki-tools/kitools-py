@@ -31,10 +31,7 @@ class ProjectFile(object):
             self._local_path = local_path
         else:
             full_path = os.path.join(self.project.local_path, local_path)
-            if os.path.exists(full_path):
-                self._local_path = full_path
-            else:
-                raise FileNotFoundError('Could not find file: {0}'.format(local_path))
+            self._local_path = full_path
 
         self._version = str(version) if version else None
 
@@ -53,6 +50,10 @@ class ProjectFile(object):
     @version.setter
     def version(self, value):
         self._version = value
+
+    @property
+    def data_type(self):
+        return self.rel_path.split(os.sep)[1]
 
     @property
     def abs_path(self):

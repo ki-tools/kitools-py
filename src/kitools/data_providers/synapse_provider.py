@@ -53,10 +53,7 @@ class SynapseProvider(BaseProvider):
         remote_project = SynapseProvider.client().get(synapseclient.Project(id=remote_id))
         return ProviderProject(remote_project.id, remote_project.name, raw=remote_project)
 
-    def data_pull(self, remote_id, local_path, version=None, get_latest=True):
-        if version and get_latest:
-            raise ValueError('version and get_latest cannot both be set.')
-
+    def data_pull(self, remote_id, local_path, version=None):
         entity = SynapseProvider.client().get(
             remote_id,
             downloadFile=True,
@@ -87,7 +84,7 @@ class SynapseProvider(BaseProvider):
             for syn_child in syn_children:
                 child_local_path = provider_file.local_path if provider_file.is_directory else local_path
 
-                child = self.data_pull(syn_child.get('id'), child_local_path, version=None, get_latest=True)
+                child = self.data_pull(syn_child.get('id'), child_local_path, version=None)
                 provider_file.children.append(child)
 
         return provider_file
