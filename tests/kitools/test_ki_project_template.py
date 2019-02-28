@@ -12,25 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+import os
+from src.kitools.ki_project_template import KiProjectTemplate
 
-class ProviderProject(object):
-    """
-    Encapsulates a project from a provider.
-    """
 
-    def __init__(self, id, name, raw=None):
-        self._id = id
-        self._name = name
-        self._raw = raw
+def test_write(mk_tempdir):
+    pass
 
-    @property
-    def id(self):
-        return self._id
 
-    @property
-    def name(self):
-        return self._name
+def test_create_dirs(mk_tempdir):
+    pass
 
-    @property
-    def raw(self):
-        return self._raw
+
+def test_create_gitignore(mk_tempdir):
+    pass

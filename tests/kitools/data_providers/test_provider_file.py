@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytest
-from src.kitools.data_providers import ProviderFile
+from src.kitools import RemoteFile
 
 
 def test___init__():
@@ -21,16 +21,16 @@ def test___init__():
     test_name = 'test name'
     test_version = '1'
     test_local_path = '/tmp'
-    test_raw = {'name': 'a object'}
+    test_source = {'name': 'a object'}
     test_is_directory = True
-    test_children = [ProviderFile('id', 'name', '1')]
+    test_children = [RemoteFile('id', 'name', '1')]
 
-    project_file = ProviderFile(
+    project_file = RemoteFile(
         test_id,
         test_name,
         test_version,
         local_path=test_local_path,
-        raw=test_raw,
+        source=test_source,
         is_directory=test_is_directory,
         children=test_children
     )
@@ -39,11 +39,11 @@ def test___init__():
     assert project_file.name == test_name
     assert project_file.version == test_version
     assert project_file.local_path == test_local_path
-    assert project_file.raw == test_raw
+    assert project_file.source == test_source
     assert project_file.is_directory == test_is_directory
     assert project_file.children == test_children
 
     # Ensure version is a string
-    assert ProviderFile('id', 'name', version=None).version is None
-    assert ProviderFile('id', 'name', version=1).version == '1'
-    assert ProviderFile('id', 'name', version='').version is None
+    assert RemoteFile('id', 'name', version=None).version is None
+    assert RemoteFile('id', 'name', version=1).version == '1'
+    assert RemoteFile('id', 'name', version='').version is None

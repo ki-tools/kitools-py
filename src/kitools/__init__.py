@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .project import Project
-from .project_file import ProjectFile
+from .ki_project import KiProject
+from .ki_project_file import KiProjectFile
 from .data_type import DataType
 from .data_uri import DataUri
+from .remote_project import RemoteProject
+from .remote_file import RemoteFile
 
 name = 'kitools'

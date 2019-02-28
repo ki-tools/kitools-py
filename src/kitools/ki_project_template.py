@@ -15,7 +15,7 @@
 import os
 
 
-class ProjectTemplate:
+class KiProjectTemplate:
 
     def __init__(self, local_path):
         self.local_path = local_path
@@ -28,7 +28,7 @@ class ProjectTemplate:
         if not os.path.exists(self.local_path):
             os.makedirs(self.local_path)
 
-        for dirname in ProjectTemplate.project_dir_names():
+        for dirname in KiProjectTemplate.project_dir_names():
             full_path = os.path.join(self.local_path, dirname)
             if not os.path.exists(full_path):
                 os.makedirs(full_path)

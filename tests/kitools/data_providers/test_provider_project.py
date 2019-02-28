@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytest
-from src.kitools.data_providers import ProviderProject
+from src.kitools import RemoteProject
 
 
 def test___init__():

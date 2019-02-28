@@ -13,19 +13,19 @@
 # limitations under the License.
 
 
-class ProviderFile(object):
+class RemoteFile(object):
     """
     Encapsulates a file/folder from a provider.
     """
 
-    def __init__(self, id, name, version, local_path=None, raw=None, is_directory=False, children=None):
+    def __init__(self, id, name, version, local_path=None, source=None, is_directory=False, children=None):
         self._id = id
         self._name = name
         self._version = str(version) if version else None
         self._local_path = local_path
         self._is_directory = is_directory
         self._children = children or []
-        self._raw = raw
+        self._source = source
 
     @property
     def id(self):
@@ -52,5 +52,5 @@ class ProviderFile(object):
         return self._children
 
     @property
-    def raw(self):
-        return self._raw
+    def source(self):
+        return self._source

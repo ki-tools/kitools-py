@@ -36,7 +36,7 @@ class BaseProvider(object):
     @abc.abstractmethod
     def create_project(self, name):
         """
-        Creates a new project.
+        Creates a new remote project.
         :param name:
         :param kwargs:
         :return:
@@ -46,7 +46,7 @@ class BaseProvider(object):
     @abc.abstractmethod
     def get_project(self, remote_id):
         """
-        Gets a project.
+        Gets a remote project.
         :param remote_id:
         :return:
         """

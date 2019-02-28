@@ -14,8 +14,8 @@
 
 import os
 from .base_provider import BaseProvider
-from .provider_file import ProviderFile
-from .provider_project import ProviderProject
+from src.kitools.remote_file import RemoteFile
+from src.kitools.remote_project import RemoteProject
 import synapseclient
 
 
@@ -46,12 +46,12 @@ class SynapseProvider(BaseProvider):
 
     def create_project(self, name):
         remote_project = SynapseProvider.client().store(synapseclient.Project(name=name))
-        return ProviderProject(remote_project.id, remote_project.name, raw=remote_project)
+        return RemoteProject(remote_project.id, remote_project.name, source=remote_project)
 
     def get_project(self, remote_id):
         # Note: This will raise an exception if the project isn't found.
         remote_project = SynapseProvider.client().get(synapseclient.Project(id=remote_id))
-        return ProviderProject(remote_project.id, remote_project.name, raw=remote_project)
+        return RemoteProject(remote_project.id, remote_project.name, source=remote_project)
 
     def data_pull(self, remote_id, local_path, version=None):
         entity = SynapseProvider.client().get(
@@ -62,32 +62,32 @@ class SynapseProvider(BaseProvider):
             version=version
         )
 
-        provider_file = ProviderFile(
+        remote_file = RemoteFile(
             entity.id,
             entity.name,
             entity.get('versionNumber', None),
             is_directory=isinstance(entity, synapseclient.Folder),
             local_path=entity.get('path', os.path.join(local_path, entity.name)),
-            raw=entity
+            source=entity
         )
 
-        if provider_file.is_directory:
+        if remote_file.is_directory:
             if version is not None:
                 raise ValueError('version cannot be set when pulling a folder.')
 
             # Create the local directory for the folder.
-            if not os.path.exists(provider_file.local_path):
-                os.makedirs(provider_file.local_path)
+            if not os.path.exists(remote_file.local_path):
+                os.makedirs(remote_file.local_path)
 
             syn_children = SynapseProvider.client().getChildren(entity, includeTypes=['folder', 'file'])
 
             for syn_child in syn_children:
-                child_local_path = provider_file.local_path if provider_file.is_directory else local_path
+                child_local_path = remote_file.local_path if remote_file.is_directory else local_path
 
                 child = self.data_pull(syn_child.get('id'), child_local_path, version=None)
-                provider_file.children.append(child)
+                remote_file.children.append(child)
 
-        return provider_file
+        return remote_file
 
     def data_push(self, remote_id, local_path):
         remote_entity = None
@@ -106,13 +106,13 @@ class SynapseProvider(BaseProvider):
 
         entity = SynapseProvider.client().store(synapseclient.File(path=local_path, parent=syn_parent_id))
 
-        provider_file = ProviderFile(
+        remote_file = RemoteFile(
             entity.id,
             entity.name,
             entity.get('versionNumber', None),
             is_directory=isinstance(entity, synapseclient.Folder),
             local_path=entity.get('path', os.path.join(local_path, entity.name)),
-            raw=entity
+            source=entity
         )
 
-        return provider_file
+        return remote_file

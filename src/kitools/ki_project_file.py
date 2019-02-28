@@ -15,29 +15,29 @@
 import os
 
 
-class ProjectFile(object):
+class KiProjectFile(object):
 
-    def __init__(self, project, remote_uri, local_path, version=None):
+    def __init__(self, kiproject, remote_uri, local_path, version=None):
         """
         :param remote_uri: The remote URI of the folder or file.
-        :param local_path: The relative (from the project root) or absolute path to the folder or file.
+        :param local_path: The relative (from the KiProject root) or absolute path to the folder or file.
         :param version: The version of the file.
         """
-        self._project = project
+        self._kiproject = kiproject
         self._remote_uri = remote_uri
         self._local_path = None
 
         if os.path.exists(local_path):
             self._local_path = local_path
         else:
-            full_path = os.path.join(self.project.local_path, local_path)
+            full_path = os.path.join(self.kiproject.local_path, local_path)
             self._local_path = full_path
 
         self._version = str(version) if version else None
 
     @property
-    def project(self):
-        return self._project
+    def kiproject(self):
+        return self._kiproject
 
     @property
     def remote_uri(self):
@@ -61,12 +61,12 @@ class ProjectFile(object):
         Gets the absolute path to the file.
         :return:
         """
-        return os.path.join(self.project.local_path, self.rel_path)
+        return os.path.join(self.kiproject.local_path, self.rel_path)
 
     @property
     def rel_path(self):
         """
-        Gets the path of the file relative to the project's root directory.
+        Gets the path of the file relative to the KiProject's root directory.
         :return:
         """
-        return os.path.relpath(self._local_path, start=self.project.local_path)
+        return os.path.relpath(self._local_path, start=self.kiproject.local_path)

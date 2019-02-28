@@ -18,7 +18,7 @@ import tempfile
 import shutil
 import json
 import uuid
-from src.kitools import Project, ProjectFile, DataUri, DataType
+from src.kitools import KiProject, KiProjectFile, DataUri, DataType
 from src.kitools.data_providers import SynapseProvider
 from tests.synapse_test_helper import SynapseTestHelper
 import synapseclient
@@ -99,24 +99,24 @@ def new_syn_project(new_syn_test_helper):
 
 
 @pytest.fixture()
-def mk_project(syn_dispose_of, mk_mock_project_input, mk_tempdir, mk_uniq_string, mk_fake_project_file):
+def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_string, mk_fake_project_file):
     def _mk(dir=None,
             with_fake_project_files=False,
             with_fake_project_files_count=1):
 
-        mk_mock_project_input()
+        mk_mock_kiproject_input()
 
-        project = Project(dir or mk_tempdir())
+        kiproject = KiProject(dir or mk_tempdir())
 
         if with_fake_project_files:
             for _ in range(with_fake_project_files_count):
-                project.files.append(mk_fake_project_file(project))
+                kiproject.files.append(mk_fake_project_file(kiproject))
 
-        project.save()
+        kiproject.save()
 
-        syn_dispose_of(project)
+        syn_dispose_of(kiproject)
 
-        return project
+        return kiproject
 
     yield _mk
 
@@ -131,9 +131,9 @@ def syn_dispose_of(syn_test_helper):
 
 
 @pytest.fixture()
-def mk_mock_project_input(mocker, syn_test_helper, mk_uniq_string):
+def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
     """
-    Mocks out the prompts during Project initialization.
+    Mocks out the prompts during KiProject initialization.
     """
 
     def _mk(create_project_in='y',
@@ -144,11 +144,11 @@ def mk_mock_project_input(mocker, syn_test_helper, mk_uniq_string):
             try_again='y'):
 
         def _input_mock(prompt):
-            if 'Create project in:' in prompt:
+            if 'Create KiProject in:' in prompt:
                 return create_project_in
-            elif 'Project title:' in prompt:
+            elif 'KiProject title:' in prompt:
                 return project_title
-            elif 'Create remote project or use existing? [c/e]' in prompt:
+            elif 'Create a remote project or use an existing? [c/e]:' in prompt:
                 return create_remote_project_or_existing
             elif 'Remote project name:' in prompt:
                 return remote_project_name
@@ -168,9 +168,9 @@ def mk_mock_project_input(mocker, syn_test_helper, mk_uniq_string):
     real_create_project = SynapseProvider.create_project
 
     def _mock_create_project(self, project_name):
-        provider_project = real_create_project(self, project_name)
-        syn_test_helper.dispose_of(provider_project.raw)
-        return provider_project
+        remote_project = real_create_project(self, project_name)
+        syn_test_helper.dispose_of(remote_project.source)
+        return remote_project
 
     mocker.patch('src.kitools.data_providers.SynapseProvider.create_project', new=_mock_create_project)
 
@@ -205,27 +205,27 @@ def mk_fake_uri(mk_uniq_integer):
 
 @pytest.fixture(scope='session')
 def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
-    def _mk(project, data_type=DataType.CORE):
-        file_path = os.path.join(DataType(data_type).to_project_path(project.local_path),
+    def _mk(kiproject, data_type=DataType.CORE):
+        file_path = os.path.join(DataType(data_type).to_project_path(kiproject.local_path),
                                  '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 
-        return ProjectFile(project, mk_fake_uri(), file_path, version='1')
+        return KiProjectFile(kiproject, mk_fake_uri(), file_path, version='1')
 
     yield _mk
 
 
 @pytest.fixture(scope='session')
 def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
-    def _mk(project, data_type=DataType.CORE):
-        file_path = os.path.join(DataType(data_type).to_project_path(project.local_path),
+    def _mk(kiproject, data_type=DataType.CORE):
+        file_path = os.path.join(DataType(data_type).to_project_path(kiproject.local_path),
                                  '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 
-        project.data_push(file_path, data_type=data_type)
-        return project.find_project_file_by_path(file_path)
+        kiproject.data_push(file_path, data_type=data_type)
+        return kiproject.find_project_file_by_path(file_path)
 
     yield _mk
 

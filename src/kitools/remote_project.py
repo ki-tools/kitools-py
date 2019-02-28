@@ -12,18 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-import os
-from src.kitools.project_template import ProjectTemplate
 
+class RemoteProject(object):
+    """
+    Encapsulates a project from a provider.
+    """
 
-def test_write(mk_tempdir):
-    pass
+    def __init__(self, id, name, source=None):
+        self._id = id
+        self._name = name
+        self._source = source
 
+    @property
+    def id(self):
+        return self._id
 
-def test_create_dirs(mk_tempdir):
-    pass
+    @property
+    def name(self):
+        return self._name
 
-
-def test_create_gitignore(mk_tempdir):
-    pass
+    @property
+    def source(self):
+        return self._source

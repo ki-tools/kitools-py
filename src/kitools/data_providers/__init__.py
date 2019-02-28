@@ -13,5 +13,3 @@
 # limitations under the License.
 
 from .synapse_provider import SynapseProvider
-from .provider_file import ProviderFile
-from .provider_project import ProviderProject
