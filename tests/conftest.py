@@ -18,8 +18,8 @@ import tempfile
 import shutil
 import json
 import uuid
-from src.kitools import KiProject, KiProjectFile, DataUri, DataType
-from src.kitools.data_providers import SynapseProvider
+from src.kitools import KiProject, KiProjectResource, DataUri, DataType
+from src.kitools.data_adapters import SynapseAdapter
 from tests.synapse_test_helper import SynapseTestHelper
 import synapseclient
 
@@ -98,6 +98,14 @@ def new_syn_project(new_syn_test_helper):
     return new_syn_test_helper.create_project()
 
 
+@pytest.fixture(scope='session')
+def mk_syn_project(syn_test_helper):
+    def _mk():
+        return syn_test_helper.create_project()
+
+    yield _mk
+
+
 @pytest.fixture()
 def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_string, mk_fake_project_file):
     def _mk(dir=None,
@@ -110,7 +118,7 @@ def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_st
 
         if with_fake_project_files:
             for _ in range(with_fake_project_files_count):
-                kiproject.files.append(mk_fake_project_file(kiproject))
+                kiproject.resources.append(mk_fake_project_file(kiproject))
 
         kiproject.save()
 
@@ -165,18 +173,18 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
         mocker.patch('builtins.input', new=mock_input)
 
     # Catch any new Synapse Projects that are created so they can be cleaned up.
-    real_create_project = SynapseProvider.create_project
+    real_create_project = SynapseAdapter.create_project
 
     def _mock_create_project(self, project_name):
         remote_project = real_create_project(self, project_name)
         syn_test_helper.dispose_of(remote_project.source)
         return remote_project
 
-    mocker.patch('src.kitools.data_providers.SynapseProvider.create_project', new=_mock_create_project)
+    mocker.patch('src.kitools.data_adapters.SynapseAdapter.create_project', new=_mock_create_project)
 
     yield _mk
 
-    SynapseProvider.create_project = real_create_project
+    SynapseAdapter.create_project = real_create_project
 
 
 @pytest.fixture(scope='session')
@@ -211,7 +219,11 @@ def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
 
         write_file(file_path, mk_uniq_string())
 
-        return KiProjectFile(kiproject, mk_fake_uri(), file_path, version='1')
+        return KiProjectResource(kiproject=kiproject,
+                                 remote_uri=mk_fake_uri(),
+                                 local_path=file_path,
+                                 name=mk_uniq_string(),
+                                 version='1')
 
     yield _mk
 
@@ -225,7 +237,7 @@ def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
         write_file(file_path, mk_uniq_string())
 
         kiproject.data_push(file_path, data_type=data_type)
-        return kiproject.find_project_file_by_path(file_path)
+        return kiproject.find_project_resource_by(abs_path=file_path)
 
     yield _mk
 
@@ -265,6 +277,10 @@ def mk_tempfile(mk_tempdir, syn_test_helper):
 @pytest.fixture(scope='session')
 def write_file():
     def _write(file, content):
+        # Create the directory if it doesn't exist.
+        if not os.path.exists(os.path.dirname(file)):
+            os.makedirs(os.path.dirname(file))
+
         with open(file, mode='w') as f:
             f.write(content)
 

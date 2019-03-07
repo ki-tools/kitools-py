@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .data_providers import SynapseProvider
-
 
 class DataUri(object):
     """
@@ -22,11 +20,20 @@ class DataUri(object):
     URI Format: <scheme>:<id> (e.g., syn:syn123456789, osf:z7s4a)
     """
 
-    SCHEMES = {
-        'syn': {
-            'data_provider': SynapseProvider
-        }
-    }
+    SCHEMES = {}
+
+    @classmethod
+    def register(cls, scheme, adapter):
+        """
+        Registers a DataAdapter.
+        :param scheme:
+        :param adapter:
+        :return:
+        """
+        if scheme not in cls.SCHEMES:
+            cls.SCHEMES[scheme] = {
+                'data_adapter': adapter
+            }
 
     def __init__(self, scheme, id):
         self._scheme = scheme
@@ -44,8 +51,8 @@ class DataUri(object):
     def uri(self):
         return '{0}:{1}'.format(self.scheme, self.id)
 
-    def data_provider(self):
-        return self.SCHEMES.get(self.scheme).get('data_provider')()
+    def data_adapter(self):
+        return self.SCHEMES.get(self.scheme).get('data_adapter')()
 
     @staticmethod
     def default_scheme():
@@ -70,4 +77,21 @@ class DataUri(object):
         if scheme not in DataUri.SCHEMES:
             raise ValueError('Invalid URI scheme: {0}'.format(scheme))
 
+        if id.strip() == '':
+            raise ValueError('URI ID must be provided.')
+
         return DataUri(scheme, id)
+
+    @staticmethod
+    def is_uri(uri):
+        """
+        Gets if a string is a DataUri.
+        :param uri:
+        :return:
+        """
+        try:
+            return DataUri.parse(uri) is not None
+        except Exception as ex:
+            # TODO: log this?
+            pass
+        return False

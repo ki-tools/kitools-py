@@ -26,15 +26,19 @@ Example File:
   "title": "My KiProject",
   "description": "My KiProject Description",
   "project_uri": "syn:syn001",
-  "files": [
+  "resources": [
     {
+      "data_type": "core",
       "remote_uri": "syn:syn002",
       "rel_path": "data/core/file1.csv",
+      "name": "file1.csv",
       "version": "2"
     },
     {
+      "data_type": "core",
       "remote_uri": "syn:syn003",
       "rel_path": "data/core/study1",
+      "name": "study1",
       "version": null
     }
   ]

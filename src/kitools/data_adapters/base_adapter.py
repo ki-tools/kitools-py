@@ -15,12 +15,12 @@
 import abc
 
 
-class BaseProvider(object):
+class BaseAdapter(object):
 
     @abc.abstractmethod
     def name(self):
         """
-        Returns the name of the Data Provider (e.g., Synapse).
+        Returns the name of the Data Adapter(e.g., Synapse).
         :return: String
         """
         raise NotImplementedError()
@@ -30,6 +30,17 @@ class BaseProvider(object):
         """
         Gets if the provider is up and accessible.
         :return: True if successful
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_entity(self, remote_id, version=None, local_path=None):
+        """
+        Gets a remote entity (Project, Folder, File).
+        :param remote_id: The ID of the remote entity.
+        :param version: The version to get, or None for the latest version.
+        :param local_path: If getting a file then set the local path to download the file to.
+        :return:
         """
         raise NotImplementedError()
 
@@ -44,31 +55,9 @@ class BaseProvider(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def get_project(self, remote_id):
-        """
-        Gets a remote project.
-        :param remote_id:
-        :return:
-        """
+    def data_pull(self, ki_project_resource):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def data_pull(self, remote_id, local_path, version=None):
-        """
-        Downloads a file for folder from a data provider into a local directory.
-        :param remote_id:
-        :param local_path:
-        :param version: The version to pull or None for the latest version.
-        :return:
-        """
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def data_push(self, remote_id, local_path):
-        """
-        Uploads a file for folder to a data provider from a local directory.
-        :param remote_id:
-        :param local_path:
-        :return:
-        """
+    def data_push(self, ki_project_resource):
         raise NotImplementedError()

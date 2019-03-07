@@ -16,16 +16,15 @@ import os
 import json as JSON
 from beautifultable import BeautifulTable
 from .ki_project_template import KiProjectTemplate
-from .ki_project_file import KiProjectFile
+from .ki_project_resource import KiProjectResource
 from .data_type import DataType
 from .data_uri import DataUri
 
 
 class KiProject(object):
     CONFIG_FILENAME = 'kiproject.json'
-    VERSION_LATEST_KEYWORD = 'latest'
 
-    def __init__(self, local_path, title=None, description=None, project_uri=None, files=None):
+    def __init__(self, local_path, title=None, description=None, project_uri=None, resources=None):
         if not local_path or local_path.strip() == '':
             raise ValueError('local_path is required.')
 
@@ -33,7 +32,7 @@ class KiProject(object):
         self.title = title
         self.description = description
         self.project_uri = project_uri
-        self.files = files or []
+        self.resources = resources or []
 
         self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
 
@@ -51,6 +50,173 @@ class KiProject(object):
                 print('KiProject initialized successfully and ready to use.')
             else:
                 print('KiProject initialization failed.')
+
+    def data_add(self, remote_uri_or_local_path, name=None, version=None, data_type=None):
+        self._ensure_loaded()
+
+        is_uri = DataUri.is_uri(remote_uri_or_local_path)
+        is_local = not is_uri and os.path.exists(remote_uri_or_local_path)
+
+        if not is_uri and not is_local:
+            raise ValueError('Please specify a remote URI or a local file or folder.')
+
+        project_resource = None
+        if is_uri:
+            project_resource = KiProjectResource(kiproject=self,
+                                                 data_type=data_type,
+                                                 remote_uri=remote_uri_or_local_path,
+                                                 name=(name or remote_uri_or_local_path),
+                                                 version=version)
+        else:
+            # Make sure the file is in one of the data directories.
+            if not DataType.is_project_data_path(self.local_path, remote_uri_or_local_path):
+                raise ValueError('local_path must be in one of the data directories.')
+
+            project_resource = KiProjectResource(kiproject=self,
+                                                 data_type=data_type,
+                                                 local_path=remote_uri_or_local_path,
+                                                 name=(name or os.path.basename(remote_uri_or_local_path)),
+                                                 version=version)
+
+        self._add_ki_project_resource(project_resource)
+        self.save()
+        return project_resource
+
+    def data_pull(self, remote_uri_or_name=None):
+        self._ensure_loaded()
+
+        if remote_uri_or_name:
+            project_resource = self.find_project_resource_by(remote_uri=remote_uri_or_name) or \
+                               self.find_project_resource_by(name=remote_uri_or_name)
+
+            data_uri = DataUri.parse(project_resource.remote_uri)
+            remote_entity = data_uri.data_adapter().data_pull(project_resource)
+            return remote_entity
+        else:
+            results = []
+            for project_resource in self.resources:
+                if not project_resource.remote_uri:
+                    # Needs to be pushed
+                    print('Resource {0} cannot be pulled until it has been pushed.'.format(project_resource.rel_path))
+                    continue
+
+                data_uri = DataUri.parse(project_resource.remote_uri)
+                remote_entity = data_uri.data_adapter().data_pull(project_resource)
+                results.append(remote_entity)
+            return results
+
+    def data_push(self, remote_uri_or_name=None):
+        self._ensure_loaded()
+
+        if remote_uri_or_name:
+            project_resource = self.find_project_resource_by(remote_uri=remote_uri_or_name) or \
+                               self.find_project_resource_by(name=remote_uri_or_name)
+
+            data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
+            remote_entity = data_uri.data_adapter().data_push(project_resource)
+            return remote_entity
+        else:
+            results = []
+            for project_resource in self.resources:
+                # Needs needs to be pulled first.
+                if not project_resource.rel_path:
+                    print('Resource {0} cannot be pushed until it has been pulled.'.format(project_resource.remote_uri))
+                    continue
+
+                data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
+                remote_entity = data_uri.data_adapter().data_push(project_resource)
+                results.append(remote_entity)
+            return results
+
+    def data_list(self):
+        """
+        Prints out a nice table of all the available KiProject resource entries.
+        :return: BeautifulTable
+        """
+        self._ensure_loaded()
+
+        table = BeautifulTable(max_width=1000)
+        table.set_style(BeautifulTable.STYLE_BOX)
+        table.column_headers = ['Remote URI', 'Version', 'Path']
+        for resource in self.resources:
+            table.append_row([resource.remote_uri, resource.version, resource.rel_path])
+
+        print(table)
+        return table
+
+    def find_project_resource_by(self, remote_uri=None, abs_path=None, rel_path=None, name=None):
+        self._ensure_loaded()
+
+        for resource in self.resources:
+            if remote_uri is not None and remote_uri != resource.remote_uri:
+                continue
+
+            if abs_path is not None and abs_path != resource.abs_path:
+                continue
+
+            if rel_path is not None and rel_path != resource.rel_path:
+                continue
+
+            if name is not None and name != resource.name:
+                continue
+
+            return resource
+
+    def load(self):
+        """
+        Loads the KiProject from a config file.
+        :return: True if the config file exists and was loaded.
+        """
+        loaded = False
+        if os.path.isfile(self._config_path):
+            with open(self._config_path) as f:
+                self._json_to_self(JSON.load(f))
+                loaded = True
+
+        return loaded
+
+    def save(self):
+        """
+        Saves the KiProject to a config file.
+        :return: None
+        """
+        with open(self._config_path, 'w') as f:
+            JSON.dump(self._self_to_json(), f, indent=2)
+
+    def _self_to_json(self):
+        return {
+            'title': self.title,
+            'description': self.description,
+            'project_uri': self.project_uri,
+            'resources': [self._ki_project_resource_to_json(f) for f in self.resources]
+        }
+
+    def _json_to_self(self, json):
+        self.title = json.get('title')
+        self.description = json.get('description')
+        self.project_uri = json.get('project_uri')
+        self.resources = []
+
+        jresources = json.get('resources')
+        for jresource in jresources:
+            self.resources.append(self._json_to_ki_project_resource(jresource))
+
+    def _ki_project_resource_to_json(self, ki_project_resource):
+        return {
+            'data_type': ki_project_resource.data_type,
+            'remote_uri': ki_project_resource.remote_uri,
+            'rel_path': ki_project_resource.rel_path,
+            'name': ki_project_resource.name,
+            'version': ki_project_resource.version
+        }
+
+    def _json_to_ki_project_resource(self, json):
+        return KiProjectResource(self,
+                                 data_type=json.get('data_type'),
+                                 remote_uri=json.get('remote_uri'),
+                                 local_path=json.get('rel_path'),
+                                 name=json.get('name'),
+                                 version=json.get('version'))
 
     def _ensure_loaded(self):
         """
@@ -120,12 +286,11 @@ class KiProject(object):
         :return: True or False
         """
         data_uri = DataUri(DataUri.default_scheme(), None)
-        data_provider = data_uri.data_provider()
 
         while True:
             try:
                 project_name = input('Remote project name: ')
-                remote_project = data_provider.create_project(project_name)
+                remote_project = data_uri.data_adapter().create_project(project_name)
                 self.project_uri = DataUri(DataUri.default_scheme(), remote_project.id).uri
                 print('Remote project created at URI: {0}'.format(self.project_uri))
                 return True
@@ -166,255 +331,13 @@ class KiProject(object):
         """
         try:
             data_uri = DataUri.parse(project_uri)
-            data_provider = data_uri.data_provider()
-
-            remote_project = data_provider.get_project(data_uri.id)
-            return remote_project is not None
+            remote_entity = data_uri.data_adapter().get_entity(data_uri.id)
+            return remote_entity is not None and remote_entity.is_project
         except Exception as ex:
             print('Invalid remote project URI: {0}'.format(str(ex)))
 
         return False
 
-    def find_project_file_by_uri(self, remote_uri):
-        """
-        Gets a KiProjectFile by remote_uri
-        :param remote_uri:
-        :return: KiProjectFile or None
-        """
-        self._ensure_loaded()
-
-        return next((f for f in self.files if f.remote_uri == remote_uri), None)
-
-    def find_project_file_by_path(self, local_path):
-        """
-        Gets a KiProjectFile by remote_uri
-        :param remote_uri:
-        :return: KiProjectFile or None
-        """
-        self._ensure_loaded()
-
-        return next((f for f in self.files if f.abs_path == local_path or f.rel_path == local_path), None)
-
-    def data_pull(self, remote_uri=None, data_type=None, version=VERSION_LATEST_KEYWORD):
-        """
-        Downloads a file or a complete directory from a remote URI and adds
-        the folder or file to the KiProject manifest.
-
-        :param remote_uri: the URI of the remote file (e.g., syn:syn123456)
-        :param data_type: one of {'core', 'discovered', 'derived'}
-        :param version: the version of the file to pull
-        :return: A single RemoteFile or a list of RemoteFiles if pulling all.
-        """
-        self._ensure_loaded()
-
-        get_latest = False
-        if version and version.lower().strip() == self.VERSION_LATEST_KEYWORD:
-            get_latest = True
-            version = None
-
-        if remote_uri:
-
-            project_file = self.find_project_file_by_uri(remote_uri)
-
-            if project_file:
-                if data_type and data_type != project_file.data_type:
-                    raise ValueError(
-                        'data_type: {0} does not match KiProjectFile: {1}.'.format(data_type, project_file.data_type))
-
-                return self.__data_pull_existing(project_file, version=version, get_latest=get_latest)
-            else:
-                if not data_type:
-                    raise ValueError('data_type is required.')
-                return self.__data_pull_new(remote_uri, data_type, version=version)
-        else:
-            if version is not None:
-                raise ValueError('version cannot be specified when pulling all data.')
-
-            results = []
-            for project_file in self.files:
-                results.append(self.__data_pull_existing(project_file, version=None, get_latest=get_latest))
-            return results
-
-    def __data_pull_existing(self, project_file, version=None, get_latest=None):
-        data_uri = DataUri.parse(project_file.remote_uri)
-        data_provider = data_uri.data_provider()
-        data_type = DataType(project_file.data_type)
-
-        pull_version = project_file.version
-
-        if get_latest is True:
-            pull_version = None
-        elif version is not None:
-            pull_version = version
-
-        remote_file = data_provider.data_pull(
-            data_uri.id,
-            data_type.to_project_path(self.local_path),
-            version=pull_version
-        )
-
-        set_version = remote_file.version
-
-        if get_latest is True:
-            # Update the KiProjectFile version to None so it always gets the latest.
-            set_version = None
-        elif version is not None:
-            # Update the KiProjectFile to a specific version so it always gets that version.
-            set_version = version
-
-        if project_file.version != set_version:
-            project_file.version = set_version
-            self.save()
-
-        return remote_file
-
-    def __data_pull_new(self, remote_uri, data_type, version=None):
-        data_uri = DataUri.parse(remote_uri)
-        data_provider = data_uri.data_provider()
-        data_type = DataType(data_type)
-
-        remote_file = data_provider.data_pull(
-            data_uri.id,
-            data_type.to_project_path(self.local_path),
-            version=version
-        )
-
-        self.__add_project_file(remote_file, data_uri.uri, version=version)
-        self.save()
-
-        return remote_file
-
-    def data_push(self, local_path=None, data_type=None, remote_uri=None):
-        """
-        Takes the file at local_path and uploads it to the remote project,
-        or uploads all KiProject files (with changes).
-        :param local_path:
-        :param data_type:
-        :param remote_uri:
-        :return:
-        """
-        self._ensure_loaded()
-
-        result = None
-
-        if not os.path.isfile(local_path):
-            raise ValueError('local_path must be a file.')
-
-        if local_path:
-            # Push a specific file
-            local_path = os.path.abspath(local_path)
-
-            # Push to a specific remote_uri otherwise push to the main remote project.
-            data_uri = DataUri.parse(remote_uri or self.project_uri)
-            data_provider = data_uri.data_provider()
-            data_type = DataType(data_type)
-
-            # TODO: Make sure the file is in the correct folder based on the data_type.
-
-            remote_file = data_provider.data_push(data_uri.id, local_path)
-
-            # Update the data_uri now that the file has been stored.
-            data_uri = DataUri(data_uri.scheme, remote_file.id)
-
-            # See if the file is already in the KiProject
-            project_file = self.find_project_file_by_uri(data_uri.uri) or self.find_project_file_by_path(local_path)
-
-            if project_file:
-                # Make sure it's the same file
-                if project_file.abs_path != local_path:
-                    raise Exception('Existing KiProject file found but does not match file path: {0} : {1}'.format(
-                        project_file.abs_path, local_path))
-
-                if project_file.remote_uri != data_uri.uri:
-                    raise Exception('Existing KiProject file found but has different remote_uri: {0} : {1}'.format(
-                        project_file.remote_uri, data_uri.uri))
-            else:
-                # Add a KiProjectFile
-                self.__add_project_file(remote_file, data_uri.uri)
-                self.save()
-
-            result = remote_file
-        else:
-            # Push all files
-            # TODO: implement this
-            raise NotImplementedError()
-
-        return result
-
-    def __add_project_file(self, remote_file, remote_uri, version=None):
-        self._ensure_loaded()
-
-        project_file = KiProjectFile(self,
-                                     remote_uri=remote_uri,
-                                     local_path=remote_file.local_path,
-                                     version=version)
-        self.files.append(project_file)
-        return project_file
-
-    def data_list(self):
-        """
-        Prints out a nice table of all the available KiProject file entries.
-        :return: BeautifulTable
-        """
-        self._ensure_loaded()
-
-        table = BeautifulTable(max_width=1000)
-        table.set_style(BeautifulTable.STYLE_BOX)
-        table.column_headers = ['Remote URI', 'Pinned Version', 'Path']
-        for pf in self.files:
-            table.append_row([pf.remote_uri, pf.version, pf.rel_path])
-
-        print(table)
-        return table
-
-    def load(self):
-        """
-        Loads the KiProject from a config file.
-        :return: True if the config file exists and was loaded.
-        """
-        loaded = False
-        if os.path.isfile(self._config_path):
-            with open(self._config_path) as f:
-                self._json_to_self(JSON.load(f))
-                loaded = True
-
-        return loaded
-
-    def save(self):
-        """
-        Saves the KiProject to a config file.
-        :return: None
-        """
-        with open(self._config_path, 'w') as f:
-            JSON.dump(self._self_to_json(), f, indent=2)
-
-    def _self_to_json(self):
-        return {
-            'title': self.title,
-            'description': self.description,
-            'project_uri': self.project_uri,
-            'files': [self._project_file_to_json(f) for f in self.files]
-        }
-
-    def _json_to_self(self, json):
-        self.title = json.get('title')
-        self.description = json.get('description')
-        self.project_uri = json.get('project_uri')
-        self.files = []
-
-        jfiles = json.get('files')
-        for jfile in jfiles:
-            self.files.append(self._json_to_project_file(jfile))
-
-    def _project_file_to_json(self, project_file):
-        return {
-            'remote_uri': project_file.remote_uri,
-            'rel_path': project_file.rel_path,
-            'version': project_file.version
-        }
-
-    def _json_to_project_file(self, json):
-        return KiProjectFile(self,
-                             remote_uri=json.get('remote_uri'),
-                             local_path=json.get('rel_path'),
-                             version=json.get('version'))
+    def _add_ki_project_resource(self, project_resource):
+        # TODO: ensure it has a name and it's uniq.
+        self.resources.append(project_resource)

@@ -35,4 +35,41 @@ def test_to_project_path(mk_tempdir):
     temp_dir = mk_tempdir()
     for type in DataType.ALL:
         dt = DataType(type)
-        assert dt.to_project_path(temp_dir) == os.path.join(temp_dir, 'data', dt.name)
+        assert dt.to_project_path(temp_dir) == os.path.join(temp_dir, DataType.DATA_DIR_NAME, dt.name)
+
+
+@pytest.fixture()
+def mk_data_dir(mk_tempdir):
+    def _mk():
+        project_path = mk_tempdir()
+        data_path = os.path.join(project_path, DataType.DATA_DIR_NAME)
+        os.mkdir(data_path)
+        return project_path, data_path
+
+    yield _mk
+
+
+def test_from_project_path(mk_data_dir):
+    project_path, data_path = mk_data_dir()
+
+    for data_type_name in DataType.ALL:
+        data_type = DataType(data_type_name)
+        path = data_type.to_project_path(project_path)
+        assert DataType.from_project_path(project_path, path).name == data_type_name
+
+        other_paths = []
+        for other_path in ['one', 'two', 'three', 'file.csv']:
+            other_paths.append(other_path)
+            new_path = os.path.join(path, *other_paths)
+            assert DataType.from_project_path(project_path, new_path).name == data_type_name
+
+    with pytest.raises(ValueError) as ex:
+        DataType.from_project_path(project_path, data_path)
+    assert 'Invalid data type:' in str(ex.value)
+
+
+def test_is_project_data_path(mk_data_dir):
+    project_path, data_path = mk_data_dir()
+
+    assert DataType.is_project_data_path(data_path, data_path) is False
+    # TODO: add more tests

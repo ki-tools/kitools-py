@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .ki_project import KiProject
-from .ki_project_resource import KiProjectResource
-from .data_type import DataType
-from .data_uri import DataUri
-from .data_adapters import SynapseAdapter
+from ...remote_entity import RemoteEntity
+import synapseclient
 
-name = 'kitools'
 
-DataUri.register(SynapseAdapter.DATA_URI_SCHEME, SynapseAdapter)
+class SynapseRemoteEntity(RemoteEntity):
+
+    def __init__(self, entity, local_path=None):
+        super().__init__(
+            id=entity.get('id'),
+            name=entity.get('name'),
+            version=entity.get('versionNumber', None),
+            is_project=isinstance(entity, synapseclient.Project),
+            is_directory=isinstance(entity, synapseclient.Folder),
+            is_file=isinstance(entity, synapseclient.File),
+            local_path=entity.get('path', local_path),
+            source=entity
+        )

@@ -46,7 +46,5 @@ class KiProjectTemplate:
             'data{0}core'.format(os.sep),
             'data{0}derived'.format(os.sep),
             'data{0}discovered'.format(os.sep),
-            'data{0}discovered{0}_raw'.format(os.sep),
-            'data{0}scripts'.format(os.sep),
-            'data{0}scripts{0}_raw'.format(os.sep),
-            'data{0}reports'.format(os.sep)]
+            'scripts'.format(os.sep),
+            'reports'.format(os.sep)]

@@ -12,25 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-class RemoteProject(object):
-    """
-    Encapsulates a project from a provider.
-    """
-
-    def __init__(self, id, name, source=None):
-        self._id = id
-        self._name = name
-        self._source = source
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def source(self):
-        return self._source
+from .synapse_adapter import SynapseAdapter
+from .synapse_remote_entity import SynapseRemoteEntity

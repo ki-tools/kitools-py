@@ -13,19 +13,21 @@
 # limitations under the License.
 
 
-class RemoteFile(object):
+class RemoteEntity(object):
     """
-    Encapsulates a file/folder from a provider.
+    Encapsulates a project/file/folder from a data provider.
     """
 
-    def __init__(self, id, name, version, local_path=None, source=None, is_directory=False, children=None):
-        self._id = id
-        self._name = name
-        self._version = str(version) if version else None
-        self._local_path = local_path
-        self._is_directory = is_directory
-        self._children = children or []
-        self._source = source
+    def __init__(self, **kwargs):
+        self._id = kwargs.get('id')
+        self._name = kwargs.get('name')
+        self._source = kwargs.get('source')
+
+        self._version = str(kwargs.get('version')) if 'version' in kwargs else None
+        self._local_path = kwargs.get('local_path', None)
+        self._is_project = kwargs.get('is_project', False)
+        self._is_file = kwargs.get('is_file', False)
+        self._is_directory = kwargs.get('is_directory', False)
 
     @property
     def id(self):
@@ -44,12 +46,16 @@ class RemoteFile(object):
         return self._local_path
 
     @property
+    def is_project(self):
+        return self._is_project
+
+    @property
     def is_directory(self):
         return self._is_directory
 
     @property
-    def children(self):
-        return self._children
+    def is_file(self):
+        return self._is_file
 
     @property
     def source(self):
