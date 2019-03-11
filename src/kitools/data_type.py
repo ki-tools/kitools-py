@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 
 class DataType(object):
     DATA_DIR_NAME = 'data'
@@ -33,31 +31,3 @@ class DataType(object):
     @property
     def name(self):
         return self._name
-
-    def to_project_path(self, project_path):
-        """
-        Gets the full directory path for the data_type.
-        :param project_path:
-        :return:
-        """
-        return os.path.join(project_path, self.DATA_DIR_NAME, self.name)
-
-    @staticmethod
-    def from_project_path(project_path, local_path):
-        rel_path = os.path.relpath(local_path, start=os.path.join(project_path, DataType.DATA_DIR_NAME))
-        segments = rel_path.split(os.sep)
-
-        if len(segments) > 0:
-            return DataType(segments[0])
-        else:
-            return None
-
-    @staticmethod
-    def is_project_data_path(project_path, local_path):
-        try:
-            DataType.from_project_path(project_path, local_path)
-            return True
-        except Exception as ex:
-            # TODO: log this?
-            pass
-        return False

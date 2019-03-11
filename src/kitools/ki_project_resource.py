@@ -13,21 +13,35 @@
 # limitations under the License.
 
 import os
+import uuid
 from .data_type import DataType
+from .sys_path import SysPath
 
 
 class KiProjectResource(object):
 
-    def __init__(self, kiproject, data_type=None, remote_uri=None, local_path=None, name=None, version=None):
+    def __init__(self,
+                 kiproject,
+                 id=None,
+                 root_id=None,
+                 data_type=None,
+                 remote_uri=None,
+                 local_path=None,
+                 name=None,
+                 version=None):
         """
 
         :param kiproject:
+        :param id:
+        :param root_id:
         :param data_type:
         :param remote_uri:
         :param local_path:
         :param name:
         :param version:
         """
+        self._id = id if id else str(uuid.uuid4())
+        self._root_id = root_id
         self._kiproject = kiproject
         self._remote_uri = remote_uri
         self._name = name
@@ -64,6 +78,14 @@ class KiProjectResource(object):
     @property
     def kiproject(self):
         return self._kiproject
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def root_id(self):
+        return self._root_id
 
     @property
     def remote_uri(self):
@@ -119,7 +141,7 @@ class KiProjectResource(object):
         :return:
         """
         if self._local_path:
-            return os.path.relpath(self._local_path, start=self.kiproject.local_path)
+            return SysPath(self._local_path, rel_start=self.kiproject.local_path).rel_path
         else:
             return None
 

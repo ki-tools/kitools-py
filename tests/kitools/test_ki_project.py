@@ -19,116 +19,181 @@ import os
 import json as JSON
 import uuid
 import shutil
+import synapseclient
 from src.kitools import KiProject, KiProjectResource, DataType, DataUri
 
 
 @pytest.fixture(scope='session')
-def syn_project_files(syn_project, syn_test_helper, mk_tempfile, write_file):
-    """
-    Creates 3 files in the root of the Synapse Project with each file having 3 versions.
-    """
-    syn_files = []
+def mk_syn_files(syn_test_helper, write_file, mk_tempdir):
+    def _mk(syn_parent, file_num=2, versions=2, suffix=''):
+        syn_files = []
 
-    # Create 3 files in the syn_project.
-    for _ in range(3):
-        temp_file = mk_tempfile()
+        temp_dir = mk_tempdir()
 
-        # Create 3 versions of each file.
-        syn_file = None
+        for file_num in range(1, file_num + 1):
+            # Create N versions of each file.
+            syn_file = None
 
-        for version_num in range(1, 4):
-            write_file(temp_file, 'version{0}'.format(version_num))
+            temp_file = os.path.join(temp_dir, 'File{0}{1}'.format(file_num, suffix))
 
-            syn_file = syn_test_helper.create_file(
-                path=temp_file,
-                parent=syn_project,
-                name=os.path.basename(temp_file))
+            for version_num in range(1, versions + 1):
+                write_file(temp_file, 'version{0}'.format(version_num))
 
-        syn_files.append(syn_file)
+                syn_file = syn_test_helper.client().store(synapseclient.File(
+                    path=temp_file,
+                    parent=syn_parent,
+                    name=os.path.basename(temp_file)))
 
-    return syn_files
+            syn_files.append(syn_file)
+        return syn_files
 
-
-@pytest.fixture(scope='session')
-def syn_project_folders(syn_project, syn_test_helper):
-    """
-    Creates a 3 folder hierarchy in the root of the Synapse project.
-    """
-    syn_folders = []
-
-    # Create a folder structure 3 levels deep
-    parent = syn_project
-    for count in range(1, 4):
-        syn_folder = syn_test_helper.create_folder(name='Folder{0}'.format(count), parent=parent)
-        parent = syn_folder
-        syn_folders.append(syn_folder)
-
-    return syn_folders
+    yield _mk
 
 
 @pytest.fixture(scope='session')
-def syn_project_folders_and_files(syn_project, syn_test_helper, mk_tempfile, write_file):
-    """
-    Creates a 3 folder hierarchy in the root of the Synapse Project with each folder
-    having one file with 3 versions of the file.
-    """
-    syn_folders = []
-    syn_files = []
+def mk_syn_folders(syn_test_helper):
+    def _mk(syn_parent, count=2, suffix=''):
+        syn_folders = []
 
-    # Create a folder structure 3 levels deep
-    parent = syn_project
+        for folder_count in range(1, count + 1):
+            syn_folder = syn_test_helper.client().store(
+                synapseclient.Folder(name='Folder{0}{1}'.format(folder_count, suffix), parent=syn_parent))
+            syn_folders.append(syn_folder)
+        return syn_folders
 
-    for count in range(1, 4):
-        syn_folder = syn_test_helper.create_folder(name='Folder{0}'.format(count), parent=parent)
-
-        # Create 3 versions of the file in this folder.
-        temp_file = mk_tempfile()
-
-        syn_file = None
-        for version_num in range(1, 4):
-            write_file(temp_file, 'version{0}'.format(version_num))
-
-            syn_file = syn_test_helper.create_file(
-                path=temp_file,
-                parent=syn_folder,
-                name=os.path.basename(temp_file))
-        syn_files.append(syn_file)
-
-        parent = syn_folder
-        syn_folders.append(syn_folder)
-
-    return syn_folders, syn_files
+    yield _mk
 
 
 @pytest.fixture(scope='session')
-def syn_project_data_folders_and_files(mk_syn_project, syn_test_helper, mk_tempfile, write_file):
+def mk_syn_folders_files(mk_syn_files, mk_syn_folders):
+    def _mk(syn_parent):
+        root_files = mk_syn_files(syn_parent)
+        root_folders = mk_syn_folders(syn_parent)
+
+        for root_folder in root_folders:
+            mk_syn_files(root_folder, suffix='_1')
+
+            for level2_folder in mk_syn_folders(root_folder, suffix='_1'):
+                mk_syn_files(level2_folder, suffix='_2')
+
+        return syn_parent, root_folders, root_files
+
+    yield _mk
+
+
+@pytest.fixture(scope='session')
+def syn_non_data(mk_syn_project, mk_syn_folders_files):
     """
-    Creates a 3 folder data hierarchy in the root of the Synapse Project with the last folder
-    having one file with 3 versions.
+    Creates this:
+
+    file1
+    file2
+    folder1/
+        file1_1
+        file2_1
+        Folder1_1/
+            file1_2
+            file2_2
+        Folder2_1/
+            file1_2
+            file2_2
+    folder2/
+        file1_1
+        file2_1
+        Folder1_1/
+            file1_2
+            file2_2
+        Folder2_1/
+            file1_2
+            file2_2
     """
     syn_project = mk_syn_project()
-    syn_folders = []
-    syn_files = []
+    return mk_syn_folders_files(syn_project)
 
-    data_folder = syn_test_helper.create_folder(name='data', parent=syn_project)
-    syn_folders.append(data_folder)
 
-    core_folder = syn_test_helper.create_folder(name='core', parent=data_folder)
-    syn_folders.append(core_folder)
+@pytest.fixture(scope='session')
+def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
+    """
+    Creates this:
 
-    study_folder = syn_test_helper.create_folder(name='study_one', parent=core_folder)
-    syn_folders.append(study_folder)
+    data
+        /core
+            file1
+            file2
+            folder1/
+                file1_1
+                file2_1
+                Folder1_1/
+                    file1_2
+                    file2_2
+                Folder2_1/
+                    file1_2
+                    file2_2
+            folder2/
+                file1_1
+                file2_1
+                Folder1_1/
+                    file1_2
+                    file2_2
+                Folder2_1/
+                    file1_2
+                    file2_2
+        /derived
+            <same as core...>
+        /discovered
+            <same as core...>
 
-    # Create 3 versions of the file in the study folder.
-    temp_file = mk_tempfile()
+    This method will return the root files/folders under data/core, data/derived, data/discovered.
+    The data and data_type folders are NOT returned.
+    """
+    syn_project = mk_syn_project()
+    root_folders = []
+    root_files = []
 
-    syn_file = None
-    for version_num in range(1, 4):
-        write_file(temp_file, 'version{0}'.format(version_num))
-        syn_file = syn_test_helper.create_file(path=temp_file, parent=study_folder, name=os.path.basename(temp_file))
-    syn_files.append(syn_file)
+    syn_data_folder = syn_test_helper.client().store(synapseclient.Folder(name='data', parent=syn_project))
 
-    return syn_project, syn_folders, syn_files
+    for data_type_name in DataType.ALL:
+        syn_folder = syn_test_helper.client().store(synapseclient.Folder(name=data_type_name, parent=syn_data_folder))
+        folder, folders, files = mk_syn_folders_files(syn_folder)
+        root_folders += folders
+        root_files += files
+
+    return syn_project, root_folders, root_files
+
+
+@pytest.fixture(scope='session')
+def mk_local_data_dir(mk_uniq_string, write_file):
+    def _mk(kiproject):
+        all_data_paths = []
+
+        for data_type_name in DataType.ALL:
+            all_data_paths.append(kiproject.data_type_to_project_path(data_type_name))
+
+        # Create some local data files.
+        local_data_files = []
+        for data_path in all_data_paths:
+            filename = '{0}_file_{1}.csv'.format(os.path.basename(data_path), mk_uniq_string())
+            file_path = os.path.join(data_path, filename)
+            write_file(file_path, 'version1')
+            local_data_files.append(file_path)
+
+        # Create some local data folders.
+        local_data_folders = []
+        for data_path in all_data_paths:
+            folder_name = '{0}_folder_{1}'.format(os.path.basename(data_path), mk_uniq_string())
+            folder_path = os.path.join(data_path, folder_name)
+            os.makedirs(folder_path)
+            local_data_folders.append(folder_path)
+
+            # Create some files in the folder
+            for count in range(1, 4):
+                filename = 'file_{0}.csv'.format(mk_uniq_string())
+                file_path = os.path.join(folder_path, filename)
+                write_file(file_path, 'version1')
+
+        return local_data_folders, local_data_files
+
+    yield _mk
 
 
 def assert_matches_project(kiprojectA, kiprojectB):
@@ -178,15 +243,30 @@ def assert_data_type_paths(kiproject, exists=True):
     :return:
     """
     for data_type_name in DataType.ALL:
-        data_type = DataType(data_type_name)
-        assert os.path.isdir(data_type.to_project_path(kiproject.local_path)) is exists
+        assert os.path.isdir(kiproject.data_type_to_project_path(data_type_name)) is exists
+
+
+@pytest.fixture()
+def kiproject(mk_kiproject):
+    return mk_kiproject()
 
 
 def test_it_sets_the_kiproject_paths(mk_kiproject, mk_tempdir):
     temp_dir = mk_tempdir()
     kiproject = mk_kiproject(dir=temp_dir)
     assert kiproject.local_path == temp_dir
+    assert kiproject.data_path == os.path.join(temp_dir, DataType.DATA_DIR_NAME)
     assert kiproject._config_path == os.path.join(temp_dir, KiProject.CONFIG_FILENAME)
+
+
+def test_it_expands_user_dir_in_local_path():
+    # TODO: test this.
+    pass
+
+
+def test_it_expands_vars_in_local_path():
+    # TODO: test this.
+    pass
 
 
 def test_it_creates_a_config_file_from_the_constructor(mk_kiproject):
@@ -260,8 +340,7 @@ def test_it_updates_the_config_file_when_saved(mk_kiproject, mk_fake_uri, mk_fak
     assert_matches_config(kiproject)
 
 
-def test_it_creates_the_project_dir_structure_on_a_new_project(mk_kiproject):
-    kiproject = mk_kiproject()
+def test_it_creates_the_project_dir_structure_on_a_new_project(kiproject):
     assert_data_type_paths(kiproject, exists=True)
 
 
@@ -278,27 +357,35 @@ def test_it_recreates_the_project_dir_structure_on_an_existing_project(mk_kiproj
 def test_find_project_file_by(mk_kiproject):
     kiproject = mk_kiproject(with_fake_project_files=True, with_fake_project_files_count=3)
 
-    props = ['remote_uri', 'abs_path', 'rel_path', 'name']
+    props = ['id', 'root_id', 'remote_uri', 'abs_path', 'rel_path', 'name', 'version', 'data_type']
+    uniq_props = ['id', 'remote_uri', 'abs_path', 'rel_path']
 
     for ki_project_resource in kiproject.resources:
         all_args = {}
         for prop in props:
-            all_args[prop] = getattr(ki_project_resource, prop)
+            value = getattr(ki_project_resource, prop)
+            if value:
+                all_args[prop] = value
 
         # Finds by all properties
         found = kiproject.find_project_resource_by(**all_args)
         assert found == ki_project_resource
 
-        # Find by each property individually.
+        # Find by each unique property individually.
         for prop, value in all_args.items():
+            if prop not in uniq_props:
+                continue
+
             single_arg = {
                 prop: value
             }
             found = kiproject.find_project_resource_by(**single_arg)
             assert found == ki_project_resource
 
+    # TODO: test "and"/"or" operator.
 
-def test_it_prints_out_all_the_project_files(mk_kiproject):
+
+def test_it_prints_out_the_root_project_resources(mk_kiproject):
     kiproject = mk_kiproject(with_fake_project_files=True, with_fake_project_files_count=3)
     table = kiproject.data_list()
 
@@ -307,7 +394,8 @@ def test_it_prints_out_all_the_project_files(mk_kiproject):
         row = table[index]
         assert row[0] == resource.remote_uri
         assert row[1] == resource.version
-        assert row[2] == resource.rel_path
+        assert row[2] == resource.name
+        assert row[3] == resource.rel_path
         index += 1
 
 
@@ -319,77 +407,73 @@ def test_it_creates_a_new_remote_project(mk_mock_kiproject_input, mk_tempdir, sy
     syn_test_helper.dispose_of(syn_project)
 
 
-def test_it_adds_a_remote_data_structure_file(mk_kiproject, syn_project_data_folders_and_files):
+def test_it_adds_a_remote_data_structure_file(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
-    syn_files = syn_project_data_folders_and_files[2]
+    syn_project, syn_folders, syn_files = syn_data
 
-    syn_file = syn_files[0]
-    syn_file_uri = DataUri('syn', syn_file.id).uri
-    ki_project_resource = kiproject.data_add(syn_file_uri)
-    assert ki_project_resource
-    # TODO: add remaining assertions
+    for syn_file in syn_files:
+        syn_file_uri = DataUri('syn', syn_file.id).uri
+        ki_project_resource = kiproject.data_add(syn_file_uri)
+        assert ki_project_resource
+        # TODO: add remaining assertions
 
 
-def test_it_adds_a_remote_data_structure_folder(mk_kiproject, syn_project_data_folders_and_files):
+def test_it_adds_a_remote_data_structure_folder(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
+    syn_project, syn_folders, syn_files = syn_data
 
-    syn_project, syn_folders, syn_files = syn_project_data_folders_and_files
-
-    syn_folder = syn_folders[-1]
-    ki_project_resource = kiproject.data_add(DataUri('syn', syn_folder.id).uri)
-    assert ki_project_resource
-    # TODO: add remaining assertions
+    for syn_folder in syn_folders:
+        ki_project_resource = kiproject.data_add(DataUri('syn', syn_folder.id).uri)
+        assert ki_project_resource
+        # TODO: add remaining assertions
 
 
-def test_it_adds_a_remote_non_data_structure_file(mk_kiproject, syn_project_folders_and_files):
+def test_it_adds_a_remote_non_data_structure_file(mk_kiproject, syn_non_data):
     kiproject = mk_kiproject()
-    syn_files = syn_project_folders_and_files[1]
+    syn_parent, syn_folders, syn_files = syn_non_data
 
-    syn_file = syn_files[0]
-    syn_file_uri = DataUri('syn', syn_file.id).uri
-    ki_project_resource = kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
-    assert ki_project_resource
-    # TODO: add remaining assertions
+    for syn_file in syn_files:
+        syn_file_uri = DataUri('syn', syn_file.id).uri
+        ki_project_resource = kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
+        assert ki_project_resource
+        # TODO: add remaining assertions
 
 
-def test_it_adds_a_remote_non_data_structure_folder(mk_kiproject, syn_project_folders_and_files):
+def test_it_adds_a_remote_non_data_structure_folder(mk_kiproject, syn_non_data):
     kiproject = mk_kiproject()
+    syn_parent, syn_folders, syn_files = syn_non_data
 
-    syn_folders, syn_files = syn_project_folders_and_files
-
-    syn_folder = syn_folders[-3]
-    ki_project_resource = kiproject.data_add(DataUri('syn', syn_folder.id).uri, data_type=DataType.CORE)
-    assert ki_project_resource
-    # TODO: add remaining assertions
+    for syn_folder in syn_folders:
+        ki_project_resource = kiproject.data_add(DataUri('syn', syn_folder.id).uri, data_type=DataType.CORE)
+        assert ki_project_resource
+        # TODO: add remaining assertions
 
 
-def test_it_adds_a_local_data_structure_file(mk_kiproject, mk_uniq_string, write_file):
+def test_it_adds_a_local_data_structure_file(mk_kiproject, mk_local_data_dir):
     kiproject = mk_kiproject()
 
-    filename = '{0}.csv'.format(mk_uniq_string())
-    file_path = os.path.join(DataType(DataType.CORE).to_project_path(kiproject.local_path), filename)
-    write_file(file_path, 'version1')
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
-    ki_project_resource = kiproject.data_add(file_path)
-    assert ki_project_resource
-    # TODO: add remaining assertions
+    for file_path in local_data_files:
+        ki_project_resource = kiproject.data_add(file_path)
+        assert ki_project_resource
+        # TODO: add remaining assertions
 
 
-def test_it_adds_a_local_data_structure_folder(mk_kiproject):
+def test_it_adds_a_local_data_structure_folder(mk_kiproject, mk_local_data_dir):
     kiproject = mk_kiproject()
 
-    folder_path = os.path.join(DataType(DataType.CORE).to_project_path(kiproject.local_path), 'study1')
-    os.makedirs(folder_path)
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
-    ki_project_resource = kiproject.data_add(folder_path)
-    assert ki_project_resource
-    # TODO: add remaining assertions
+    for folder_path in local_data_folders:
+        ki_project_resource = kiproject.data_add(folder_path)
+        assert ki_project_resource
+        # TODO: add remaining assertions
 
 
-def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_project_data_folders_and_files):
+def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
-
-    syn_project, syn_folders, syn_files = syn_project_data_folders_and_files
+    syn_project, syn_folders, syn_files = syn_data
 
     for syn_file in syn_files:
         syn_file_uri = DataUri('syn', syn_file.id).uri
@@ -402,10 +486,9 @@ def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_project_d
         assert remote_entity
 
 
-def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_project_data_folders_and_files):
+def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
-
-    syn_project, syn_folders, syn_files = syn_project_data_folders_and_files
+    syn_project, syn_folders, syn_files = syn_data
 
     for syn_folder in syn_folders:
         if syn_folder.name == 'data' or syn_folder.name == 'core':
@@ -422,10 +505,9 @@ def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_project
         # TODO: check that file/folders exist locally
 
 
-def test_it_pulls_a_file_not_matching_the_data_structure(mk_kiproject, syn_project_folders_and_files):
+def test_it_pulls_a_file_not_matching_the_data_structure(mk_kiproject, syn_non_data):
     kiproject = mk_kiproject()
-
-    syn_folders, syn_files = syn_project_folders_and_files
+    syn_parent, syn_folders, syn_files = syn_non_data
 
     for syn_file in syn_files:
         syn_file_uri = DataUri('syn', syn_file.id).uri
@@ -439,10 +521,9 @@ def test_it_pulls_a_file_not_matching_the_data_structure(mk_kiproject, syn_proje
         # TODO: check that file/folders exist locally
 
 
-def test_it_pulls_a_folder_not_matching_the_data_structure(mk_kiproject, syn_project_folders_and_files):
+def test_it_pulls_a_folder_not_matching_the_data_structure(mk_kiproject, syn_non_data):
     kiproject = mk_kiproject()
-
-    syn_folders, syn_files = syn_project_folders_and_files
+    syn_parent, syn_folders, syn_files = syn_non_data
 
     for syn_folder in syn_folders:
         syn_folder_uri = DataUri('syn', syn_folder.id).uri
@@ -460,128 +541,149 @@ def test_it_does_not_pull_a_file_unless_the_remote_file_changed_TODO():
     raise NotImplementedError()
 
 
-def test_it_pushes_a_file_matching_the_data_structure(mk_kiproject, mk_uniq_string, write_file):
+def test_it_pushes_a_file_matching_the_data_structure(mk_kiproject, mk_local_data_dir):
     kiproject = mk_kiproject()
 
-    filename = '{0}.csv'.format(mk_uniq_string())
-    file_path = os.path.join(DataType(DataType.CORE).to_project_path(kiproject.local_path), filename)
-    write_file(file_path, 'version1')
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
-    ki_project_resource = kiproject.data_add(file_path)
+    for file_path in local_data_files:
+        ki_project_resource = kiproject.data_add(file_path)
 
-    # Push the file
-    remote_entity = kiproject.data_push(ki_project_resource.remote_uri)
-    assert remote_entity
-    # TODO: check that file/folders were pushed
+        # Push the file
+        remote_entity = kiproject.data_push(ki_project_resource.name)
+        assert remote_entity
+        # TODO: check that file/folders were pushed
 
 
-def test_it_pushes_a_folder_matching_the_data_structure(mk_kiproject, mk_uniq_string, write_file):
+def test_it_pushes_a_folder_matching_the_data_structure(mk_kiproject, mk_uniq_string, write_file, mk_local_data_dir):
     kiproject = mk_kiproject()
 
-    filename = '{0}.csv'.format(mk_uniq_string())
-    file_path = os.path.join(DataType(DataType.CORE).to_project_path(kiproject.local_path), 'study1', filename)
-    write_file(file_path, 'version1')
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
-    # Add another file and folder
-    child_filename = '{0}.csv'.format(mk_uniq_string())
-    child_path = os.path.join(os.path.dirname(file_path), 'folder1', child_filename)
-    write_file(child_path, 'version1')
+    for folder_path in local_data_folders:
+        ki_project_resource = kiproject.data_add(os.path.dirname(folder_path))
 
-    ki_project_resource = kiproject.data_add(os.path.dirname(file_path))
-
-    # Push the file
-    remote_entity = kiproject.data_push(ki_project_resource.remote_uri)
-    assert remote_entity
-    # TODO: check that file/folders were pushed
+        # Push the file
+        remote_entity = kiproject.data_push(ki_project_resource.name)
+        assert remote_entity
+        # TODO: check that file/folders were pushed
 
 
 def test_it_does_not_push_a_file_unless_the_local_file_changed_TODO():
     raise NotImplementedError()
 
 
-@pytest.fixture(scope='session')
-def mk_local_data_dir(mk_uniq_string, write_file):
-    def _mk(root_path):
-        core_data_path = DataType(DataType.CORE).to_project_path(root_path)
-        derived_data_path = DataType(DataType.DERIVED).to_project_path(root_path)
-        discovered_data_path = DataType(DataType.DISCOVERED).to_project_path(root_path)
-        all_data_paths = [core_data_path, derived_data_path, discovered_data_path]
-
-        # Create some local data files.
-        local_data_files = []
-        for data_path in all_data_paths:
-            filename = '{0}_file_{1}.csv'.format(os.path.basename(data_path), mk_uniq_string())
-            file_path = os.path.join(data_path, filename)
-            write_file(file_path, 'version1')
-            local_data_files.append(file_path)
-
-        # Create some local data folders.
-        local_data_folders = []
-        for data_path in all_data_paths:
-            folder_name = '{0}_folder_{1}'.format(os.path.basename(data_path), mk_uniq_string())
-            folder_path = os.path.join(data_path, folder_name)
-            os.makedirs(folder_path)
-            local_data_folders.append(folder_path)
-
-            # Create some files in the folder
-            for count in range(1, 4):
-                filename = 'file_{0}.csv'.format(mk_uniq_string())
-                file_path = os.path.join(folder_path, filename)
-                write_file(file_path, 'version1')
-
-        return local_data_folders, local_data_files
-
-    yield _mk
-
-
-def test_it_tests_the_new_workflow(mk_kiproject,
-                                   mk_local_data_dir,
-                                   syn_project_data_folders_and_files,
-                                   syn_project_folders_and_files):
+def test_it_tests_the_workflow(mk_kiproject,
+                               mk_local_data_dir,
+                               syn_data,
+                               syn_non_data):
     kiproject = mk_kiproject()
-    local_data_folders, local_data_files = mk_local_data_dir(kiproject.local_path)
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
-    # Add/Push local files
+    ###########################################################################
+    # Add/Push Local Files and Folders
+    ###########################################################################
+
+    # Files
     for local_file in local_data_files:
-        name = os.path.basename(local_file)
-        kiproject.data_add(local_file, name=name)
-        kiproject.data_push(name)
+        resource = kiproject.data_add(local_file)
+        abs_path = kiproject.data_push(resource)
+        assert abs_path == resource.abs_path
 
-    # Add/Push local folders
+    # Folders
     for local_folder in local_data_folders:
-        name = os.path.basename(local_folder)
-        kiproject.data_add(local_folder, name=name)
-        kiproject.data_push(name)
+        resource = kiproject.data_add(local_folder)
+        abs_path = kiproject.data_push(resource)
+        assert abs_path == resource.abs_path
 
-    _, syn_data_folders, syn_data_files = syn_project_data_folders_and_files
+    ###########################################################################
+    # Add/Pull Remote Data Files and Folders
+    ###########################################################################
+    _, syn_data_folders, syn_data_files = syn_data
 
-    # Add/Push remote data files
+    # Files
     for syn_file in syn_data_files:
         remote_uri = DataUri('syn', syn_file.id).uri
-        kiproject.data_add(remote_uri)
-        kiproject.data_pull(remote_uri)
+        resource = kiproject.data_add(remote_uri)
+        abs_path = kiproject.data_pull(remote_uri)
+        # Lock the version
+        resource = kiproject.data_change(remote_uri, version='2')
+        assert resource.version == '2'
+        abs_path = kiproject.data_pull(remote_uri)
 
-    # Add/Pull remote data folders
+    # Folders
     for syn_folder in syn_data_folders:
-        # Skip the data/core folders
-        if syn_folder.name == 'data' or syn_folder.name == 'core':
-            continue
         remote_uri = DataUri('syn', syn_folder.id).uri
-        kiproject.data_add(remote_uri)
-        kiproject.data_pull(remote_uri)
+        resource = kiproject.data_add(remote_uri)
+        abs_path = kiproject.data_pull(remote_uri)
 
-    syn_non_data_folders, syn_non_data_files = syn_project_folders_and_files
+    ###########################################################################
+    # Add/Pull Remote non-Data Files and Folders
+    ###########################################################################
+    _, syn_non_data_folders, syn_non_data_files = syn_non_data
 
-    # Add/Pull remote non-data files
+    # Files
     for syn_non_data_file in syn_non_data_files:
         remote_uri = DataUri('syn', syn_non_data_file.id).uri
-        kiproject.data_add(remote_uri, data_type=DataType.CORE)
-        kiproject.data_pull(remote_uri)
+        resource = kiproject.data_add(remote_uri, data_type=DataType.CORE)
+        abs_path = kiproject.data_pull(remote_uri)
 
-    # Add/Pull remote non-data folders
+    # Folders
     for syn_non_data_folder in syn_non_data_folders:
         remote_uri = DataUri('syn', syn_non_data_folder.id).uri
-        kiproject.data_add(remote_uri, data_type=DataType.CORE)
-        kiproject.data_pull(remote_uri)
+        resource = kiproject.data_add(remote_uri, data_type=DataType.CORE)
+        abs_path = kiproject.data_pull(remote_uri)
+
+    ###########################################################################
+    # data_list
+    ###########################################################################
+    kiproject.data_list()
+    kiproject.data_list(all=True)
+
+    ###########################################################################
+    # data_remove
+    ###########################################################################
+    for resource in kiproject.resources.copy():
+        if resource.root_id:
+            continue
+        kiproject.data_remove(resource.remote_uri or resource.abs_path)
+
+    assert len(kiproject.resources) == 0
 
     assert True
+
+
+def test_it_removes_resources(mk_kiproject):
+    kiproject = mk_kiproject(with_fake_project_files=True)
+
+    for resource in kiproject.resources.copy():
+        if resource.root_id:
+            continue
+
+        kiproject.data_remove(resource.remote_uri or resource.abs_path)
+
+    assert len(kiproject.resources) == 0
+
+
+def test_data_type_to_project_path(kiproject):
+    for data_type in DataType.ALL:
+        assert kiproject.data_type_to_project_path(data_type) == os.path.join(kiproject.data_path, data_type)
+
+
+def test_data_type_from_project_path(kiproject):
+    for data_type_name in DataType.ALL:
+        path = kiproject.data_type_to_project_path(data_type_name)
+        assert kiproject.data_type_from_project_path(path).name == data_type_name
+
+        other_paths = []
+        for other_path in ['one', 'two', 'three', 'file.csv']:
+            other_paths.append(other_path)
+            new_path = os.path.join(path, *other_paths)
+            assert kiproject.data_type_from_project_path(new_path).name == data_type_name
+
+
+def test_is_project_data_path(kiproject, mk_tempdir):
+    temp_dir = mk_tempdir()
+
+    assert kiproject.is_project_data_path(temp_dir) is False
+    # TODO: add more tests

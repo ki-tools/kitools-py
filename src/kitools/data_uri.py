@@ -66,13 +66,13 @@ class DataUri(object):
         # Clean up the URI.
         uri = uri.strip().replace(' ', '')
 
-        segments = uri.split(':')
+        parts = uri.split(':')
 
-        if len(segments) != 2:
+        if len(parts) != 2:
             raise ValueError('Invalid URI format, cannot parse: {0}'.format(uri))
 
-        scheme = segments[0].lower()
-        id = segments[1]
+        scheme = parts[0].lower()
+        id = parts[1]
 
         if scheme not in DataUri.SCHEMES:
             raise ValueError('Invalid URI scheme: {0}'.format(scheme))
@@ -83,14 +83,14 @@ class DataUri(object):
         return DataUri(scheme, id)
 
     @staticmethod
-    def is_uri(uri):
+    def is_uri(value):
         """
         Gets if a string is a DataUri.
-        :param uri:
+        :param value:
         :return:
         """
         try:
-            return DataUri.parse(uri) is not None
+            return DataUri.parse(value) is not None
         except Exception as ex:
             # TODO: log this?
             pass

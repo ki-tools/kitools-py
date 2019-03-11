@@ -214,8 +214,7 @@ def mk_fake_uri(mk_uniq_integer):
 @pytest.fixture(scope='session')
 def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
     def _mk(kiproject, data_type=DataType.CORE):
-        file_path = os.path.join(DataType(data_type).to_project_path(kiproject.local_path),
-                                 '{0}.csv'.format(mk_uniq_string()))
+        file_path = os.path.join(kiproject.data_type_to_project_path(data_type), '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 
@@ -231,8 +230,7 @@ def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
 @pytest.fixture(scope='session')
 def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
     def _mk(kiproject, data_type=DataType.CORE):
-        file_path = os.path.join(DataType(data_type).to_project_path(kiproject.local_path),
-                                 '{0}.csv'.format(mk_uniq_string()))
+        file_path = os.path.join(kiproject.data_type_to_project_path(data_type), '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 

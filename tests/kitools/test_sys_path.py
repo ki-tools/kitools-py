@@ -13,18 +13,25 @@
 # limitations under the License.
 
 import pytest
-from src.kitools import DataType
+import os
+from src.kitools.sys_path import SysPath
 
 
-def test___init__():
-    for type in DataType.ALL:
-        dt = DataType(type)
-        assert dt.name == type
+def test_it_expands_user():
+    syspath = SysPath('~')
+    assert syspath.abs_path == os.path.expanduser('~')
 
-    with pytest.raises(ValueError) as ex:
-        DataType(None)
-    assert str(ex.value) == 'Invalid data type: None'
 
-    with pytest.raises(ValueError) as ex:
-        DataType('not-a-valid-type')
-    assert str(ex.value) == 'Invalid data type: not-a-valid-type'
+def test_it_expands_vars():
+    # TODO: test this
+    pass
+
+
+def test_it_sets_the_abs_path():
+    # TODO: test this
+    pass
+
+
+def test_it_sets_the_rel_path():
+    # TODO: test this
+    pass

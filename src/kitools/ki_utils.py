@@ -12,19 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-from src.kitools import DataType
+import uuid
 
+class KiUtils:
 
-def test___init__():
-    for type in DataType.ALL:
-        dt = DataType(type)
-        assert dt.name == type
-
-    with pytest.raises(ValueError) as ex:
-        DataType(None)
-    assert str(ex.value) == 'Invalid data type: None'
-
-    with pytest.raises(ValueError) as ex:
-        DataType('not-a-valid-type')
-    assert str(ex.value) == 'Invalid data type: not-a-valid-type'
+    @staticmethod
+    def is_uuid(value):
+        try:
+            uuid.UUID(value)
+            return True
+        except ValueError as ex:
+            return False

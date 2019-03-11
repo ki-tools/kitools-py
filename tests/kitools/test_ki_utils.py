@@ -11,20 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import pytest
-from src.kitools import DataType
-
-
-def test___init__():
-    for type in DataType.ALL:
-        dt = DataType(type)
-        assert dt.name == type
-
-    with pytest.raises(ValueError) as ex:
-        DataType(None)
-    assert str(ex.value) == 'Invalid data type: None'
-
-    with pytest.raises(ValueError) as ex:
-        DataType('not-a-valid-type')
-    assert str(ex.value) == 'Invalid data type: not-a-valid-type'

@@ -29,7 +29,7 @@ def fake_uri(mk_fake_uri):
 
 @pytest.fixture()
 def file_abs_path(kiproject, write_file):
-    path = os.path.join(DataType(DataType.CORE).to_project_path(kiproject.local_path), 'test.csv')
+    path = os.path.join(kiproject.data_type_to_project_path(DataType.CORE), 'test.csv')
     write_file(path, 'test file')
     return path
 

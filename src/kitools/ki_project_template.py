@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from .sys_path import SysPath
 
 
 class KiProjectTemplate:
@@ -25,13 +26,11 @@ class KiProjectTemplate:
         self.create_gitignore()
 
     def create_dirs(self):
-        if not os.path.exists(self.local_path):
-            os.makedirs(self.local_path)
+        SysPath(self.local_path).ensure_dirs()
 
         for dirname in KiProjectTemplate.project_dir_names():
             full_path = os.path.join(self.local_path, dirname)
-            if not os.path.exists(full_path):
-                os.makedirs(full_path)
+            SysPath(full_path).ensure_dirs()
 
     def create_gitignore(self):
         gitignore_path = os.path.join(self.local_path, '.gitignore')

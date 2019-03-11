@@ -19,6 +19,8 @@ from .ki_project_template import KiProjectTemplate
 from .ki_project_resource import KiProjectResource
 from .data_type import DataType
 from .data_uri import DataUri
+from .sys_path import SysPath
+from .ki_utils import KiUtils
 
 
 class KiProject(object):
@@ -28,7 +30,8 @@ class KiProject(object):
         if not local_path or local_path.strip() == '':
             raise ValueError('local_path is required.')
 
-        self.local_path = os.path.abspath(local_path)
+        self.local_path = SysPath(local_path).abs_path
+        self.data_path = os.path.join(self.local_path, DataType.DATA_DIR_NAME)
         self.title = title
         self.description = description
         self.project_uri = project_uri
@@ -52,69 +55,127 @@ class KiProject(object):
                 print('KiProject initialization failed.')
 
     def data_add(self, remote_uri_or_local_path, name=None, version=None, data_type=None):
+        """
+        Adds a remote file/folder to local file/folder to the KiProject.
+        :param remote_uri_or_local_path:
+        :param name:
+        :param version:
+        :param data_type:
+        :return:
+        """
         self._ensure_loaded()
 
-        is_uri = DataUri.is_uri(remote_uri_or_local_path)
-        is_local = not is_uri and os.path.exists(remote_uri_or_local_path)
-
-        if not is_uri and not is_local:
-            raise ValueError('Please specify a remote URI or a local file or folder.')
-
-        project_resource = None
-        if is_uri:
-            project_resource = KiProjectResource(kiproject=self,
-                                                 data_type=data_type,
-                                                 remote_uri=remote_uri_or_local_path,
-                                                 name=(name or remote_uri_or_local_path),
-                                                 version=version)
+        if DataUri.is_uri(remote_uri_or_local_path):
+            return self._data_add(data_type=data_type,
+                                  remote_uri=remote_uri_or_local_path,
+                                  name=(name or remote_uri_or_local_path),
+                                  version=version)
         else:
-            # Make sure the file is in one of the data directories.
-            if not DataType.is_project_data_path(self.local_path, remote_uri_or_local_path):
-                raise ValueError('local_path must be in one of the data directories.')
+            sys_local_path = SysPath(remote_uri_or_local_path)
+            if sys_local_path.exists:
+                return self._data_add(data_type=data_type,
+                                      local_path=sys_local_path.abs_path,
+                                      name=(name or sys_local_path.basename),
+                                      version=version)
+            else:
+                raise ValueError('Please specify a remote URI or a local file or folder.')
 
-            project_resource = KiProjectResource(kiproject=self,
-                                                 data_type=data_type,
-                                                 local_path=remote_uri_or_local_path,
-                                                 name=(name or os.path.basename(remote_uri_or_local_path)),
-                                                 version=version)
+    def data_remove(self, resource_or_identifier):
+        """
+        Removes a KiProjectResource from the KiProject.
+        :param resource_or_identifier:
+        :return:
+        """
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
-        self._add_ki_project_resource(project_resource)
+        if project_resource:
+            # Remove any children.
+            for child_resource in self.find_project_resources_by(root_id=project_resource.id):
+                self.resources.remove(child_resource)
+
+            # Remove the root.
+            self.resources.remove(project_resource)
+            self.save()
+            return project_resource
+        else:
+            raise ValueError('Could not find resource: {0}'.format(resource_or_identifier))
+
+    def data_change(self, resource_or_identifier, name=None, version=None):
+        """
+        Changes the name or version on a KiProjectResource.
+        :param resource_or_identifier:
+        :param name:
+        :param version:
+        :return:
+        """
+        self._ensure_loaded()
+
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+        if not project_resource:
+            raise ValueError('No resource found matching: {0}'.format(resource_or_identifier))
+
+        if name is not None:
+            project_resource.name = name
+
+        if version is not None:
+            project_resource.version = version
+
         self.save()
         return project_resource
 
-    def data_pull(self, remote_uri_or_name=None):
+    def data_pull(self, resource_or_identifier=None):
+        """
+
+        :param resource_or_identifier:
+        :return:
+        """
         self._ensure_loaded()
 
-        if remote_uri_or_name:
-            project_resource = self.find_project_resource_by(remote_uri=remote_uri_or_name) or \
-                               self.find_project_resource_by(name=remote_uri_or_name)
+        if resource_or_identifier:
+            project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+            if not project_resource:
+                raise Exception('No resource found matching: {0}'.format(resource_or_identifier))
 
             data_uri = DataUri.parse(project_resource.remote_uri)
-            remote_entity = data_uri.data_adapter().data_pull(project_resource)
-            return remote_entity
+            data_uri.data_adapter().data_pull(project_resource)
+            return project_resource.abs_path
         else:
             results = []
             for project_resource in self.resources:
+                # Skip any non-root resources since they are children of a parent resource
+                # that will handle downloading it.
+                if project_resource.root_id:
+                    continue
+
                 if not project_resource.remote_uri:
                     # Needs to be pushed
                     print('Resource {0} cannot be pulled until it has been pushed.'.format(project_resource.rel_path))
                     continue
 
                 data_uri = DataUri.parse(project_resource.remote_uri)
-                remote_entity = data_uri.data_adapter().data_pull(project_resource)
-                results.append(remote_entity)
+                data_uri.data_adapter().data_pull(project_resource)
+                results.append(project_resource.abs_path)
             return results
 
-    def data_push(self, remote_uri_or_name=None):
+    def data_push(self, resource_or_identifier=None):
+        """
+
+        :param resource_or_identifier:
+        :return:
+        """
         self._ensure_loaded()
 
-        if remote_uri_or_name:
-            project_resource = self.find_project_resource_by(remote_uri=remote_uri_or_name) or \
-                               self.find_project_resource_by(name=remote_uri_or_name)
+        if resource_or_identifier:
+            project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+            if not project_resource:
+                raise Exception('No resource found matching: {0}'.format(resource_or_identifier))
 
             data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
-            remote_entity = data_uri.data_adapter().data_push(project_resource)
-            return remote_entity
+            data_uri.data_adapter().data_push(project_resource)
+            return project_resource.abs_path
         else:
             results = []
             for project_resource in self.resources:
@@ -124,11 +185,11 @@ class KiProject(object):
                     continue
 
                 data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
-                remote_entity = data_uri.data_adapter().data_push(project_resource)
-                results.append(remote_entity)
+                data_uri.data_adapter().data_push(project_resource)
+                results.append(project_resource.abs_path)
             return results
 
-    def data_list(self):
+    def data_list(self, all=False):
         """
         Prints out a nice table of all the available KiProject resource entries.
         :return: BeautifulTable
@@ -137,30 +198,84 @@ class KiProject(object):
 
         table = BeautifulTable(max_width=1000)
         table.set_style(BeautifulTable.STYLE_BOX)
-        table.column_headers = ['Remote URI', 'Version', 'Path']
+        table.column_headers = ['Remote URI', 'Version', 'Name', 'Path']
+
+        for header in table.column_headers:
+            table.column_alignments[header] = BeautifulTable.ALIGN_LEFT
+
         for resource in self.resources:
-            table.append_row([resource.remote_uri, resource.version, resource.rel_path])
+            # Only show non-root resources unless requested.
+            if resource.root_id and not all:
+                continue
+            table.append_row([resource.remote_uri, resource.version, resource.name, resource.rel_path])
 
         print(table)
         return table
 
-    def find_project_resource_by(self, remote_uri=None, abs_path=None, rel_path=None, name=None):
-        self._ensure_loaded()
+    def find_project_resource_by(self, operator='and', **kwargs):
+        results = self.find_project_resources_by(operator=operator, **kwargs)
+        if len(results) == 1:
+            return results[0]
+        elif len(results) > 1:
+            raise Exception('Found more than one matching resource.')
+
+    def find_project_resources_by(self, operator='and', **kwargs):
+        results = []
+
+        if operator not in ['and', 'or']:
+            raise ValueError('operator must be one of: "and", "or". ')
 
         for resource in self.resources:
-            if remote_uri is not None and remote_uri != resource.remote_uri:
-                continue
+            matches = []
 
-            if abs_path is not None and abs_path != resource.abs_path:
-                continue
+            for attribute, value in kwargs.items():
+                if not hasattr(resource, attribute):
+                    raise ValueError('{0} does not have attribute: {1}'.format(type(resource), attribute))
 
-            if rel_path is not None and rel_path != resource.rel_path:
-                continue
+                if getattr(resource, attribute) == value:
+                    matches.append(attribute)
 
-            if name is not None and name != resource.name:
-                continue
+            if operator == 'and' and len(matches) == len(kwargs):
+                results.append(resource)
+            elif operator == 'or' and len(matches) > 0:
+                results.append(resource)
 
-            return resource
+        return results
+
+    def data_type_to_project_path(self, data_type):
+        """
+        Gets the full directory path for the data_type.
+        :param data_type:
+        :return:
+        """
+        return os.path.join(self.data_path, DataType(data_type).name)
+
+    def data_type_from_project_path(self, local_path):
+        """
+        Gets the DataType from a local Project path.
+        :param local_path:
+        :return:
+        """
+        sys_path = SysPath(local_path, rel_start=self.data_path)
+
+        if len(sys_path.rel_parts) > 0:
+            return DataType(sys_path.rel_parts[0])
+        else:
+            return None
+
+    def is_project_data_path(self, local_path):
+        """
+        Gets if the local_path is a path within the local data directory.
+        :param local_path:
+        :return:
+        """
+        try:
+            self.data_type_from_project_path(local_path)
+            return True
+        except Exception as ex:
+            # TODO: log this?
+            pass
+        return False
 
     def load(self):
         """
@@ -180,6 +295,9 @@ class KiProject(object):
         Saves the KiProject to a config file.
         :return: None
         """
+        # Sort the resources before saving.
+        self.resources.sort(key=lambda r: r.rel_path or r.data_type or r.name or r.remote_uri or r.id)
+
         with open(self._config_path, 'w') as f:
             JSON.dump(self._self_to_json(), f, indent=2)
 
@@ -203,6 +321,8 @@ class KiProject(object):
 
     def _ki_project_resource_to_json(self, ki_project_resource):
         return {
+            'id': ki_project_resource.id,
+            'root_id': ki_project_resource.root_id,
             'data_type': ki_project_resource.data_type,
             'remote_uri': ki_project_resource.remote_uri,
             'rel_path': ki_project_resource.rel_path,
@@ -212,6 +332,8 @@ class KiProject(object):
 
     def _json_to_ki_project_resource(self, json):
         return KiProjectResource(self,
+                                 id=json.get('id'),
+                                 root_id=json.get('root_id'),
                                  data_type=json.get('data_type'),
                                  remote_uri=json.get('remote_uri'),
                                  local_path=json.get('rel_path'),
@@ -338,6 +460,69 @@ class KiProject(object):
 
         return False
 
-    def _add_ki_project_resource(self, project_resource):
-        # TODO: ensure it has a name and it's uniq.
+    def _data_add(self,
+                  remote_uri=None,
+                  local_path=None,
+                  name=None,
+                  version=None,
+                  data_type=None,
+                  root_ki_project_resource=None):
+        if local_path:
+            # Make sure the file is in one of the data directories.
+            if not self.is_project_data_path(local_path):
+                raise ValueError('local_path must be in one of the data directories.')
+
+            # TODO: make sure the data_type param matches the local_path.
+
+        # Check for an existing KiProjectResource
+        find_args = {}
+        if remote_uri:
+            find_args['remote_uri'] = remote_uri
+        if local_path:
+            find_args['abs_path'] = local_path
+        if root_ki_project_resource:
+            find_args['root_id'] = root_ki_project_resource.id
+
+        project_resource = self.find_project_resource_by(**find_args)
+
+        if project_resource:
+            raise ValueError('Resource has already been added')
+
+        # Update a resource.
+        project_resource = KiProjectResource(kiproject=self,
+                                             root_id=root_ki_project_resource.id if root_ki_project_resource else None,
+                                             data_type=data_type,
+                                             remote_uri=remote_uri,
+                                             local_path=local_path,
+                                             name=name,
+                                             version=version)
+
         self.resources.append(project_resource)
+        self.save()
+        return project_resource
+
+    def _find_project_resource_by_value(self, value):
+        """
+        Finds a KiProjectResource by a value.
+        Value must be one of:
+            - KiProjectResource (will be looked up by its id)
+            - KiProjectResource.id (UUID)
+            - KiProjectResource.remote_uri (DataUri)
+            - KiProjectResource.abs_path or rel_path (file/folder that exists at the value path)
+            - KiProjectResource.name (string)
+        :param value:
+        :return:
+        """
+        if isinstance(value, KiProjectResource):
+            return self.find_project_resource_by(id=value.id)
+        elif DataUri.is_uri(value):
+            return self.find_project_resource_by(remote_uri=value)
+        elif KiUtils.is_uuid(value):
+            return self.find_project_resource_by(id=value)
+        elif SysPath(value).exists:
+            sys_path = SysPath(value)
+            return self.find_project_resource_by(abs_path=sys_path.abs_path)
+        elif isinstance(value, str):
+            return self.find_project_resource_by(name=value)
+        else:
+            raise ValueError('Could not determine value type of: {0}'.format(value))

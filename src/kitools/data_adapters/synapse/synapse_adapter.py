@@ -18,6 +18,8 @@ from ..base_adapter import BaseAdapter
 from .synapse_remote_entity import SynapseRemoteEntity
 from ...data_type import DataType
 from ...data_uri import DataUri
+from ...sys_path import SysPath
+from ...ki_project_resource import KiProjectResource
 
 
 class SynapseAdapter(BaseAdapter):
@@ -64,20 +66,23 @@ class SynapseAdapter(BaseAdapter):
         return SynapseRemoteEntity(syn_project)
 
     def data_pull(self, ki_project_resource):
-        if not ki_project_resource.remote_uri:
-            raise ValueError('KiProjectResource must have a remote_uri. Try pushing first.')
-
         data_uri = DataUri.parse(ki_project_resource.remote_uri)
         syn_entity = SynapseAdapter.client().get(data_uri.id, downloadFile=False)
 
         if not ki_project_resource.abs_path:
             # This is the first pull so figure out where it lives locally.
-            self._try_set_abs_path(ki_project_resource, syn_entity)
+            self._set_abs_path_from_entity(ki_project_resource, syn_entity)
 
         download_path = ki_project_resource.abs_path
 
         if self._is_file(syn_entity):
             download_path = os.path.dirname(download_path)
+
+        # Make sure a version didn't get set on a folder.
+        # Synapse will blow up when requesting a version on a folder.
+        if self._is_folder(syn_entity) and ki_project_resource.version:
+            ki_project_resource.version = None
+            ki_project_resource.kiproject.save()
 
         entity = SynapseAdapter.client().get(
             data_uri.id,
@@ -93,40 +98,61 @@ class SynapseAdapter(BaseAdapter):
 
         if remote_entity.is_directory:
             # Create the local directory for the folder.
-            if not os.path.exists(remote_entity.local_path):
-                os.makedirs(remote_entity.local_path)
-
+            SysPath(remote_entity.local_path).ensure_dirs()
             assert remote_entity.local_path == ki_project_resource.abs_path
-
-            self._pull_children(entity, ki_project_resource.abs_path)
+            self._pull_children(ki_project_resource, entity, ki_project_resource.abs_path)
 
         return remote_entity
 
-    def _pull_children(self, syn_parent, local_path):
-
+    def _pull_children(self, root_ki_project_resource, syn_parent, download_path):
+        kiproject = root_ki_project_resource.kiproject
         syn_children = SynapseAdapter.client().getChildren(syn_parent, includeTypes=['folder', 'file'])
 
-        version = None  # TODO: lookup version from the child's KiProjectResource (when/if children are added)?
-
         for syn_child in syn_children:
+            is_syn_folder = syn_child.get('type').endswith('Folder')
+
+            # Check for a KiProjectResource for the child so we can get the correct version.
+            child_data_uri = DataUri(self.DATA_URI_SCHEME, syn_child.get('id'))
+            child_data_type = kiproject.data_type_from_project_path(download_path)
+            child_ki_project_resource = kiproject.find_project_resource_by(remote_uri=child_data_uri.uri,
+                                                                           data_type=child_data_type.name,
+                                                                           root_id=root_ki_project_resource.id)
+
+            # Make sure a version didn't get set on a folder.
+            # Synapse will blow up when requesting a version on a folder.
+            if is_syn_folder and child_ki_project_resource and child_ki_project_resource.version:
+                child_ki_project_resource.version = None
+                kiproject.save()
+
+            pull_version = None
+            if child_ki_project_resource:
+                pull_version = child_ki_project_resource.version
+
             entity = SynapseAdapter.client().get(
-                syn_child.get('id'),
+                child_data_uri.id,
                 downloadFile=True,
-                downloadLocation=local_path,
+                downloadLocation=download_path,
                 ifcollision='overwrite.local',
-                version=version
+                version=pull_version
             )
 
-            remote_entity = SynapseRemoteEntity(entity, local_path=os.path.join(local_path, entity.name))
+            remote_entity = SynapseRemoteEntity(entity, local_path=os.path.join(download_path, entity.name))
+
+            # Add the child resource if it doesn't exist.
+            if not child_ki_project_resource:
+                child_ki_project_resource = kiproject._data_add(data_type=child_data_type.name,
+                                                                remote_uri=child_data_uri.uri,
+                                                                local_path=remote_entity.local_path,
+                                                                name=remote_entity.name,
+                                                                root_ki_project_resource=root_ki_project_resource)
 
             if remote_entity.is_directory:
                 # Create the local directory for the folder.
-                if not os.path.exists(remote_entity.local_path):
-                    os.makedirs(remote_entity.local_path)
+                SysPath(remote_entity.local_path).ensure_dirs()
+                assert remote_entity.local_path == child_ki_project_resource.abs_path
+                self._pull_children(root_ki_project_resource, entity, remote_entity.local_path)
 
-                self._pull_children(entity, remote_entity.local_path)
-
-    def _try_set_abs_path(self, ki_project_resource, syn_entity):
+    def _set_abs_path_from_entity(self, ki_project_resource, syn_entity):
         """
         Tries to figure out where a file/folder lives with in a KiProject data directory.
         :param ki_project_resource:
@@ -140,7 +166,7 @@ class SynapseAdapter(BaseAdapter):
         if not abs_path and ki_project_resource.data_type:
             # Figure out the path from the data_type
             name = syn_entity.name
-            abs_path = os.path.join(DataType(ki_project_resource.data_type).to_project_path(kiproject.local_path), name)
+            abs_path = os.path.join(kiproject.data_type_to_project_path(ki_project_resource.data_type), name)
 
         if abs_path:
             ki_project_resource.abs_path = abs_path
@@ -182,36 +208,35 @@ class SynapseAdapter(BaseAdapter):
 
         project_data_uri = DataUri.parse(kiproject.project_uri)
 
-        rel_path = os.path.relpath(ki_project_resource.abs_path, start=kiproject.local_path)
-        rel_dirs = os.path.dirname(rel_path)
-
         syn_parent = SynapseAdapter.client().get(project_data_uri.id)
 
-        # Get or create the folders in Synapse.
-        for segment in rel_dirs.split(os.sep):
-            syn_parent = self._find_or_create_syn_folder(syn_parent, segment)
+        sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
 
-        is_dir = os.path.isdir(ki_project_resource.abs_path)
+        # Get or create the folders in Synapse.
+        for part in sys_path.rel_parts:
+            # Break when we hit the filename.
+            if part == sys_path.basename:
+                break
+            syn_parent = self._find_or_create_syn_folder(syn_parent, part)
+
         syn_entity = None
 
-        if is_dir:
-            # Create the folder in Synapse
-            folder_name = os.path.basename(ki_project_resource.abs_path)
-            syn_entity = self._find_or_create_syn_folder(syn_parent, folder_name)
+        if sys_path.is_dir:
+            # Find or create the folder in Synapse.
+            syn_entity = self._find_or_create_syn_folder(syn_parent, sys_path.basename)
 
             # Push the children
-            self._push_children(syn_entity, ki_project_resource.abs_path)
+            self._push_children(syn_entity, sys_path.abs_path)
         else:
             # Upload the file
-            syn_entity = SynapseAdapter.client().store(
-                synapseclient.File(path=ki_project_resource.abs_path, parent=syn_parent))
+            syn_entity = SynapseAdapter.client().store(synapseclient.File(path=sys_path.abs_path, parent=syn_parent))
 
         # If this is the first push then update the KiProjectResource.
-        if not ki_project_resource.remote_uri:
+        if ki_project_resource.remote_uri is None:
             ki_project_resource.remote_uri = DataUri(self.DATA_URI_SCHEME, syn_entity.id).uri
             kiproject.save()
 
-        remote_entity = SynapseRemoteEntity(syn_entity, local_path=ki_project_resource.abs_path)
+        remote_entity = SynapseRemoteEntity(syn_entity, local_path=sys_path.abs_path)
 
         assert remote_entity.local_path == ki_project_resource.abs_path
 

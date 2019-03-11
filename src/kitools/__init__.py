@@ -16,6 +16,8 @@ from .ki_project import KiProject
 from .ki_project_resource import KiProjectResource
 from .data_type import DataType
 from .data_uri import DataUri
+from .sys_path import SysPath
+from .ki_utils import KiUtils
 from .data_adapters import SynapseAdapter
 
 name = 'kitools'
