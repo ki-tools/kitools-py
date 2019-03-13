@@ -70,7 +70,7 @@ class KiProjectResource(object):
         self._local_path = value
 
         if self.rel_path:
-            self.data_type = self.rel_path.split(os.sep)[1]
+            self.data_type = SysPath(self.rel_path).rel_parts[1]
 
     def _set_version(self, value):
         self._version = str(value) if value else None
@@ -86,6 +86,17 @@ class KiProjectResource(object):
     @property
     def root_id(self):
         return self._root_id
+
+    @root_id.setter
+    def root_id(self, value):
+        self._root_id = value
+
+    @property
+    def root_resource(self):
+        if self.root_id is not None:
+            return self.kiproject.find_project_resource_by(id=self.root_id)
+        else:
+            return None
 
     @property
     def remote_uri(self):

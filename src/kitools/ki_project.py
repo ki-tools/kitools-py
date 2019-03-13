@@ -78,7 +78,7 @@ class KiProject(object):
                                       name=(name or sys_local_path.basename),
                                       version=version)
             else:
-                raise ValueError('Please specify a remote URI or a local file or folder.')
+                raise ValueError('Please specify a remote URI or a local file or folder path.')
 
     def data_remove(self, resource_or_identifier):
         """
@@ -112,7 +112,7 @@ class KiProject(object):
 
         project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
-        if not project_resource:
+        if project_resource is None:
             raise ValueError('No resource found matching: {0}'.format(resource_or_identifier))
 
         if name is not None:
@@ -135,8 +135,12 @@ class KiProject(object):
         if resource_or_identifier:
             project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
-            if not project_resource:
+            if project_resource is None:
                 raise Exception('No resource found matching: {0}'.format(resource_or_identifier))
+
+            if project_resource.remote_uri is None:
+                print('Resource {0} cannot be pulled until it has been pushed.'.format(resource_or_identifier))
+                return None
 
             data_uri = DataUri.parse(project_resource.remote_uri)
             data_uri.data_adapter().data_pull(project_resource)
@@ -144,19 +148,11 @@ class KiProject(object):
         else:
             results = []
             for project_resource in self.resources:
-                # Skip any non-root resources since they are children of a parent resource
-                # that will handle downloading it.
+                # Skip any non-root resources. The root resource will handle pulling the child.
                 if project_resource.root_id:
                     continue
 
-                if not project_resource.remote_uri:
-                    # Needs to be pushed
-                    print('Resource {0} cannot be pulled until it has been pushed.'.format(project_resource.rel_path))
-                    continue
-
-                data_uri = DataUri.parse(project_resource.remote_uri)
-                data_uri.data_adapter().data_pull(project_resource)
-                results.append(project_resource.abs_path)
+                results.append(self.data_pull(project_resource))
             return results
 
     def data_push(self, resource_or_identifier=None):
@@ -170,23 +166,30 @@ class KiProject(object):
         if resource_or_identifier:
             project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
-            if not project_resource:
+            if project_resource is None:
                 raise Exception('No resource found matching: {0}'.format(resource_or_identifier))
+
+            if project_resource.abs_path is None:
+                print('Resource {0} cannot be pushed until it has been pulled.'.format(resource_or_identifier))
+                return None
 
             data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
             data_uri.data_adapter().data_push(project_resource)
             return project_resource.abs_path
         else:
+            print('Pushing all resources that have not yet been pushed.')
             results = []
             for project_resource in self.resources:
-                # Needs needs to be pulled first.
-                if not project_resource.rel_path:
-                    print('Resource {0} cannot be pushed until it has been pulled.'.format(project_resource.remote_uri))
+                # Only push resources that have not been pushed yet.
+                if project_resource.remote_uri:
                     continue
 
-                data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
-                data_uri.data_adapter().data_push(project_resource)
-                results.append(project_resource.abs_path)
+                # Skip any non-root resources unless the root resource has already been pushed.
+                # The root resource will handle pushing the child.
+                if project_resource.root_id and project_resource.root_resource.remote_uri is None:
+                    continue
+
+                results.append(self.data_push(project_resource))
             return results
 
     def data_list(self, all=False):
@@ -474,30 +477,60 @@ class KiProject(object):
 
             # TODO: make sure the data_type param matches the local_path.
 
+        root_id = root_ki_project_resource.id if root_ki_project_resource else None
+
         # Check for an existing KiProjectResource
         find_args = {}
         if remote_uri:
             find_args['remote_uri'] = remote_uri
         if local_path:
             find_args['abs_path'] = local_path
-        if root_ki_project_resource:
-            find_args['root_id'] = root_ki_project_resource.id
+        if root_id:
+            find_args['root_id'] = root_id
 
         project_resource = self.find_project_resource_by(**find_args)
 
         if project_resource:
-            raise ValueError('Resource has already been added')
+            # Update the resource and warn about any changes.
+            changes = []
 
-        # Update a resource.
-        project_resource = KiProjectResource(kiproject=self,
-                                             root_id=root_ki_project_resource.id if root_ki_project_resource else None,
-                                             data_type=data_type,
-                                             remote_uri=remote_uri,
-                                             local_path=local_path,
-                                             name=name,
-                                             version=version)
+            change_map = {
+                'remote_uri': {'value': remote_uri, 'allow_none': False},
+                'abs_path': {'value': local_path, 'allow_none': False},
+                'name': {'value': name, 'allow_none': False},
+                'version': {'value': version, 'allow_none': True},
+                'data_type': {'value': data_type, 'allow_none': False},
+                'root_id': {'value': root_id, 'allow_none': False}
+            }
 
-        self.resources.append(project_resource)
+            for attr, config in change_map.items():
+                old_value = getattr(project_resource, attr)
+                new_value = config.get('value')
+                allow_none = config.get('allow_none')
+
+                if new_value != old_value:
+                    if new_value is None and not allow_none:
+                        print('WARNING: Cannot set {0} to None. {0} already has value: {1}'.format(attr, old_value))
+                        continue
+
+                    changes.append('{0} changed from: {1} to: {2}'.format(attr.title(), old_value, new_value))
+                    setattr(project_resource, attr, new_value)
+
+            if len(changes) > 0:
+                print('WARNING: Resource already exists and has been updated with the following changes:')
+                for change in changes:
+                    print('  - {0}'.format(change))
+        else:
+            # Add the resource.
+            project_resource = KiProjectResource(kiproject=self,
+                                                 root_id=root_id,
+                                                 data_type=data_type,
+                                                 remote_uri=remote_uri,
+                                                 local_path=local_path,
+                                                 name=name,
+                                                 version=version)
+            self.resources.append(project_resource)
+
         self.save()
         return project_resource
 

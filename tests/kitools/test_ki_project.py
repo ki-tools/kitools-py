@@ -20,7 +20,7 @@ import json as JSON
 import uuid
 import shutil
 import synapseclient
-from src.kitools import KiProject, KiProjectResource, DataType, DataUri
+from src.kitools import KiProject, KiProjectResource, DataType, DataUri, SysPath
 
 
 @pytest.fixture(scope='session')
@@ -491,9 +491,6 @@ def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_data):
     syn_project, syn_folders, syn_files = syn_data
 
     for syn_folder in syn_folders:
-        if syn_folder.name == 'data' or syn_folder.name == 'core':
-            continue
-
         syn_folder_uri = DataUri('syn', syn_folder.id).uri
 
         # Add the folder to the KiProject
@@ -555,7 +552,7 @@ def test_it_pushes_a_file_matching_the_data_structure(mk_kiproject, mk_local_dat
         # TODO: check that file/folders were pushed
 
 
-def test_it_pushes_a_folder_matching_the_data_structure(mk_kiproject, mk_uniq_string, write_file, mk_local_data_dir):
+def test_it_pushes_a_folder_matching_the_data_structure(mk_kiproject, mk_local_data_dir):
     kiproject = mk_kiproject()
 
     local_data_folders, local_data_files = mk_local_data_dir(kiproject)
@@ -575,6 +572,7 @@ def test_it_does_not_push_a_file_unless_the_local_file_changed_TODO():
 
 def test_it_tests_the_workflow(mk_kiproject,
                                mk_local_data_dir,
+                               mk_uniq_string,
                                syn_data,
                                syn_non_data):
     kiproject = mk_kiproject()
@@ -589,6 +587,20 @@ def test_it_tests_the_workflow(mk_kiproject,
         resource = kiproject.data_add(local_file)
         abs_path = kiproject.data_push(resource)
         assert abs_path == resource.abs_path
+        # Re-add it
+        resource_count = len(kiproject.resources)
+        resource = kiproject.data_add(local_file)
+        assert len(kiproject.resources) == resource_count
+        # Re-add with a change
+        new_name = mk_uniq_string()
+        resource = kiproject.data_add(local_file, name=new_name, version='1')
+        assert len(kiproject.resources) == resource_count
+        assert resource.version == '1'
+        assert resource.name == new_name
+        resource = kiproject.data_add(local_file)
+        assert len(kiproject.resources) == resource_count
+        assert resource.version is None
+        assert resource.name == os.path.basename(local_file)
 
     # Folders
     for local_folder in local_data_folders:
@@ -633,6 +645,12 @@ def test_it_tests_the_workflow(mk_kiproject,
         remote_uri = DataUri('syn', syn_non_data_folder.id).uri
         resource = kiproject.data_add(remote_uri, data_type=DataType.CORE)
         abs_path = kiproject.data_pull(remote_uri)
+
+    ###########################################################################
+    # Push/Pull Everything
+    ###########################################################################
+    kiproject.data_push()
+    kiproject.data_pull()
 
     ###########################################################################
     # data_list
@@ -687,3 +705,60 @@ def test_is_project_data_path(kiproject, mk_tempdir):
 
     assert kiproject.is_project_data_path(temp_dir) is False
     # TODO: add more tests
+
+
+def test_data_pull_non_data_folder(syn_test_helper, mk_tempfile, mk_uniq_string, mk_kiproject):
+    syn_project = syn_test_helper.create_project()
+
+    syn_folder1 = syn_test_helper.client().store(synapseclient.Folder(name='Folder1', parent=syn_project))
+    syn_test_helper.client().store(synapseclient.File(path=mk_tempfile(), parent=syn_folder1))
+
+    syn_folder2 = syn_test_helper.client().store(synapseclient.Folder(name='Folder2', parent=syn_folder1))
+    syn_test_helper.client().store(synapseclient.File(path=mk_tempfile(), parent=syn_folder2))
+
+    syn_folder3 = syn_test_helper.client().store(synapseclient.Folder(name='Folder3', parent=syn_folder2))
+    syn_test_helper.client().store(synapseclient.File(path=mk_tempfile(), parent=syn_folder3))
+
+    syn_folder4 = syn_test_helper.client().store(synapseclient.Folder(name='Folder4', parent=syn_folder3))
+    syn_test_helper.client().store(synapseclient.File(path=mk_tempfile(), parent=syn_folder4))
+
+    syn_folder5 = syn_test_helper.client().store(synapseclient.Folder(name='Folder5', parent=syn_folder4))
+    syn_test_helper.client().store(synapseclient.File(path=mk_tempfile(), parent=syn_folder5))
+
+    kiproject = mk_kiproject()
+    kiproject.data_add(DataUri('syn', syn_folder1.id).uri, data_type=DataType.CORE)
+    kiproject.data_pull()
+    assert True
+
+
+def test_data_push_folder(mk_uniq_string, write_file, mk_kiproject):
+    kiproject = mk_kiproject()
+
+    for data_type_name in DataType.ALL:
+        path = kiproject.data_type_to_project_path(data_type_name)
+
+        write_file(os.path.join(path, mk_uniq_string()), 'version1')
+
+        folder1 = SysPath(os.path.join(path, 'Folder1'))
+        folder1.ensure_dirs()
+        write_file(os.path.join(folder1.abs_path, mk_uniq_string()), 'version1')
+
+        folder2 = SysPath(os.path.join(folder1.abs_path, 'Folder2'))
+        folder2.ensure_dirs()
+        write_file(os.path.join(folder2.abs_path, mk_uniq_string()), 'version1')
+
+        folder3 = SysPath(os.path.join(folder2.abs_path, 'Folder3'))
+        folder3.ensure_dirs()
+        write_file(os.path.join(folder3.abs_path, mk_uniq_string()), 'version1')
+
+        folder4 = SysPath(os.path.join(folder3.abs_path, 'Folder4'))
+        folder4.ensure_dirs()
+        write_file(os.path.join(folder4.abs_path, mk_uniq_string()), 'version1')
+
+        folder5 = SysPath(os.path.join(folder4.abs_path, 'Folder5'))
+        folder5.ensure_dirs()
+        write_file(os.path.join(folder5.abs_path, mk_uniq_string()), 'version1')
+
+        kiproject.data_add(folder1.abs_path)
+        kiproject.data_push()
+    assert True
