@@ -260,12 +260,13 @@ class SynapseAdapter(BaseAdapter):
         dirs = []
         files = []
 
-        with os.scandir(local_path) as iter:
-            for entry in iter:
-                if entry.is_dir(follow_symlinks=False):
-                    dirs.append(entry)
-                else:
-                    files.append(entry)
+        iter = os.scandir(local_path)
+        for entry in iter:
+            if entry.is_dir(follow_symlinks=False):
+                dirs.append(entry)
+            else:
+                files.append(entry)
+        iter.close()
 
         dirs.sort(key=lambda f: f.name)
         files.sort(key=lambda f: f.name)
