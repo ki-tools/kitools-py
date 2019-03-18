@@ -21,5 +21,5 @@ class KiUtils:
         try:
             uuid.UUID(value)
             return True
-        except ValueError as ex:
+        except ValueError:
             return False

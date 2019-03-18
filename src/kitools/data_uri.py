@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
+from .exceptions import InvalidDataUriError
+
+
 class DataUri(object):
     """
     Data URI parsing.
@@ -61,24 +64,24 @@ class DataUri(object):
     @staticmethod
     def parse(uri):
         if not uri:
-            raise ValueError('uri must be specified.')
+            raise InvalidDataUriError('uri cannot be blank.')
 
         # Clean up the URI.
-        uri = uri.strip().replace(' ', '')
+        prepared_uri = uri.strip().replace(' ', '')
 
-        parts = uri.split(':')
+        parts = prepared_uri.split(':')
 
         if len(parts) != 2:
-            raise ValueError('Invalid URI format, cannot parse: {0}'.format(uri))
+            raise InvalidDataUriError('Invalid URI format, cannot parse: {0}'.format(uri))
 
         scheme = parts[0].lower()
         id = parts[1]
 
         if scheme not in DataUri.SCHEMES:
-            raise ValueError('Invalid URI scheme: {0}'.format(scheme))
+            raise InvalidDataUriError('Invalid URI scheme: {0}'.format(scheme))
 
         if id.strip() == '':
-            raise ValueError('URI ID must be provided.')
+            raise InvalidDataUriError('URI ID must be provided.')
 
         return DataUri(scheme, id)
 
@@ -91,7 +94,7 @@ class DataUri(object):
         """
         try:
             return DataUri.parse(value) is not None
-        except Exception as ex:
+        except InvalidDataUriError as ex:
             # TODO: log this?
             pass
         return False

@@ -14,13 +14,12 @@
 
 import pytest
 import os
-import pytest
-import os
 import json as JSON
 import uuid
 import shutil
 import synapseclient
 from src.kitools import KiProject, KiProjectResource, DataType, DataUri, SysPath
+from src.kitools import NotADataTypePathError, DataTypeMismatchError
 
 
 @pytest.fixture(scope='session')
@@ -471,6 +470,32 @@ def test_it_adds_a_local_data_structure_folder(mk_kiproject, mk_local_data_dir):
         # TODO: add remaining assertions
 
 
+def test_it_errors_when_adding_a_local_path_that_is_not_in_the_data_directories(kiproject, mk_tempfile):
+    temp_file = mk_tempfile()
+
+    bad_paths = [temp_file, kiproject.data_path]
+    for data_type in DataType.ALL:
+        bad_paths.append(os.path.join(kiproject.data_path, data_type))
+
+    for bad_path in bad_paths:
+        with pytest.raises(NotADataTypePathError):
+            kiproject.data_add(bad_path)
+
+
+def test_it_errors_when_adding_a_data_type_that_does_not_match_the_local_path(kiproject, mk_local_data_dir):
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
+
+    for local_path in local_data_folders + local_data_files:
+        actual_data_type = kiproject.data_type_from_project_path(local_path).name
+
+        dts = DataType.ALL.copy()
+        dts.remove(actual_data_type)
+        wrong_data_type = dts[0]
+
+        with pytest.raises(DataTypeMismatchError):
+            kiproject.data_add(local_path, data_type=wrong_data_type)
+
+
 def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
     syn_project, syn_folders, syn_files = syn_data
@@ -558,7 +583,7 @@ def test_it_pushes_a_folder_matching_the_data_structure(mk_kiproject, mk_local_d
     local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
     for folder_path in local_data_folders:
-        ki_project_resource = kiproject.data_add(os.path.dirname(folder_path))
+        ki_project_resource = kiproject.data_add(folder_path)
 
         # Push the file
         remote_entity = kiproject.data_push(ki_project_resource.name)
@@ -700,10 +725,17 @@ def test_data_type_from_project_path(kiproject):
             assert kiproject.data_type_from_project_path(new_path).name == data_type_name
 
 
-def test_is_project_data_path(kiproject, mk_tempdir):
+def test_is_project_data_type_path(kiproject, mk_tempdir):
     temp_dir = mk_tempdir()
 
-    assert kiproject.is_project_data_path(temp_dir) is False
+    assert kiproject.is_project_data_type_path(temp_dir) is False
+
+    for root_data_path in kiproject._root_data_paths():
+        assert kiproject.is_project_data_type_path(root_data_path) is False
+
+        data_type_child_path = os.path.join(root_data_path, 'test.csv')
+        assert kiproject.is_project_data_type_path(data_type_child_path) is True
+
     # TODO: add more tests
 
 

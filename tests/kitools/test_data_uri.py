@@ -14,7 +14,7 @@
 
 import pytest
 from src.kitools.data_adapters import SynapseAdapter
-from src.kitools import DataUri
+from src.kitools import DataUri, InvalidDataUriError
 
 
 @pytest.fixture()
@@ -46,15 +46,15 @@ def test___init__(bad_uris):
         if scheme == 'syn':
             assert isinstance(duri.data_adapter(), SynapseAdapter)
 
-    with pytest.raises(ValueError) as ex:
+    with pytest.raises(InvalidDataUriError) as ex:
         DataUri.parse(None)
-    assert str(ex.value) == 'uri must be specified.'
+    assert str(ex.value) == 'uri cannot be blank.'
 
     for bad_uri in bad_uris:
-        with pytest.raises(ValueError) as ex:
+        with pytest.raises(InvalidDataUriError) as ex:
             DataUri.parse(bad_uri)
         assert ('Invalid URI format, cannot parse:' in str(ex.value) or
-                str(ex.value) == 'uri must be specified.' or
+                str(ex.value) == 'uri cannot be blank.' or
                 'Invalid URI scheme:' in str(ex.value) or
                 str(ex.value) == 'URI ID must be provided.')
 

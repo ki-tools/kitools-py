@@ -21,6 +21,7 @@ from .data_type import DataType
 from .data_uri import DataUri
 from .sys_path import SysPath
 from .ki_utils import KiUtils
+from .exceptions import NotADataTypePathError, DataTypeMismatchError
 
 
 class KiProject(object):
@@ -266,15 +267,20 @@ class KiProject(object):
         else:
             return None
 
-    def is_project_data_path(self, local_path):
+    def is_project_data_type_path(self, local_path):
         """
-        Gets if the local_path is a path within the local data directory.
+        Gets if the local_path is in one of the DataType directories.
         :param local_path:
         :return:
         """
         try:
-            self.data_type_from_project_path(local_path)
-            return True
+            is_data_path = self.data_type_from_project_path(local_path) is not None
+            is_root_data_path = is_data_path and local_path in self._root_data_paths()
+
+            if is_data_path and not is_root_data_path:
+                return True
+            else:
+                return False
         except Exception as ex:
             # TODO: log this?
             pass
@@ -392,7 +398,9 @@ class KiProject(object):
         Ensures the project_uri is set and valid.
         :return:
         """
-        if not self.project_uri:
+        if self.project_uri:
+            return self._init_project_uri_existing()
+        else:
             while True:
                 answer = input('Create a remote project or use an existing? [c/e]: ')
                 if answer == 'c':
@@ -402,8 +410,6 @@ class KiProject(object):
                 else:
                     print(
                         'Invalid input. Enter "c" to create a new remote project or "e" to use an existing remote project.')
-        else:
-            return self._init_project_uri_existing()
 
     def _init_project_uri_new(self):
         """
@@ -436,12 +442,11 @@ class KiProject(object):
         if self.project_uri and self._validate_project_uri(self.project_uri):
             return True
 
-        data_uri = DataUri(DataUri.default_scheme(), '{0}123456'.format(DataUri.default_scheme()))
+        example_data_uri = DataUri(DataUri.default_scheme(), '{0}123456'.format(DataUri.default_scheme())).uri
 
         while True:
-            answer = input('Remote project URI (e.g., {0}): '.format(data_uri.uri))
-            valid_project = self._validate_project_uri(answer)
-            if valid_project:
+            answer = input('Remote project URI (e.g., {0}): '.format(example_data_uri))
+            if self._validate_project_uri(answer):
                 self.project_uri = answer
                 print('Remote project URI: {0}'.format(self.project_uri))
                 return True
@@ -459,7 +464,7 @@ class KiProject(object):
             remote_entity = data_uri.data_adapter().get_entity(data_uri.id)
             return remote_entity is not None and remote_entity.is_project
         except Exception as ex:
-            print('Invalid remote project URI: {0}'.format(str(ex)))
+            print('Invalid remote project URI: {0}'.format(ex))
 
         return False
 
@@ -472,10 +477,15 @@ class KiProject(object):
                   root_ki_project_resource=None):
         if local_path:
             # Make sure the file is in one of the data directories.
-            if not self.is_project_data_path(local_path):
-                raise ValueError('local_path must be in one of the data directories.')
+            if not self.is_project_data_type_path(local_path):
+                raise NotADataTypePathError(self.data_path, local_path, DataType.ALL)
 
-            # TODO: make sure the data_type param matches the local_path.
+            # Make sure the data_type param matches the local_path.
+            if data_type:
+                local_path_data_type = self.data_type_from_project_path(local_path)
+                if local_path_data_type is None or data_type != local_path_data_type.name:
+                    raise DataTypeMismatchError(
+                        'data_type: {0} does not match local_path: {1}.'.format(data_type, local_path))
 
         root_id = root_ki_project_resource.id if root_ki_project_resource else None
 
@@ -559,3 +569,13 @@ class KiProject(object):
             return self.find_project_resource_by(name=value)
         else:
             raise ValueError('Could not determine value type of: {0}'.format(value))
+
+    def _root_data_paths(self):
+        """
+        Gets all the DataType root paths for the project (e.g., /home/user/my_project/data/core)
+        :return:
+        """
+        paths = []
+        for data_type in DataType.ALL:
+            paths.append(os.path.join(self.data_path, data_type))
+        return paths

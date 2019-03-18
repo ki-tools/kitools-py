@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .exceptions import InvalidDataTypeError
+
 
 class DataType(object):
     DATA_DIR_NAME = 'data'
@@ -22,11 +24,11 @@ class DataType(object):
     ALL = [CORE, DISCOVERED, DERIVED]
 
     def __init__(self, name):
-        name = name.lower() if name else None
-        if name not in self.ALL:
-            raise ValueError('Invalid data type: {0}'.format(name))
+        prepared_name = name.lower().strip() if name else None
+        if prepared_name not in self.ALL:
+            raise InvalidDataTypeError(name, DataType.ALL)
 
-        self._name = name
+        self._name = prepared_name
 
     @property
     def name(self):

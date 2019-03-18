@@ -32,11 +32,6 @@ if os.path.isfile(test_env_file):
     with open(test_env_file) as f:
         config = json.load(f).get('test')
 
-        # Validate required properties are present
-        for prop in ['SYNAPSE_USERNAME', 'SYNAPSE_PASSWORD']:
-            if prop not in config or not config[prop]:
-                raise Exception('Property: "{0}" is missing in {1}'.format(prop, test_env_file))
-
         for key, value in config.items():
             os.environ[key] = value
 else:

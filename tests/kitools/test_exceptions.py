@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .ki_project import KiProject
-from .ki_project_resource import KiProjectResource
-from .data_type import DataType
-from .data_uri import DataUri
-from .sys_path import SysPath
-from .ki_utils import KiUtils
-from .data_adapters import SynapseAdapter
-from .exceptions import InvalidDataTypeError, NotADataTypePathError, DataTypeMismatchError, InvalidDataUriError
+import pytest
+import os
+from src.kitools import DataType
+from src.kitools.exceptions import InvalidDataTypeError, NotADataTypePathError
 
-name = 'kitools'
 
-DataUri.register(SynapseAdapter.DATA_URI_SCHEME, SynapseAdapter)
+def test_InvalidDataTypeError():
+    ex = InvalidDataTypeError('test', DataType.ALL)
+    assert str(ex) == 'Invalid DataType: {0}. Must of one of: {1}'.format('test', ', '.join(DataType.ALL))
+
+
+def test_NotADataTypePathError(mk_tempdir, mk_tempfile):
+    data_path = mk_tempdir()
+    bad_path = mk_tempfile()
+    ex = NotADataTypePathError(data_path, bad_path, DataType.ALL)
+    assert 'must be in one of the data directories:' in str(ex)
