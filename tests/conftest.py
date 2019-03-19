@@ -18,7 +18,6 @@ import tempfile
 import shutil
 import json
 import uuid
-import datetime
 from src.kitools import KiProject, KiProjectResource, DataUri, DataType
 from src.kitools.data_adapters import SynapseAdapter
 from tests.synapse_test_helper import SynapseTestHelper
