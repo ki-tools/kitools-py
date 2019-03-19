@@ -6,9 +6,8 @@ python:
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
-  - travis_wait 20 mvn install
   - pip install tox-travis
 script:
-  - tox
+  - travis_wait 20 tox
 after_success:
   - coveralls
