@@ -1,11 +1,15 @@
+sudo: false
 language: python
 python:
+  - "3.5"
   - "3.6"
+  - "3.7"
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
-  - pip install -r requirements.txt
+  - - pip install -r requirements.txt
+  - pip install tox-travis
 script:
-  - pytest --cov
+  - tox
 after_success:
   - coveralls
