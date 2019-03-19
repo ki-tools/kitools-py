@@ -10,4 +10,4 @@ install:
 script:
   - tox
 after_success:
-  - coveralls
+  - coveralls --merge=.tox/.coverage
