@@ -8,6 +8,6 @@ before_install:
 install:
   - pip install tox-travis
 script:
-  - travis_wait 20 tox
+  - tox
 after_success:
   - coveralls
