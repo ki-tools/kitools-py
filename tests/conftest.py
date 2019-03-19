@@ -39,7 +39,7 @@ else:
     print('WARNING: Test environment file not found at: {0}'.format(test_env_file))
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='session', autouse=True)
 def synapse_test_config():
     """
     Creates a temporary Synapse config file with the test credentials and redirects
