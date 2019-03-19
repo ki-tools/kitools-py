@@ -46,17 +46,27 @@ def synapse_test_config():
     the Synapse client to the temp config file.
     :return:
     """
+    syn_username = os.getenv('SYNAPSE_USERNAME', None)
+    syn_password = os.getenv('SYNAPSE_PASSWORD', None)
+
+    if not syn_username:
+        raise Exception('Missing environment variable: SYNAPSE_USERNAME')
+
+    if not syn_password:
+        raise Exception('Missing environment variable: SYNAPSE_PASSWORD')
 
     config = """
 [authentication]
 username = {0}
 password = {1}
-    """.format(os.getenv('SYNAPSE_USERNAME'), os.getenv('SYNAPSE_PASSWORD'))
+    """.format(syn_username, syn_password)
 
     fd, tmp_filename = tempfile.mkstemp(suffix='.synapseConfig')
+    print('Writing synapseConfig to: {0}'.format(tmp_filename))
     with os.fdopen(fd, 'w') as tmp:
         tmp.write(config)
 
+    print('Setting synapseConfig to: {0}'.format(tmp_filename))
     synapseclient.client.CONFIG_FILE = tmp_filename
 
     yield tmp_filename
