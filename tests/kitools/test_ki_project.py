@@ -23,7 +23,7 @@ from src.kitools import NotADataTypePathError, DataTypeMismatchError
 
 
 @pytest.fixture(scope='session')
-def mk_syn_files(syn_test_helper, write_file, mk_tempdir, ci_keep_alive):
+def mk_syn_files(syn_test_helper, write_file, mk_tempdir):
     def _mk(syn_parent, file_num=2, versions=2, suffix=''):
         syn_files = []
 
@@ -36,8 +36,6 @@ def mk_syn_files(syn_test_helper, write_file, mk_tempdir, ci_keep_alive):
             temp_file = os.path.join(temp_dir, 'File{0}{1}'.format(file_num, suffix))
 
             for version_num in range(1, versions + 1):
-                ci_keep_alive('Creating Synapse File: {0}, Version: {1}'.format(temp_file, version_num))
-
                 write_file(temp_file, 'version{0}'.format(version_num))
 
                 syn_file = syn_test_helper.client().store(synapseclient.File(
@@ -52,15 +50,12 @@ def mk_syn_files(syn_test_helper, write_file, mk_tempdir, ci_keep_alive):
 
 
 @pytest.fixture(scope='session')
-def mk_syn_folders(syn_test_helper, ci_keep_alive):
+def mk_syn_folders(syn_test_helper):
     def _mk(syn_parent, count=2, suffix=''):
         syn_folders = []
 
         for folder_count in range(1, count + 1):
             folder_name = 'Folder{0}{1}'.format(folder_count, suffix)
-
-            ci_keep_alive('Creating Synapse Folder: {0}'.format(folder_name))
-
             syn_folder = syn_test_helper.client().store(synapseclient.Folder(name=folder_name, parent=syn_parent))
             syn_folders.append(syn_folder)
         return syn_folders

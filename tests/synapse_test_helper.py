@@ -97,7 +97,7 @@ class SynapseTestHelper:
             self._trash.remove(syn_obj)
 
         for obj in others:
-            print('WARNING: Non-Supported object found: {0}'.format(obj))
+            print('WARNING: Non-Supported object found: {0}'.format(type(obj)))
             self._trash.remove(obj)
 
     def create_project(self, **kwargs):

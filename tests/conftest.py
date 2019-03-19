@@ -40,22 +40,6 @@ else:
 
 
 @pytest.fixture(scope='session')
-def ci_keep_alive():
-    """
-    Use this message to output messages during long running processes so the CI runner doesn't timeout.
-    """
-
-    def _print(message=None):
-        if message is None:
-            message = 'CI KEEP ALIVE'
-
-        message = '{0}: {1}'.format(datetime.datetime.now(), message)
-        print(message)
-
-    yield _print
-
-
-@pytest.fixture(scope='session')
 def synapse_test_config():
     """
     Creates a temporary Synapse config file with the test credentials and redirects
@@ -119,13 +103,11 @@ def mk_syn_project(syn_test_helper):
 
 
 @pytest.fixture()
-def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_string, mk_fake_project_file,
-                 ci_keep_alive):
+def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_string, mk_fake_project_file):
     def _mk(dir=None,
             with_fake_project_files=False,
             with_fake_project_files_count=1):
 
-        ci_keep_alive('Making KiProject')
         mk_mock_kiproject_input()
 
         kiproject = KiProject(dir or mk_tempdir())
