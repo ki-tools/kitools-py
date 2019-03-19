@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .ki_project import KiProject
-from .ki_project_resource import KiProjectResource
-from .data_type import DataType
-from .data_uri import DataUri
-from .sys_path import SysPath
-from .ki_utils import KiUtils
-from .ki_env import KiEnv
-from .data_adapters import SynapseAdapter
-from .exceptions import InvalidDataTypeError, NotADataTypePathError, DataTypeMismatchError, InvalidDataUriError
+import os
+import synapseclient
 
-name = 'kitools'
 
-DataUri.register(SynapseAdapter.DATA_URI_SCHEME, SynapseAdapter)
+class KiEnv:
+
+    @staticmethod
+    def SYNAPSE_CONFIG_PATH():
+        """
+        Gets the path to the Synapse Config file.
+        :return:
+        """
+        return os.environ.get('SYNAPSE_CONFIG_PATH', synapseclient.client.CONFIG_FILE)

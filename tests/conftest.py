@@ -39,8 +39,8 @@ else:
     print('WARNING: Test environment file not found at: {0}'.format(test_env_file))
 
 
-@pytest.fixture(autouse=True)
-def synapse_test_config(mocker):
+@pytest.fixture(scope='session', autouse=True)
+def synapse_test_config():
     """
     Creates a temporary Synapse config file with the test credentials and redirects
     the Synapse client to the temp config file.
@@ -65,7 +65,7 @@ password = {1}
     with os.fdopen(fd, 'w') as tmp:
         tmp.write(config)
 
-    mocker.patch.object(synapseclient.client, 'CONFIG_FILE', return_value=tmp_filename)
+    os.environ['SYNAPSE_CONFIG_PATH'] = tmp_filename
 
     yield tmp_filename
 
