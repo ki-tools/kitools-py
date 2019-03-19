@@ -17,7 +17,7 @@ init_dev:
 
 .PHONY: test
 test:
-	pytest -v --cov
+	tox
 
 
 .PHONY: test_html
