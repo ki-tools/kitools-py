@@ -17,18 +17,12 @@ init_dev:
 
 .PHONY: test
 test:
-	coverage run -m pytest -v -s
-	coverage report
+	pytest -v --cov --cov-report=term --cov-report=html
 
 
 .PHONY: test_tox
 test_tox:
 	tox
-
-
-.PHONY: test_html
-test_html:
-	pytest -v --cov --cov-report html
 
 
 .PHONY: install_local

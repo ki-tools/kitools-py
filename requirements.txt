@@ -6,6 +6,7 @@ pylint
 pytest==3.10.0
 pytest-mock==1.10.0
 pytest-pylint==0.12.3
+pytest-cov==2.6.0
 tox==3.7.0
 responses==0.10.5
 coverage==4.5.2
