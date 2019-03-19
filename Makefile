@@ -17,7 +17,8 @@ init_dev:
 
 .PHONY: test
 test:
-	pytest -v --cov
+	coverage run -m pytest -v -s
+	coverage report
 
 
 .PHONY: test_tox
