@@ -7,7 +7,7 @@ before_install:
   - export LOG_LEVEL=DEBUG
 install:
   - pip install tox-travis coveralls
+env:
+  - PUBLISH_COVERAGE_COMMAND=coveralls
 script:
   - tox
-after_success:
-  - coveralls
