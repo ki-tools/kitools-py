@@ -1,12 +1,15 @@
 sudo: false
 language: python
-python:
-  - "3.5"
-  - "3.6"
+matrix:
+  include:
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.6
+        env: TOXENV=py36
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
-  - pip install tox-travis coverage
+  - pip install coverage coveralls
 before_script:
   - coverage erase
 script:
