@@ -9,9 +9,10 @@ matrix:
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
-  - pip install coverage coveralls
+  - pip install -r requirements.txt
+  - pip install coveralls
 before_script:
   - coverage erase
 script:
-  - tox
+  - pytest -v -s --cov
 after_success: coverage combine && coverage report && coveralls
