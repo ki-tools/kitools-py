@@ -15,4 +15,4 @@ before_script:
   - coverage erase
 script:
   - pytest -v -s --cov
-after_success: coverage combine && coverage report && coveralls
+after_success: coveralls
