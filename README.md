@@ -1,4 +1,6 @@
 # kitools
+[![Build Status](https://travis-ci.org/ki-tools/kitools-py.svg?branch=master)](https://travis-ci.org/ki-tools/kitools-py)
+[![Coverage Status](https://coveralls.io/repos/github/ki-tools/kitools-py/badge.svg?branch=master)](https://coveralls.io/github/ki-tools/kitools-py?branch=master)
 
 ## Development Setup
 

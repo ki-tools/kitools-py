@@ -38,25 +38,33 @@ else:
     print('WARNING: Test environment file not found at: {0}'.format(test_env_file))
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='session', autouse=True)
 def synapse_test_config():
     """
     Creates a temporary Synapse config file with the test credentials and redirects
     the Synapse client to the temp config file.
     :return:
     """
+    syn_username = os.getenv('SYNAPSE_USERNAME', None)
+    syn_password = os.getenv('SYNAPSE_PASSWORD', None)
+
+    if not syn_username:
+        raise Exception('Missing environment variable: SYNAPSE_USERNAME')
+
+    if not syn_password:
+        raise Exception('Missing environment variable: SYNAPSE_PASSWORD')
 
     config = """
 [authentication]
 username = {0}
 password = {1}
-    """.format(os.getenv('SYNAPSE_USERNAME'), os.getenv('SYNAPSE_PASSWORD'))
+    """.format(syn_username, syn_password)
 
     fd, tmp_filename = tempfile.mkstemp(suffix='.synapseConfig')
     with os.fdopen(fd, 'w') as tmp:
         tmp.write(config)
 
-    synapseclient.client.CONFIG_FILE = tmp_filename
+    os.environ['SYNAPSE_CONFIG_PATH'] = tmp_filename
 
     yield tmp_filename
 

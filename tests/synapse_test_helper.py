@@ -14,6 +14,7 @@
 
 import os
 import uuid
+from src.kitools.ki_env import KiEnv
 import synapseclient
 from synapseclient import Project, Folder, File
 
@@ -28,11 +29,8 @@ class SynapseTestHelper:
 
     def client(self):
         if not self._synapse_client:
-            syn_user = os.getenv('SYNAPSE_USERNAME')
-            syn_pass = os.getenv('SYNAPSE_PASSWORD')
-
-            self._synapse_client = synapseclient.Synapse()
-            self._synapse_client.login(syn_user, syn_pass, silent=True)
+            self._synapse_client = synapseclient.Synapse(configPath=KiEnv.SYNAPSE_CONFIG_PATH())
+            self._synapse_client.login(forced=True, silent=True, rememberMe=False)
 
         return self._synapse_client
 
@@ -97,7 +95,7 @@ class SynapseTestHelper:
             self._trash.remove(syn_obj)
 
         for obj in others:
-            print('WARNING: Non-Supported object found: {0}'.format(obj))
+            print('WARNING: Non-Supported object found: {0}'.format(type(obj)))
             self._trash.remove(obj)
 
     def create_project(self, **kwargs):

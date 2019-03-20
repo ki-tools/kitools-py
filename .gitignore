@@ -8,5 +8,7 @@ build
 /dist/
 */*.egg-info
 .coverage
+.coverage.*
 htmlcov
 tests/private.*
+.tox

@@ -17,12 +17,12 @@ init_dev:
 
 .PHONY: test
 test:
-	pytest -v --cov
+	pytest -v --cov --cov-report=term --cov-report=html
 
 
-.PHONY: test_html
-test_html:
-	pytest -v --cov --cov-report html
+.PHONY: tox
+tox:
+	tox
 
 
 .PHONY: install_local

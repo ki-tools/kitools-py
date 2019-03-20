@@ -1,11 +1,16 @@
+sudo: false
 language: python
 python:
+  - "3.5"
   - "3.6"
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
   - pip install -r requirements.txt
+  - pip install coveralls
+before_script:
+  - coverage erase
 script:
-  - pytest --cov
+  - pytest -v -s --cov
 after_success:
   - coveralls

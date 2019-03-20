@@ -19,6 +19,7 @@ from .synapse_remote_entity import SynapseRemoteEntity
 from ...data_type import DataType
 from ...data_uri import DataUri
 from ...sys_path import SysPath
+from ...ki_env import KiEnv
 from ...ki_project_resource import KiProjectResource
 
 
@@ -33,8 +34,8 @@ class SynapseAdapter(BaseAdapter):
         :return:
         """
         if not cls._client:
-            cls._client = synapseclient.Synapse()
-            cls._client.login(silent=True)
+            cls._client = synapseclient.Synapse(configPath=KiEnv.SYNAPSE_CONFIG_PATH())
+            cls._client.login(forced=True, silent=True, rememberMe=False)
         return cls._client
 
     def name(self):
@@ -260,15 +261,12 @@ class SynapseAdapter(BaseAdapter):
         dirs = []
         files = []
 
-        try:
-            entries = os.scandir(local_path)
-            for entry in entries:
-                if entry.is_dir(follow_symlinks=False):
-                    dirs.append(entry)
-                else:
-                    files.append(entry)
-        finally:
-            entries.close()
+        entries = list(os.scandir(local_path))
+        for entry in entries:
+            if entry.is_dir(follow_symlinks=False):
+                dirs.append(entry)
+            else:
+                files.append(entry)
 
         dirs.sort(key=lambda f: f.name)
         files.sort(key=lambda f: f.name)

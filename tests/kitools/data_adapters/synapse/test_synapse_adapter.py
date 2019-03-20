@@ -19,11 +19,11 @@ from src.kitools.data_adapters import SynapseAdapter
 import synapseclient
 
 
-def test_name(synapse_test_config):
+def test_name():
     assert SynapseAdapter().name() == 'Synapse'
 
 
-def test_client(synapse_test_config):
+def test_client():
     client = SynapseAdapter.client()
     assert client
     assert isinstance(client, synapseclient.Synapse)
@@ -35,7 +35,7 @@ def test_client(synapse_test_config):
     assert client2._loggedIn() is not False
 
 
-def test_connected(synapse_test_config):
+def test_connected():
     assert SynapseAdapter().connected() is True
 
     with responses.RequestsMock() as rsps:
