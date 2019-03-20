@@ -20,8 +20,8 @@ test:
 	pytest -v --cov --cov-report=term --cov-report=html
 
 
-.PHONY: test_tox
-test_tox:
+.PHONY: tox
+tox:
 	tox
 
 
