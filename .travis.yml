@@ -1,15 +1,14 @@
 sudo: false
 language: python
 python:
-  - "cov-init"
   - "3.5"
   - "3.6"
-  - "cov-report"
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
   - pip install tox-travis
-env:
-  - PUBLISH_COVERAGE_COMMAND=coveralls
+before_script:
+  - coverage erase
 script:
   - tox
+after_success: coverage combine && coverage report && coveralls
