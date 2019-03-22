@@ -16,6 +16,10 @@ from pathlib import PurePath
 
 
 class SysPath:
+    """
+    Helper class for working with paths.
+    """
+
     def __init__(self, path, rel_start=None):
         self._orig_path = path
 

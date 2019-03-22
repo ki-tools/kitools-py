@@ -17,6 +17,9 @@ import synapseclient
 
 
 class SynapseRemoteEntity(RemoteEntity):
+    """
+    RemoteEntity wrapper for Synapse entities.
+    """
 
     def __init__(self, entity, local_path=None):
         super().__init__(

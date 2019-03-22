@@ -24,6 +24,10 @@ from ...ki_project_resource import KiProjectResource
 
 
 class SynapseAdapter(BaseAdapter):
+    """
+    Data Adapter for Synapse.
+    """
+
     DATA_URI_SCHEME = 'syn'
     _client = None
 

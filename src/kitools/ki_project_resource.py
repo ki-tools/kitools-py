@@ -19,6 +19,9 @@ from .sys_path import SysPath
 
 
 class KiProjectResource(object):
+    """
+    Defines a resource in a KiProject. A resource can be a directory or a file.
+    """
 
     def __init__(self,
                  kiproject,
@@ -30,16 +33,18 @@ class KiProjectResource(object):
                  name=None,
                  version=None):
         """
+        Instantiates the KiProjectResource.
 
-        :param kiproject:
-        :param id:
-        :param root_id:
-        :param data_type:
-        :param remote_uri:
-        :param local_path:
-        :param name:
-        :param version:
+        :param kiproject: The KiProject the resource belongs to.
+        :param id: The ID of the resource.
+        :param root_id: The ID of the root KiProjectResource (if the resource is a child).
+        :param data_type: The data type of the resource.
+        :param remote_uri: The remote URI of the resource.
+        :param local_path: The local path of the resource.
+        :param name: The friendly name of the resource.
+        :param version: The locked version of the resource.
         """
+
         self._id = id if id else str(uuid.uuid4())
         self._root_id = root_id
         self._kiproject = kiproject

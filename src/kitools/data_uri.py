@@ -18,7 +18,7 @@ from .exceptions import InvalidDataUriError
 
 class DataUri(object):
     """
-    Data URI parsing.
+    Defines a URI format for identifying remote projects, folders, and files.
 
     URI Format: <scheme>:<id> (e.g., syn:syn123456789, osf:z7s4a)
     """
@@ -26,12 +26,13 @@ class DataUri(object):
     SCHEMES = {}
 
     @classmethod
-    def register(cls, scheme, adapter):
+    def register_data_adapter(cls, scheme, adapter):
         """
-        Registers a DataAdapter.
-        :param scheme:
-        :param adapter:
-        :return:
+        Registers a DataAdapter class for a specific scheme.
+
+        :param scheme: The scheme of the data adapter.
+        :param adapter: The data adapter class.
+        :return: None
         """
         if scheme not in cls.SCHEMES:
             cls.SCHEMES[scheme] = {

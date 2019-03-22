@@ -27,7 +27,16 @@ from .exceptions import NotADataTypePathError, DataTypeMismatchError
 class KiProject(object):
     CONFIG_FILENAME = 'kiproject.json'
 
-    def __init__(self, local_path, title=None, description=None, project_uri=None, resources=None):
+    def __init__(self, local_path, title=None, description=None, project_uri=None):
+        """
+        Instantiates the KiProject.
+
+        :param local_path: The local path to where the KiProject resides or will reside.
+        :param title: The title of the KiProject.
+        :param description: The description of the KiProject.
+        :param project_uri: The remote URI of the project that will hold the KiProject resources.
+        """
+
         if not local_path or local_path.strip() == '':
             raise ValueError('local_path is required.')
 
@@ -36,7 +45,7 @@ class KiProject(object):
         self.title = title
         self.description = description
         self.project_uri = project_uri
-        self.resources = resources or []
+        self.resources = []
 
         self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
 
@@ -57,12 +66,22 @@ class KiProject(object):
 
     def data_add(self, remote_uri_or_local_path, name=None, version=None, data_type=None):
         """
-        Adds a remote file/folder to local file/folder to the KiProject.
-        :param remote_uri_or_local_path:
-        :param name:
-        :param version:
-        :param data_type:
-        :return:
+        Adds a new resource to the KiProject. The resource can be a remote or local file or directory.
+        If the resource already exists it will be updated with the provided parameters.
+
+        Examples:
+            import kitools
+            kiproject = kitools.KiProject('/tmp/my_project')
+            kiproject.data_add('syn:syn123456', name='my dataset')
+            kiproject.data_add('/home/me/file1.csv')
+            kiproject.data_add('syn:syn123457', data_type='core', version='2')
+
+        :param remote_uri_or_local_path: The remote URI (e.g., syn:syn123456) or local path of the directory for file.
+        :param name: A user friendly name for the resource.
+        :param version: The version of the file to add.
+        :param data_type: The DataType of the file. This is only required when a remote_uri is provided and the remote
+                          folder structure does not match the KiProject's "data" structure.
+        :return: KiProjectResource
         """
         self._ensure_loaded()
 
@@ -83,9 +102,11 @@ class KiProject(object):
 
     def data_remove(self, resource_or_identifier):
         """
-        Removes a KiProjectResource from the KiProject.
-        :param resource_or_identifier:
-        :return:
+        Removes a resource from the KiProject. This does not delete the file locally or remotely, it is only
+        removed from the KiProject manifest.
+
+        :param resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+        :return: KiProjectResource
         """
         project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
@@ -104,10 +125,11 @@ class KiProject(object):
     def data_change(self, resource_or_identifier, name=None, version=None):
         """
         Changes the name or version on a KiProjectResource.
-        :param resource_or_identifier:
-        :param name:
-        :param version:
-        :return:
+
+        :param resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+        :param name: The new name.
+        :param version: The new version (or 'None' to clear the version).
+        :return: KiProjectResource
         """
         self._ensure_loaded()
 
@@ -127,9 +149,10 @@ class KiProject(object):
 
     def data_pull(self, resource_or_identifier=None):
         """
+        Downloads a specific resource or all resources in the KiProject.
 
-        :param resource_or_identifier:
-        :return:
+        :param resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+        :return: The absolute path to the pulled resource or a list of absolute paths for all pulled resources.
         """
         self._ensure_loaded()
 
@@ -158,9 +181,10 @@ class KiProject(object):
 
     def data_push(self, resource_or_identifier=None):
         """
+        Uploads a specific resource or all local non-pushed resources.
 
-        :param resource_or_identifier:
-        :return:
+        :param resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+        :return: The absolute path to the pushed resource or a list of absolute paths for all pushed resources.
         """
         self._ensure_loaded()
 
@@ -178,7 +202,7 @@ class KiProject(object):
             data_uri.data_adapter().data_push(project_resource)
             return project_resource.abs_path
         else:
-            print('Pushing all resources that have not yet been pushed.')
+            print('Pushing all resources that have not been pushed.')
             results = []
             for project_resource in self.resources:
                 # Only push resources that have not been pushed yet.
@@ -195,7 +219,9 @@ class KiProject(object):
 
     def data_list(self, all=False):
         """
-        Prints out a nice table of all the available KiProject resource entries.
+        Prints out a table of all the resources in the KiProject.
+
+        :param all: Set to True to include all child resources.
         :return: BeautifulTable
         """
         self._ensure_loaded()
@@ -217,6 +243,13 @@ class KiProject(object):
         return table
 
     def find_project_resource_by(self, operator='and', **kwargs):
+        """
+        Finds a single resource in the KiProject by any of KiProjectResource attributes.
+
+        :param operator: The operator to use when finding by more than one attribute. Must be one of: 'and', 'or'.
+        :param kwargs: KiProjectResource attributes and values to find by.
+        :return: KiProjectResource or None
+        """
         results = self.find_project_resources_by(operator=operator, **kwargs)
         if len(results) == 1:
             return results[0]
@@ -224,6 +257,13 @@ class KiProject(object):
             raise Exception('Found more than one matching resource.')
 
     def find_project_resources_by(self, operator='and', **kwargs):
+        """
+        Finds all resources in the KiProject by any of KiProjectResource attributes.
+
+        :param operator: The operator to use when finding by more than one attribute. Must be one of: 'and', 'or'.
+        :param kwargs: KiProjectResource attributes and values to find by.
+        :return: List of KiProjectResources or an empty list.
+        """
         results = []
 
         if operator not in ['and', 'or']:
@@ -248,17 +288,19 @@ class KiProject(object):
 
     def data_type_to_project_path(self, data_type):
         """
-        Gets the full directory path for the data_type.
-        :param data_type:
-        :return:
+        Gets the absolute path to the DataType directory in the KiProject.
+
+        :param data_type: The DataType to get the path for.
+        :return: Absolute path to the local directory as a string.
         """
         return os.path.join(self.data_path, DataType(data_type).name)
 
     def data_type_from_project_path(self, local_path):
         """
-        Gets the DataType from a local Project path.
-        :param local_path:
-        :return:
+        Gets the DataType from a local path. The local path must be in one of the KiProject's DataType directories.
+
+        :param local_path: Path to get the DataType from.
+        :return: The DataType or None.
         """
         sys_path = SysPath(local_path, rel_start=self.data_path)
 
@@ -270,8 +312,9 @@ class KiProject(object):
     def is_project_data_type_path(self, local_path):
         """
         Gets if the local_path is in one of the DataType directories.
-        :param local_path:
-        :return:
+
+        :param local_path: Path to check.
+        :return: True or False
         """
         try:
             is_data_path = self.data_type_from_project_path(local_path) is not None
@@ -289,6 +332,7 @@ class KiProject(object):
     def load(self):
         """
         Loads the KiProject from a config file.
+
         :return: True if the config file exists and was loaded.
         """
         loaded = False
@@ -302,6 +346,7 @@ class KiProject(object):
     def save(self):
         """
         Saves the KiProject to a config file.
+
         :return: None
         """
         # Sort the resources before saving.
@@ -311,6 +356,11 @@ class KiProject(object):
             JSON.dump(self._self_to_json(), f, indent=2)
 
     def _self_to_json(self):
+        """
+        Serializes the KiProject to JSON.
+
+        :return: Hash
+        """
         return {
             'title': self.title,
             'description': self.description,
@@ -319,6 +369,12 @@ class KiProject(object):
         }
 
     def _json_to_self(self, json):
+        """
+        Deserializes JSON into the KiProject.
+
+        :param json: The JSON to deserialize.
+        :return: None
+        """
         self.title = json.get('title')
         self.description = json.get('description')
         self.project_uri = json.get('project_uri')
@@ -329,6 +385,12 @@ class KiProject(object):
             self.resources.append(self._json_to_ki_project_resource(jresource))
 
     def _ki_project_resource_to_json(self, ki_project_resource):
+        """
+        Serializes a KiProjectResource into JSON.
+
+        :param ki_project_resource: The KiProjectResource to serialize.
+        :return: Hash
+        """
         return {
             'id': ki_project_resource.id,
             'root_id': ki_project_resource.root_id,
@@ -340,6 +402,12 @@ class KiProject(object):
         }
 
     def _json_to_ki_project_resource(self, json):
+        """
+        Deserializes JSON into the KiProjectResource.
+
+        :param json: The JSON to deserialize.
+        :return: KiProjectResource
+        """
         return KiProjectResource(self,
                                  id=json.get('id'),
                                  root_id=json.get('root_id'),
@@ -352,7 +420,8 @@ class KiProject(object):
     def _ensure_loaded(self):
         """
         Ensures the KiProject has been successfully loaded and created.
-        :return:
+
+        :return: None or raise an exception.
         """
         if not self._loaded:
             raise Exception('KiProject configuration not created or loaded.')
@@ -360,7 +429,8 @@ class KiProject(object):
     def _init_project(self):
         """
         Configures and creates the KiProject.
-        :return:
+
+        :return: True or False
         """
         if not self._init_local_path():
             return False
@@ -379,7 +449,8 @@ class KiProject(object):
     def _init_local_path(self):
         """
         Ensures the local_path is set.
-        :return:
+
+        :return: True or False
         """
         answer = input('Create KiProject in: {0} [y/n]: '.format(self.local_path))
         return answer and answer.strip().lower() == 'y'
@@ -387,7 +458,8 @@ class KiProject(object):
     def _init_title(self):
         """
         Ensure the title is set.
-        :return:
+
+        :return: True or False
         """
         while self.title is None or self.title.strip() == '':
             self.title = input('KiProject title: ')
@@ -396,7 +468,8 @@ class KiProject(object):
     def _init_project_uri(self):
         """
         Ensures the project_uri is set and valid.
-        :return:
+
+        :return: True or False
         """
         if self.project_uri:
             return self._init_project_uri_existing()
@@ -414,6 +487,7 @@ class KiProject(object):
     def _init_project_uri_new(self):
         """
         Creates a new remote project and sets the project_uri.
+
         :return: True or False
         """
         data_uri = DataUri(DataUri.default_scheme(), None)
@@ -436,7 +510,8 @@ class KiProject(object):
     def _init_project_uri_existing(self):
         """
         Sets the project_uri to an existing remote project.
-        :return:
+
+        :return: True or False
         """
 
         if self.project_uri and self._validate_project_uri(self.project_uri):
@@ -456,7 +531,8 @@ class KiProject(object):
     def _validate_project_uri(self, project_uri):
         """
         Validates that a remote project exists at a specific data URI.
-        :param project_uri:
+
+        :param project_uri: The remote URI to validate.
         :return: True or False
         """
         try:
@@ -475,6 +551,22 @@ class KiProject(object):
                   version=None,
                   data_type=None,
                   root_ki_project_resource=None):
+        """
+        Adds or updates a resource. Must have remote_uri or local_path specified.
+
+        :param remote_uri: The remote URI to add.
+        :param local_path: The local path to a file or directory to add.
+        :param name: The friendly name of the resource.
+        :param version: The version to lock on the resource.
+        :param data_type: The data_type of the resource (only needed for remote_uris that do not match
+               the DataType structure).
+        :param root_ki_project_resource: The root KiProjectResource. Only needed when auto adding children of a directory.
+        :return: KiProjectResource
+        """
+
+        if not remote_uri and not local_path:
+            raise ValueError('remote_uri or local_path must be supplied.')
+
         if local_path:
             # Make sure the file is in one of the data directories.
             if not self.is_project_data_type_path(local_path):
@@ -546,15 +638,16 @@ class KiProject(object):
 
     def _find_project_resource_by_value(self, value):
         """
-        Finds a KiProjectResource by a value.
+        Finds a KiProjectResource by a unique value.
+
         Value must be one of:
             - KiProjectResource (will be looked up by its id)
             - KiProjectResource.id (UUID)
             - KiProjectResource.remote_uri (DataUri)
             - KiProjectResource.abs_path or rel_path (file/folder that exists at the value path)
             - KiProjectResource.name (string)
-        :param value:
-        :return:
+        :param value: The value to find by.
+        :return: KiProjectResource or None
         """
         if isinstance(value, KiProjectResource):
             return self.find_project_resource_by(id=value.id)
@@ -573,7 +666,8 @@ class KiProject(object):
     def _root_data_paths(self):
         """
         Gets all the DataType root paths for the project (e.g., /home/user/my_project/data/core)
-        :return:
+
+        :return: List of absolute paths.
         """
         paths = []
         for data_type in DataType.ALL:

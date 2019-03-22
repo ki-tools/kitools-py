@@ -24,4 +24,4 @@ from .exceptions import InvalidDataTypeError, NotADataTypePathError, DataTypeMis
 
 name = 'kitools'
 
-DataUri.register(SynapseAdapter.DATA_URI_SCHEME, SynapseAdapter)
+DataUri.register_data_adapter(SynapseAdapter.DATA_URI_SCHEME, SynapseAdapter)

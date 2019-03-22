@@ -16,6 +16,9 @@ from .exceptions import InvalidDataTypeError
 
 
 class DataType(object):
+    """
+    Defines a standard set of names which are mapped to directories within the KiProject's 'data' directory.
+    """
     DATA_DIR_NAME = 'data'
 
     CORE = 'core'

@@ -17,6 +17,9 @@ from .sys_path import SysPath
 
 
 class KiProjectTemplate:
+    """
+    Creates the base directories and files for a KiProject.
+    """
 
     def __init__(self, local_path):
         self.local_path = local_path
