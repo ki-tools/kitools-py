@@ -27,7 +27,12 @@ from .exceptions import NotADataTypePathError, DataTypeMismatchError, KiProjectR
 class KiProject(object):
     CONFIG_FILENAME = 'kiproject.json'
 
-    def __init__(self, local_path, title=None, description=None, project_uri=None):
+    def __init__(self,
+                 local_path,
+                 title=None,
+                 description=None,
+                 project_uri=None,
+                 init_no_prompt=False):
         """
         Instantiates the KiProject.
 
@@ -39,6 +44,8 @@ class KiProject(object):
 
         if not local_path or local_path.strip() == '':
             raise ValueError('local_path is required.')
+
+        self._init_no_prompt = init_no_prompt
 
         self.local_path = SysPath(local_path).abs_path
         self.data_path = os.path.join(self.local_path, DataType.DATA_DIR_NAME)
@@ -440,8 +447,11 @@ class KiProject(object):
 
         :return: True or False
         """
-        answer = input('Create KiProject in: {0} [y/n]: '.format(self.local_path))
-        return answer and answer.strip().lower() == 'y'
+        if self._init_no_prompt:
+            return True
+        else:
+            answer = input('Create KiProject in: {0} [y/n]: '.format(self.local_path))
+            return answer and answer.strip().lower() == 'y'
 
     def _init_title(self):
         """
@@ -449,9 +459,16 @@ class KiProject(object):
 
         :return: True or False
         """
-        while self.title is None or self.title.strip() == '':
-            self.title = input('KiProject title: ')
-        return True
+        if self._init_no_prompt:
+            if self.title and self.title.strip() != '':
+                return True
+            else:
+                print('title is required.')
+                return False
+        else:
+            while self.title is None or self.title.strip() == '':
+                self.title = input('KiProject title: ')
+            return True
 
     def _init_project_uri(self):
         """
@@ -462,6 +479,10 @@ class KiProject(object):
         if self.project_uri:
             return self._init_project_uri_existing()
         else:
+            if self._init_no_prompt:
+                print('project_uri is required.')
+                return False
+
             while True:
                 answer = input('Create a remote project or use an existing? [c/e]: ')
                 if answer == 'c':
@@ -482,16 +503,23 @@ class KiProject(object):
 
         while True:
             try:
-                project_name = input('Remote project name: ')
+                project_name = self.title
+
+                if not self._init_no_prompt:
+                    project_name = input('Remote project name: ')
+
                 remote_project = data_uri.data_adapter().create_project(project_name)
                 self.project_uri = DataUri(DataUri.default_scheme(), remote_project.id).uri
                 print('Remote project created at URI: {0}'.format(self.project_uri))
                 return True
             except Exception as ex:
                 print('Error creating remote project: {0}'.format(str(ex)))
-                answer = input('Try again? [y/n]: ')
-                if answer == 'n':
+                if self._init_no_prompt:
                     break
+                else:
+                    answer = input('Try again? [y/n]: ')
+                    if answer == 'n':
+                        break
 
         return False
 
@@ -504,6 +532,10 @@ class KiProject(object):
 
         if self.project_uri and self._validate_project_uri(self.project_uri):
             return True
+
+        if self._init_no_prompt:
+            print('project_uri: {0} not set or could not be validated.'.format(self.project_uri))
+            return False
 
         example_data_uri = DataUri(DataUri.default_scheme(), '{0}123456'.format(DataUri.default_scheme())).uri
 

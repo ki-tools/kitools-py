@@ -152,7 +152,7 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
             create_remote_project_or_existing='c',
             remote_project_name=mk_uniq_string(),
             remote_project_uri=None,
-            try_again='y'):
+            try_again='n'):
 
         def _input_mock(prompt):
             if 'Create KiProject in:' in prompt:

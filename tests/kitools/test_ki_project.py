@@ -268,13 +268,14 @@ def test_it_expands_vars_in_local_path():
     pass
 
 
-def test_it_creates_a_config_file_from_the_constructor(mk_kiproject):
+def test_it_creates_a_config_file_from_the_constructor(mk_kiproject, mk_mock_kiproject_input):
     kiproject = mk_kiproject(with_fake_project_files=True)
 
     # Delete the config file
     os.remove(kiproject._config_path)
     assert os.path.exists(kiproject._config_path) is False
 
+    mk_mock_kiproject_input(create_remote_project_or_existing='e', remote_project_uri=kiproject.project_uri)
     new_project = KiProject(kiproject.local_path)
 
     assert os.path.isfile(new_project._config_path)
