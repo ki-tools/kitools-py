@@ -54,3 +54,10 @@ class InvalidDataUriError(ValueError):
     Raised on invalid DataUris
     """
     pass
+
+
+class KiProjectResourceNotFoundError(ValueError):
+    """
+    Raised when a KiProjectResource cannot be found.
+    """
+    pass

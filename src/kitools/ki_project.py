@@ -21,7 +21,7 @@ from .data_type import DataType
 from .data_uri import DataUri
 from .sys_path import SysPath
 from .ki_utils import KiUtils
-from .exceptions import NotADataTypePathError, DataTypeMismatchError
+from .exceptions import NotADataTypePathError, DataTypeMismatchError, KiProjectResourceNotFoundError
 
 
 class KiProject(object):
@@ -98,7 +98,7 @@ class KiProject(object):
                                       name=(name or sys_local_path.basename),
                                       version=version)
             else:
-                raise ValueError('Please specify a remote URI or a local file or folder path.')
+                raise ValueError('Please specify a remote URI or a local file or folder path that exists.')
 
     def data_remove(self, resource_or_identifier):
         """
@@ -110,17 +110,14 @@ class KiProject(object):
         """
         project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
-        if project_resource:
-            # Remove any children.
-            for child_resource in self.find_project_resources_by(root_id=project_resource.id):
-                self.resources.remove(child_resource)
+        # Remove any children.
+        for child_resource in self.find_project_resources_by(root_id=project_resource.id):
+            self.resources.remove(child_resource)
 
-            # Remove the root.
-            self.resources.remove(project_resource)
-            self.save()
-            return project_resource
-        else:
-            raise ValueError('Could not find resource: {0}'.format(resource_or_identifier))
+        # Remove the root.
+        self.resources.remove(project_resource)
+        self.save()
+        return project_resource
 
     def data_change(self, resource_or_identifier, name=None, version=None):
         """
@@ -134,9 +131,6 @@ class KiProject(object):
         self._ensure_loaded()
 
         project_resource = self._find_project_resource_by_value(resource_or_identifier)
-
-        if project_resource is None:
-            raise ValueError('No resource found matching: {0}'.format(resource_or_identifier))
 
         if name is not None:
             project_resource.name = name
@@ -158,9 +152,6 @@ class KiProject(object):
 
         if resource_or_identifier:
             project_resource = self._find_project_resource_by_value(resource_or_identifier)
-
-            if project_resource is None:
-                raise Exception('No resource found matching: {0}'.format(resource_or_identifier))
 
             if project_resource.remote_uri is None:
                 print('Resource {0} cannot be pulled until it has been pushed.'.format(resource_or_identifier))
@@ -190,9 +181,6 @@ class KiProject(object):
 
         if resource_or_identifier:
             project_resource = self._find_project_resource_by_value(resource_or_identifier)
-
-            if project_resource is None:
-                raise Exception('No resource found matching: {0}'.format(resource_or_identifier))
 
             if project_resource.abs_path is None:
                 print('Resource {0} cannot be pushed until it has been pulled.'.format(resource_or_identifier))
@@ -649,19 +637,26 @@ class KiProject(object):
         :param value: The value to find by.
         :return: KiProjectResource or None
         """
+        result = None
+
         if isinstance(value, KiProjectResource):
-            return self.find_project_resource_by(id=value.id)
+            result = self.find_project_resource_by(id=value.id)
         elif DataUri.is_uri(value):
-            return self.find_project_resource_by(remote_uri=value)
+            result = self.find_project_resource_by(remote_uri=value)
         elif KiUtils.is_uuid(value):
-            return self.find_project_resource_by(id=value)
+            result = self.find_project_resource_by(id=value)
         elif SysPath(value).exists:
             sys_path = SysPath(value)
-            return self.find_project_resource_by(abs_path=sys_path.abs_path)
+            result = self.find_project_resource_by(abs_path=sys_path.abs_path)
         elif isinstance(value, str):
-            return self.find_project_resource_by(name=value)
+            result = self.find_project_resource_by(name=value)
         else:
             raise ValueError('Could not determine value type of: {0}'.format(value))
+
+        if result is None:
+            raise KiProjectResourceNotFoundError('No project resource found matching: {0}'.format(value))
+
+        return result
 
     def _root_data_paths(self):
         """
