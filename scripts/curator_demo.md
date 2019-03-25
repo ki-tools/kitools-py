@@ -1,6 +1,6 @@
 # Curator Demo
 
-Generate Script:
+Generated Script:
 
 ```python
 # Import the KiProject class:
