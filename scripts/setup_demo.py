@@ -98,6 +98,18 @@ def mk_local_files_and_folders(start_path,
 
 
 def create_demo_curator():
+    """
+    1. Creates a new Synapse Project.
+    2. Creates the data/[core, derived, discovered] folders in Synapse.
+    3. Creates and uploads files and folders into Synapse.
+    4. Creates a new KiProject.
+    5. data_adds each of the root data folders (core, derived, discovered) that were created in Synapse.
+    6. data_pulls all the remote files and folders from Synapse.
+    7. Creates one new file in each of the local data/[core, derived, discovered] folders.
+    8. data_pushes each of the newly added local files.
+    9. Changes 3 of the files that were pulled from the Synapse Project and data_pushes them to Synapse.
+    10. Prints out the commands to load the project, data_add/data_pull the new and changed files.
+    """
     print('Creating Demo for curator...')
 
     demo_id = gen_id()
@@ -138,7 +150,7 @@ def create_demo_curator():
 
             futures.append(executor.submit(mk_local_files_and_folders,
                                            dt_folder_path,
-                                           depth=1,
+                                           depth=3,
                                            prefix='{0}_'.format(data_type_name),
                                            syn_client=syn_client,
                                            syn_parent=syn_data_type_folder))
