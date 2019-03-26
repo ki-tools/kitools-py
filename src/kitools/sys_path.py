@@ -20,11 +20,17 @@ class SysPath:
     Helper class for working with paths.
     """
 
-    def __init__(self, path, rel_start=None):
+    def __init__(self, path, cwd=None, rel_start=None):
         self._orig_path = path
+        self._cwd = SysPath(cwd).abs_path if cwd else None
 
         var_path = os.path.expandvars(self._orig_path)
         expanded_path = os.path.expanduser(var_path)
+
+        # Set the current working directory if not an absolute path.
+        if not os.path.isabs(expanded_path) and self._cwd:
+            expanded_path = os.path.join(self._cwd, expanded_path)
+
         self._abs_path = os.path.abspath(expanded_path)
         self._rel_start = rel_start
 

@@ -98,7 +98,7 @@ class KiProject(object):
                                   name=(name or remote_uri_or_local_path),
                                   version=version)
         else:
-            sys_local_path = SysPath(remote_uri_or_local_path)
+            sys_local_path = SysPath(remote_uri_or_local_path, cwd=self.local_path)
             if sys_local_path.exists:
                 return self._data_add(data_type=data_type,
                                       local_path=sys_local_path.abs_path,
@@ -297,7 +297,7 @@ class KiProject(object):
         :param local_path: Path to get the DataType from.
         :return: The DataType or None.
         """
-        sys_path = SysPath(local_path, rel_start=self.data_path)
+        sys_path = SysPath(local_path, cwd=self.local_path, rel_start=self.data_path)
 
         if len(sys_path.rel_parts) > 0:
             return DataType(sys_path.rel_parts[0])
@@ -677,8 +677,8 @@ class KiProject(object):
             result = self.find_project_resource_by(remote_uri=value)
         elif KiUtils.is_uuid(value):
             result = self.find_project_resource_by(id=value)
-        elif SysPath(value).exists:
-            sys_path = SysPath(value)
+        elif SysPath(value, cwd=self.local_path).exists:
+            sys_path = SysPath(value, cwd=self.local_path)
             result = self.find_project_resource_by(abs_path=sys_path.abs_path)
         elif isinstance(value, str):
             result = self.find_project_resource_by(name=value)

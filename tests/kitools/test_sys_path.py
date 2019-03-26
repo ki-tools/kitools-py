@@ -17,6 +17,17 @@ import os
 from src.kitools.sys_path import SysPath
 
 
+@pytest.fixture(scope='session')
+def test_dirs(mk_tempdir, write_file):
+    temp_dir = mk_tempdir()
+    child_dir = os.path.join(temp_dir, 'dir1')
+    os.makedirs(child_dir)
+    child_file = os.path.join(child_dir, 'file1.csv')
+    write_file(child_file, content='test')
+
+    return temp_dir, child_dir, child_file
+
+
 def test_it_expands_user():
     syspath = SysPath('~')
     assert syspath.abs_path == os.path.expanduser('~')
@@ -27,11 +38,35 @@ def test_it_expands_vars():
     pass
 
 
-def test_it_sets_the_abs_path():
-    # TODO: test this
-    pass
+def test_it_sets_the_cwd(test_dirs):
+    temp_dir, child_dir, child_file = test_dirs
+
+    assert SysPath(temp_dir, cwd=temp_dir).abs_path == temp_dir
+
+    temp_dir_path = os.path.dirname(temp_dir)
+    temp_dir_name = os.path.basename(temp_dir)
+
+    assert SysPath(temp_dir_name, cwd=temp_dir_path)._cwd == temp_dir_path
+    assert SysPath(temp_dir_name, cwd=temp_dir_path).abs_path == temp_dir
+    assert SysPath('dir1/file1.csv', cwd=temp_dir, rel_start=temp_dir).rel_path == 'dir1/file1.csv'
 
 
-def test_it_sets_the_rel_path():
-    # TODO: test this
-    pass
+def test_it_sets_the_abs_path(test_dirs):
+    temp_dir, child_dir, child_file = test_dirs
+
+    # From absolute path
+    assert SysPath(temp_dir).abs_path == temp_dir
+    assert SysPath(temp_dir, cwd=temp_dir).abs_path == temp_dir
+
+    # From relative path
+    assert SysPath('dir1/file1.csv', cwd=temp_dir).abs_path == child_file
+    assert SysPath('dir1/file1.csv').abs_path != child_file
+
+
+def test_it_sets_the_rel_path(test_dirs):
+    temp_dir, child_dir, child_file = test_dirs
+
+    assert SysPath(temp_dir, rel_start=temp_dir).rel_path == '.'
+    assert SysPath(temp_dir, cwd=temp_dir, rel_start=temp_dir).rel_path == '.'
+    assert SysPath(child_file, rel_start=temp_dir).rel_path == 'dir1/file1.csv'
+    assert SysPath(child_file, cwd=temp_dir, rel_start=temp_dir).rel_path == 'dir1/file1.csv'

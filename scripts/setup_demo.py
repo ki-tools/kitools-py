@@ -166,7 +166,9 @@ def create_demo_curator():
         local_results, _ = mk_local_files_and_folders(dt_folder_path, prefix='new_study_file_', depth=0, file_count=1)
 
         for new_filename in local_results:
-            demo_commands.append('kiproject.data_add("{0}")'.format(new_filename))
+            demo_commands.append('kiproject.data_add("{0}")'.format(SysPath(new_filename,
+                                                                            rel_start=kiproject.local_path).rel_path))
+
     demo_commands.append('kiproject.data_push()')
 
     # Create a change in some files for data_push

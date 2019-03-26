@@ -268,6 +268,74 @@ def test_it_expands_vars_in_local_path():
     pass
 
 
+def test_it_does_not_prompt_for_create_project_in_when_init_no_prompt(mk_tempdir,
+                                                                      mk_mock_kiproject_input,
+                                                                      syn_project_uri,
+                                                                      MockKiProjectInputErrorClass):
+    mk_mock_kiproject_input(raise_on_create_project_in=True)
+
+    with pytest.raises(MockKiProjectInputErrorClass):
+        kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
+
+    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject._ensure_loaded()
+
+
+def test_it_does_not_prompt_for_project_title_when_init_no_prompt(mk_tempdir,
+                                                                  mk_mock_kiproject_input,
+                                                                  syn_project_uri,
+                                                                  MockKiProjectInputErrorClass):
+    mk_mock_kiproject_input(raise_on_project_title=True)
+
+    with pytest.raises(MockKiProjectInputErrorClass):
+        kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
+
+    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject._ensure_loaded()
+    assert kiproject.title == 'test'
+
+
+def test_it_does_not_prompt_for_create_remote_project_or_existing_when_init_no_prompt(mk_tempdir,
+                                                                                      mk_mock_kiproject_input,
+                                                                                      syn_project_uri,
+                                                                                      MockKiProjectInputErrorClass):
+    mk_mock_kiproject_input(raise_on_create_remote_project_or_existing=True)
+
+    with pytest.raises(MockKiProjectInputErrorClass):
+        kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
+
+    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject._ensure_loaded()
+    assert kiproject.project_uri == syn_project_uri
+
+
+def test_it_does_not_prompt_for_remote_project_name_when_init_no_prompt(mk_tempdir,
+                                                                        mk_mock_kiproject_input,
+                                                                        syn_project_uri,
+                                                                        MockKiProjectInputErrorClass):
+    mk_mock_kiproject_input(raise_on_remote_project_name=True, create_remote_project_or_existing='c')
+
+    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test')
+
+    with pytest.raises(Exception) as ex:
+        kiproject._ensure_loaded()
+    assert str(ex.value) == 'KiProject configuration not created or loaded.'
+
+
+def test_it_does_not_prompt_for_remote_project_uri_init_no_prompt(mk_tempdir,
+                                                                  mk_mock_kiproject_input,
+                                                                  syn_project_uri,
+                                                                  MockKiProjectInputErrorClass):
+    mk_mock_kiproject_input(raise_on_remote_project_uri=True, create_remote_project_or_existing='e')
+
+    with pytest.raises(MockKiProjectInputErrorClass):
+        kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
+
+    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject._ensure_loaded()
+    assert kiproject.project_uri == syn_project_uri
+
+
 def test_it_creates_a_config_file_from_the_constructor(mk_kiproject, mk_mock_kiproject_input):
     kiproject = mk_kiproject(with_fake_project_files=True)
 
@@ -385,6 +453,29 @@ def test_find_project_file_by(mk_kiproject):
     # TODO: test "and"/"or" operator.
 
 
+def test__find_project_resource_by_value(mk_kiproject):
+    kiproject = mk_kiproject(with_fake_project_files=True)
+    resource = kiproject.resources[0]
+
+    # Find by the KiProject instance
+    assert kiproject._find_project_resource_by_value(resource) == resource
+
+    # Find by ID
+    assert kiproject._find_project_resource_by_value(resource.id) == resource
+
+    # Find by remote_uri
+    assert kiproject._find_project_resource_by_value(resource.remote_uri) == resource
+
+    # Find by abs_path
+    assert kiproject._find_project_resource_by_value(resource.abs_path) == resource
+
+    # Find by rel_path
+    assert kiproject._find_project_resource_by_value(resource.rel_path) == resource
+
+    # Find by name
+    assert kiproject._find_project_resource_by_value(resource.name) == resource
+
+
 def test_it_prints_out_the_root_project_resources(mk_kiproject):
     kiproject = mk_kiproject(with_fake_project_files=True, with_fake_project_files_count=3)
     table = kiproject.data_list()
@@ -405,6 +496,21 @@ def test_it_creates_a_new_remote_project(mk_mock_kiproject_input, mk_tempdir, sy
 
     syn_project = syn_test_helper.client().get(DataUri.parse(kiproject.project_uri).id)
     syn_test_helper.dispose_of(syn_project)
+
+
+def test_it_finds_a_resource_to_add_by_its_attributes(mk_kiproject, mk_local_data_dir):
+    kiproject = mk_kiproject()
+
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
+
+    for file_path in local_data_files:
+        resource = kiproject.data_add(file_path)
+        # Push it so all the attributes are set.
+        kiproject.data_push(resource)
+
+        assert kiproject.data_add(resource.remote_uri) == resource
+        assert kiproject.data_add(resource.abs_path) == resource
+        assert kiproject.data_add(resource.rel_path) == resource
 
 
 def test_it_adds_a_remote_data_structure_file(mk_kiproject, syn_data):
@@ -497,6 +603,24 @@ def test_it_errors_when_adding_a_data_type_that_does_not_match_the_local_path(ki
             kiproject.data_add(local_path, data_type=wrong_data_type)
 
 
+def test_it_finds_a_resource_to_pull_by_its_attributes(mk_kiproject, mk_local_data_dir):
+    kiproject = mk_kiproject()
+
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
+
+    file_path = local_data_files[0]
+    resource = kiproject.data_add(file_path)
+    # Push everything so it can be pulled.
+    kiproject.data_push(resource)
+
+    assert kiproject.data_pull(resource) == resource.abs_path
+    assert kiproject.data_pull(resource.id) == resource.abs_path
+    assert kiproject.data_pull(resource.name) == resource.abs_path
+    assert kiproject.data_pull(resource.remote_uri) == resource.abs_path
+    assert kiproject.data_pull(resource.abs_path) == resource.abs_path
+    assert kiproject.data_pull(resource.rel_path) == resource.abs_path
+
+
 def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
     syn_project, syn_folders, syn_files = syn_data
@@ -563,6 +687,22 @@ def test_it_pulls_a_folder_not_matching_the_data_structure(mk_kiproject, syn_non
 def test_it_does_not_pull_a_file_unless_the_remote_file_changed():
     # TODO: test this.
     pass
+
+
+def test_it_finds_a_resource_to_push_by_its_attributes(mk_kiproject, mk_local_data_dir):
+    kiproject = mk_kiproject()
+
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
+
+    file_path = local_data_files[0]
+    resource = kiproject.data_add(file_path)
+
+    assert kiproject.data_push(resource) == resource.abs_path
+    assert kiproject.data_push(resource.id) == resource.abs_path
+    assert kiproject.data_push(resource.name) == resource.abs_path
+    assert kiproject.data_push(resource.remote_uri) == resource.abs_path
+    assert kiproject.data_push(resource.abs_path) == resource.abs_path
+    assert kiproject.data_push(resource.rel_path) == resource.abs_path
 
 
 def test_it_pushes_a_file_matching_the_data_structure(mk_kiproject, mk_local_data_dir):
@@ -696,7 +836,25 @@ def test_it_tests_the_workflow(mk_kiproject,
 
     assert len(kiproject.resources) == 0
 
-    assert True
+
+def test_it_finds_a_resource_to_remove_by_its_attributes(mk_kiproject, mk_local_data_dir):
+    kiproject = mk_kiproject()
+
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
+
+    for file_path in local_data_files:
+        resource = kiproject.data_add(file_path)
+        # Push it so all the attributes are set.
+        kiproject.data_push(resource)
+
+        assert kiproject.data_remove(resource.remote_uri) == resource
+        kiproject.resources.append(resource)
+
+        assert kiproject.data_remove(resource.abs_path) == resource
+        kiproject.resources.append(resource)
+
+        assert kiproject.data_remove(resource.rel_path) == resource
+        kiproject.resources.append(resource)
 
 
 def test_it_removes_resources(mk_kiproject):
@@ -763,7 +921,6 @@ def test_data_pull_non_data_folder(syn_test_helper, mk_tempfile, mk_uniq_string,
     kiproject = mk_kiproject()
     kiproject.data_add(DataUri('syn', syn_folder1.id).uri, data_type=DataType.CORE)
     kiproject.data_pull()
-    assert True
 
 
 def test_data_push_folder(mk_uniq_string, write_file, mk_kiproject):
@@ -796,4 +953,21 @@ def test_data_push_folder(mk_uniq_string, write_file, mk_kiproject):
 
         kiproject.data_add(folder1.abs_path)
         kiproject.data_push()
-    assert True
+
+
+def test_it_finds_a_resource_to_change_by_its_attributes(mk_kiproject, mk_local_data_dir):
+    kiproject = mk_kiproject()
+
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject)
+
+    for file_path in local_data_files:
+        resource = kiproject.data_add(file_path)
+        # Push it so all the attributes are set.
+        kiproject.data_push(resource)
+
+        assert kiproject.data_change(resource) == resource
+        assert kiproject.data_change(resource.id) == resource
+        assert kiproject.data_change(resource.name) == resource
+        assert kiproject.data_change(resource.remote_uri) == resource
+        assert kiproject.data_change(resource.abs_path) == resource
+        assert kiproject.data_change(resource.rel_path) == resource

@@ -95,6 +95,10 @@ def syn_client(syn_test_helper):
 def syn_project(syn_test_helper):
     return syn_test_helper.create_project()
 
+@pytest.fixture(scope='session')
+def syn_project_uri(syn_project):
+    return DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_project.id).uri
+
 
 @pytest.fixture()
 def new_syn_project(new_syn_test_helper):
@@ -141,6 +145,16 @@ def syn_dispose_of(syn_test_helper):
     yield _sdo
 
 
+class MockKiProjectInputError(Exception):
+    """
+    Raised in mk_mock_kiproject_input when specified.
+    """
+    pass
+
+@pytest.fixture()
+def MockKiProjectInputErrorClass():
+    return MockKiProjectInputError
+
 @pytest.fixture()
 def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
     """
@@ -148,25 +162,49 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
     """
 
     def _mk(create_project_in='y',
+            raise_on_create_project_in=False,
             project_title=mk_uniq_string(),
+            raise_on_project_title=False,
             create_remote_project_or_existing='c',
+            raise_on_create_remote_project_or_existing=False,
             remote_project_name=mk_uniq_string(),
+            raise_on_remote_project_name=False,
             remote_project_uri=None,
-            try_again='n'):
+            raise_on_remote_project_uri=False,
+            try_again='n',
+            raise_on_try_again=False):
 
         def _input_mock(prompt):
             if 'Create KiProject in:' in prompt:
-                return create_project_in
+                if raise_on_create_project_in:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return create_project_in
             elif 'KiProject title:' in prompt:
-                return project_title
+                if raise_on_project_title:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return project_title
             elif 'Create a remote project or use an existing? [c/e]:' in prompt:
-                return create_remote_project_or_existing
+                if raise_on_create_remote_project_or_existing:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return create_remote_project_or_existing
             elif 'Remote project name:' in prompt:
-                return remote_project_name
+                if raise_on_remote_project_name:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return remote_project_name
             elif 'Remote project URI (e.g.,' in prompt:
-                return remote_project_uri
+                if raise_on_remote_project_uri:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return remote_project_uri
             elif 'Try again? [y/n]:' in prompt:
-                return try_again
+                if raise_on_try_again:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return try_again
             else:
                 raise Exception('Unsupported mock input prompt: {0}'.format(prompt))
 
