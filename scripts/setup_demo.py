@@ -24,7 +24,7 @@ import concurrent.futures
 import synapseclient as syn
 
 script_dir = os.path.dirname(__file__)
-sys.path.append(os.path.join(script_dir, '..', 'src', 'kitools'))
+sys.path.append(os.path.join(script_dir, '..', 'src'))
 
 try:
     from kitools import KiProject, DataType, DataUri, SysPath
