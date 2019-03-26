@@ -121,7 +121,7 @@ def create_demo_curator():
 
     kiproject_path = mk_dirs(tempfile.gettempdir(), 'demo_curator_{0}'.format(demo_id))
 
-    syn_client = syn.login(forced=True, silent=True, rememberMe=False)
+    syn_client = syn.login(silent=True)
 
     # Create the Synapse project
     syn_project = syn_client.store(syn.Project(name='Ki Tools Curator Demo - {0}'.format(demo_id)))

@@ -30,7 +30,7 @@ class SynapseTestHelper:
     def client(self):
         if not self._synapse_client:
             self._synapse_client = synapseclient.Synapse(configPath=KiEnv.SYNAPSE_CONFIG_PATH())
-            self._synapse_client.login(forced=True, silent=True, rememberMe=False)
+            self._synapse_client.login(silent=True)
 
         return self._synapse_client
 

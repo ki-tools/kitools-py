@@ -39,7 +39,7 @@ class SynapseAdapter(BaseAdapter):
         """
         if not cls._client:
             cls._client = synapseclient.Synapse(configPath=KiEnv.SYNAPSE_CONFIG_PATH())
-            cls._client.login(forced=True, silent=True, rememberMe=False)
+            cls._client.login(silent=True)
         return cls._client
 
     def name(self):
