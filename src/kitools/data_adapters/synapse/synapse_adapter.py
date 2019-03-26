@@ -67,6 +67,11 @@ class SynapseAdapter(BaseAdapter):
         return remote_entity
 
     def create_project(self, name):
+        # Check if the project already exists.
+        syn_project_id = SynapseAdapter.client().findEntityId(name=name)
+        if syn_project_id:
+            raise Exception('Synapse project already exists for name: {0}'.format(name))
+
         syn_project = SynapseAdapter.client().store(synapseclient.Project(name=name))
         return SynapseRemoteEntity(syn_project)
 
@@ -169,7 +174,7 @@ class SynapseAdapter(BaseAdapter):
         supported_data_type_paths = []
 
         for data_type_name in DataType.ALL:
-            supported_data_type_paths.append('{0}/{1}/'.format(DataType.DATA_DIR_NAME, data_type_name))
+            supported_data_type_paths.append('{0}/{1}'.format(DataType.DATA_DIR_NAME, data_type_name))
 
         # Make sure the remote path conforms to the data_types directory structure.
         remote_data_type = None
@@ -286,7 +291,7 @@ class SynapseAdapter(BaseAdapter):
         if syn_entity.get('parentId', None) is None:
             return None
 
-        path_segments = []
+        path_parts = []
 
         child = syn_entity
         while True:
@@ -296,12 +301,12 @@ class SynapseAdapter(BaseAdapter):
             if self._is_project(syn_parent):
                 break
             else:
-                path_segments.insert(0, syn_parent.name)
+                path_parts.insert(0, syn_parent.name)
                 child = syn_parent
 
-        path_segments.append(syn_entity.name)
+        path_parts.append(syn_entity.name)
 
-        return '/'.join(path_segments)
+        return '/'.join(path_parts)
 
     def _find_or_create_syn_folder(self, syn_parent, folder_name):
         # TODO: can any of this be cached?

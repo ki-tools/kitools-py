@@ -68,9 +68,8 @@ class KiProjectResource(object):
 
     def _set_local_path(self, value):
         if value:
-            if not os.path.exists(value):
-                full_path = os.path.join(self.kiproject.local_path, value)
-                value = full_path
+            sys_path = SysPath(value, cwd=self.kiproject.local_path)
+            value = sys_path.abs_path
 
         self._local_path = value
 
