@@ -780,22 +780,28 @@ def test_it_pushes_a_folder_to_a_different_remote_project():
     pass
 
 
-def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_syn_files, syn_client):
+def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_syn_files, syn_client, mocker):
     kiproject = mk_kiproject()
 
     # Get the Synapse project for the KiProject
     syn_project = syn_client.get(DataUri.parse(kiproject.project_uri).id)
 
+    syn_data_folder = syn_client.store(synapseclient.Folder(name='data', parent=syn_project))
+    syn_core_folder = syn_client.store(synapseclient.Folder(name='core', parent=syn_data_folder))
+
     # Create a Synapse file to add/pull/push
-    syn_file = mk_syn_files(syn_project, file_num=1, versions=1, suffix='')[0]
+    syn_file = mk_syn_files(syn_core_folder, file_num=1, versions=1, suffix='')[0]
 
     syn_file_uri = DataUri('syn', syn_file.id).uri
     resource = kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
     kiproject.data_pull()
 
-    # TODO: verify this does't push twice.
+    # The file exists in the Synapse project and has been pulled locally.
+    # Pushing again should NOT upload the file again.
+    # NOTE: This will fail until this issue is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/674
+    mocker.spy(synapseclient.client, 'upload_file_handle')
     kiproject.data_push(syn_file_uri)
-    kiproject.data_push(syn_file_uri)
+    assert synapseclient.client.upload_file_handle.call_count == 0
 
 
 def test_it_tests_the_workflow(mk_kiproject,
