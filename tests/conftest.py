@@ -21,7 +21,6 @@ import uuid
 from src.kitools import KiProject, KiProjectResource, DataUri, DataType
 from src.kitools.data_adapters import SynapseAdapter
 from tests.synapse_test_helper import SynapseTestHelper
-import synapseclient
 
 # Load Environment variables.
 module_dir = os.path.dirname(os.path.abspath(__file__))
@@ -95,6 +94,7 @@ def syn_client(syn_test_helper):
 def syn_project(syn_test_helper):
     return syn_test_helper.create_project()
 
+
 @pytest.fixture(scope='session')
 def syn_project_uri(syn_project):
     return DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_project.id).uri
@@ -117,7 +117,9 @@ def mk_syn_project(syn_test_helper):
 def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_string, mk_fake_project_file):
     def _mk(dir=None,
             with_fake_project_files=False,
-            with_fake_project_files_count=1):
+            with_fake_project_files_count=1,
+            with_non_root_project_files=False,
+            with_non_root_project_files_count=1):
 
         mk_mock_kiproject_input()
 
@@ -125,7 +127,13 @@ def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_st
 
         if with_fake_project_files:
             for _ in range(with_fake_project_files_count):
-                kiproject.resources.append(mk_fake_project_file(kiproject))
+                fake_resource = mk_fake_project_file(kiproject)
+                kiproject.resources.append(fake_resource)
+
+                if with_non_root_project_files:
+                    for _ in range(with_non_root_project_files_count):
+                        fake_child_resource = mk_fake_project_file(kiproject, root_id=fake_resource.id)
+                        kiproject.resources.append(fake_child_resource)
 
         kiproject.save()
 
@@ -151,9 +159,11 @@ class MockKiProjectInputError(Exception):
     """
     pass
 
+
 @pytest.fixture()
 def MockKiProjectInputErrorClass():
     return MockKiProjectInputError
+
 
 @pytest.fixture()
 def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
@@ -239,7 +249,7 @@ def mk_uniq_string():
 @pytest.fixture(scope='session')
 def mk_uniq_integer():
     def _mk():
-        return str(uuid.uuid4().int)
+        return uuid.uuid4().int
 
     yield _mk
 
@@ -254,7 +264,7 @@ def mk_fake_uri(mk_uniq_integer):
 
 @pytest.fixture(scope='session')
 def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
-    def _mk(kiproject, data_type=DataType.CORE):
+    def _mk(kiproject, data_type=DataType.CORE, root_id=None):
         file_path = os.path.join(kiproject.data_type_to_project_path(data_type), '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
@@ -263,7 +273,8 @@ def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
                                  remote_uri=mk_fake_uri(),
                                  local_path=file_path,
                                  name=mk_uniq_string(),
-                                 version='1')
+                                 version='1',
+                                 root_id=root_id)
 
     yield _mk
 

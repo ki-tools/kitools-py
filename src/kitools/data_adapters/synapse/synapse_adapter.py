@@ -159,7 +159,9 @@ class SynapseAdapter(BaseAdapter):
             ki_project_resource.abs_path = abs_path
             kiproject.save()
         else:
-            raise Exception('Could not determine local file path for: {0}'.format(ki_project_resource.remote_uri))
+            raise Exception(
+                'Could not determine local file path for: {0}, try setting the data_type on this resource'.format(
+                    ki_project_resource.remote_uri))
 
     def _find_abs_path_from_remote_path(self, kiproject, entity):
         """
@@ -168,7 +170,7 @@ class SynapseAdapter(BaseAdapter):
         :param entity:
         :return:
         """
-        remote_path = self._get_full_remote_path(entity)
+        remote_path = self._get_remote_path(entity)
 
         # Get a list of the supported DataType paths (e.g., 'data/core/', etc.)
         supported_data_type_paths = []
@@ -195,16 +197,43 @@ class SynapseAdapter(BaseAdapter):
 
         project_data_uri = DataUri.parse(kiproject.project_uri)
 
-        syn_parent = SynapseAdapter.client().get(project_data_uri.id)
+        resource_belongs_to_ki_project = True
+        syn_parent = None
 
-        sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
+        # Check if the synapse entity belongs to the KiProject's remote project
+        # and get the correct synapse parent if it doesn't.
+        if ki_project_resource.remote_uri is not None:
+            resource_data_uri = DataUri.parse(ki_project_resource.remote_uri)
 
-        # Get or create the folders in Synapse.
-        for part in sys_path.rel_parts:
-            # Break when we hit the filename.
-            if part == sys_path.basename:
-                break
-            syn_parent = self._find_or_create_syn_folder(syn_parent, part)
+            syn_entity = SynapseAdapter.client().get(resource_data_uri.id, downloadFile=False)
+
+            syn_parents = [syn_entity] if self._is_project(syn_entity) else list(SynapseParentIter(syn_entity))
+
+            # The last item will always be a Synapse Project.
+            resource_syn_project = syn_parents[-1]
+            assert self._is_project(resource_syn_project)
+
+            if resource_syn_project.id != project_data_uri.id:
+                # The resource does not belong to the same Synapse project so get its parent.
+                resource_belongs_to_ki_project = False
+                syn_parent = syn_parents[0]
+            else:
+                syn_parent = resource_syn_project
+                assert project_data_uri.id == syn_parent.id
+
+        # If the resource belongs to the KiProject's remote project then get or create the remote folder structure.
+        if resource_belongs_to_ki_project:
+            if syn_parent is None:
+                syn_parent = SynapseAdapter.client().get(project_data_uri.id)
+
+            sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
+
+            # Get or create the folders in Synapse.
+            for part in sys_path.rel_parts:
+                # Break when we hit the filename.
+                if part == sys_path.basename:
+                    break
+                syn_parent = self._find_or_create_syn_folder(syn_parent, part)
 
         return self._data_push(ki_project_resource, syn_parent)
 
@@ -221,9 +250,8 @@ class SynapseAdapter(BaseAdapter):
             self._push_children(ki_project_resource.root_resource or ki_project_resource, syn_entity, sys_path.abs_path)
         else:
             # Upload the file
-            syn_entity = SynapseAdapter.client().store(
-                synapseclient.File(path=sys_path.abs_path, parent=syn_parent),
-                forceVersion=False)
+            syn_entity = SynapseAdapter.client().store(synapseclient.File(path=sys_path.abs_path, parent=syn_parent),
+                                                       forceVersion=False)
 
         has_changes = False
 
@@ -282,29 +310,21 @@ class SynapseAdapter(BaseAdapter):
 
         return dirs, files
 
-    def _get_full_remote_path(self, syn_entity):
+    def _get_remote_path(self, syn_entity):
         """
-        Gets the full remote path for a Synapse Folder or File (e.g., folder1/folder2/file1.csv)
-        :param syn_entity:
+        Gets the remote path for a Synapse Folder or File (e.g., folder1/folder2/file1.csv)
+        :param syn_entity: The Synapse entity to get the path for.
         :return: String
         """
-        if syn_entity.get('parentId', None) is None:
+        if not (self._is_folder(syn_entity) or self._is_file(syn_entity)):
             return None
 
-        path_parts = []
+        path_parts = [syn_entity.name]
 
-        child = syn_entity
-        while True:
-            syn_parent = SynapseAdapter.client().get(child.get('parentId', None))
-
-            # Stop once we hit the project.
-            if self._is_project(syn_parent):
+        for e in SynapseParentIter(syn_entity):
+            if self._is_project(e):
                 break
-            else:
-                path_parts.insert(0, syn_parent.name)
-                child = syn_parent
-
-        path_parts.append(syn_entity.name)
+            path_parts.insert(0, e.name)
 
         return '/'.join(path_parts)
 
@@ -318,8 +338,8 @@ class SynapseAdapter(BaseAdapter):
                 return syn_entity
             else:
                 raise Exception(
-                    'Cannot create folder, name: {0} already take by another entity: {1}'.format(folder_name,
-                                                                                                 syn_entity.id))
+                    'Cannot create folder, name: {0} already taken by another entity: {1}'.format(folder_name,
+                                                                                                  syn_entity.id))
 
         return SynapseAdapter.client().store(synapseclient.Folder(name=folder_name, parent=syn_parent))
 
@@ -334,3 +354,19 @@ class SynapseAdapter(BaseAdapter):
 
     def _is_project_folder_file(self, syn_entity):
         return self._is_project(syn_entity) or self._is_folder(syn_entity) or self._is_file(syn_entity)
+
+
+class SynapseParentIter:
+    def __init__(self, syn_entity):
+        self._current_entity = syn_entity
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if isinstance(self._current_entity, synapseclient.Project):
+            raise StopIteration()
+
+        self._current_entity = SynapseAdapter.client().get(self._current_entity.get('parentId', None))
+
+        return self._current_entity

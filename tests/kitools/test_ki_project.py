@@ -477,17 +477,37 @@ def test__find_project_resource_by_value(mk_kiproject):
 
 
 def test_it_prints_out_the_root_project_resources(mk_kiproject):
-    kiproject = mk_kiproject(with_fake_project_files=True, with_fake_project_files_count=3)
-    table = kiproject.data_list()
+    kiproject = mk_kiproject(with_fake_project_files=True,
+                             with_fake_project_files_count=3,
+                             with_non_root_project_files=True)
 
-    index = 0
-    for resource in kiproject.resources:
-        row = table[index]
-        assert row[0] == resource.remote_uri
-        assert row[1] == resource.version
-        assert row[2] == resource.name
-        assert row[3] == resource.rel_path
-        index += 1
+    kiproject.data_list()
+    # TODO: Figure out how to test this.
+
+    # Adjust the resources to be in a non pushed/pulled state.
+    kiproject.resources[0].abs_path = None
+    kiproject.resources[1].remote_uri = None
+    kiproject.resources[2].version = None
+
+    kiproject.data_list()
+    # TODO: Figure out how to test this.
+
+
+def test_it_prints_out_the_all_project_resources(mk_kiproject):
+    kiproject = mk_kiproject(with_fake_project_files=True,
+                             with_fake_project_files_count=3,
+                             with_non_root_project_files=True)
+
+    kiproject.data_list(all=True)
+    # TODO: Figure out how to test this.
+
+    # Adjust the resources to be in a non pushed/pulled state.
+    kiproject.resources[0].abs_path = None
+    kiproject.resources[1].remote_uri = None
+    kiproject.resources[2].version = None
+
+    kiproject.data_list(all=True)
+    # TODO: Figure out how to test this.
 
 
 def test_it_creates_a_new_remote_project(mk_mock_kiproject_input, mk_tempdir, syn_test_helper):
@@ -634,6 +654,7 @@ def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_data):
         # Pull the folder.
         remote_entity = kiproject.data_pull(ki_project_resource.remote_uri)
         assert remote_entity
+        # TODO: check that file exist locally
 
 
 def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_data):
@@ -733,9 +754,48 @@ def test_it_pushes_a_folder_matching_the_data_structure(mk_kiproject, mk_local_d
         # TODO: check that file/folders were pushed
 
 
-def test_it_does_not_push_a_file_unless_the_local_file_changed():
-    # TODO: test this.
+def test_it_pushes_a_file_to_a_different_remote_project(syn_client, mk_kiproject, mk_syn_project, mk_syn_files,
+                                                        write_file, read_file):
+    kiproject = mk_kiproject()
+
+    other_syn_project = mk_syn_project()
+
+    syn_file = mk_syn_files(other_syn_project, file_num=1, versions=1, suffix='')[0]
+
+    syn_file_uri = DataUri('syn', syn_file.id).uri
+    kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
+    local_file_path = kiproject.data_pull(syn_file_uri)
+
+    new_file_contents = str(uuid.uuid4())
+    write_file(local_file_path, new_file_contents)
+
+    kiproject.data_push(syn_file_uri)
+
+    updated_syn_file = syn_client.get(syn_file.id, downloadFile=True)
+    assert read_file(updated_syn_file.path) == new_file_contents
+
+
+def test_it_pushes_a_folder_to_a_different_remote_project():
+    # TODO: test this
     pass
+
+
+def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_syn_files, syn_client):
+    kiproject = mk_kiproject()
+
+    # Get the Synapse project for the KiProject
+    syn_project = syn_client.get(DataUri.parse(kiproject.project_uri).id)
+
+    # Create a Synapse file to add/pull/push
+    syn_file = mk_syn_files(syn_project, file_num=1, versions=1, suffix='')[0]
+
+    syn_file_uri = DataUri('syn', syn_file.id).uri
+    resource = kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
+    kiproject.data_pull()
+
+    # TODO: verify this does't push twice.
+    kiproject.data_push(syn_file_uri)
+    kiproject.data_push(syn_file_uri)
 
 
 def test_it_tests_the_workflow(mk_kiproject,

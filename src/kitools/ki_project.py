@@ -221,21 +221,70 @@ class KiProject(object):
         """
         self._ensure_loaded()
 
+        # Only show non-root resources unless requested.
+        scoped_resources = self.resources if all else self.find_project_resources_by(root_id=None)
+
+        col_action_needed = 'Action Needed'
+        col_remote_uri = 'Remote URI'
+        col_root_uri = 'Root URI'
+        col_version = 'Version'
+        col_name = 'Name'
+        col_path = 'Path'
+
+        column_headers = [col_action_needed, col_remote_uri, col_root_uri, col_version, col_name, col_path]
+
         table = BeautifulTable(max_width=1000)
         table.set_style(BeautifulTable.STYLE_BOX)
-        table.column_headers = ['Remote URI', 'Version', 'Name', 'Path']
+        # Remove the row separator.
+        table.row_separator_char = ''
+        table.column_headers = column_headers
 
         for header in table.column_headers:
             table.column_alignments[header] = BeautifulTable.ALIGN_LEFT
 
-        for resource in self.resources:
-            # Only show non-root resources unless requested.
-            if resource.root_id and not all:
-                continue
-            table.append_row([resource.remote_uri, resource.version, resource.name, resource.rel_path])
+        for resource in scoped_resources:
+            row_data = ['' for _ in column_headers]
+            actions_needed = []
+
+            # remote_uri
+            if resource.remote_uri:
+                row_data[column_headers.index(col_remote_uri)] = resource.remote_uri
+            else:
+                actions_needed.append('data_push()')
+
+            # root_id
+            if resource.root_id:
+                root_resource = self.find_project_resource_by(id=resource.root_id)
+                row_data[column_headers.index(col_root_uri)] = root_resource.remote_uri
+
+            # version
+            if resource.version:
+                row_data[column_headers.index(col_version)] = resource.version
+
+            # name
+            if resource.name:
+                row_data[column_headers.index(col_name)] = resource.name
+
+            # rel_path
+            if resource.rel_path:
+                row_data[column_headers.index(col_path)] = resource.rel_path
+            else:
+                actions_needed.append('data_pull()')
+
+            # action needed
+            row_data[column_headers.index(col_action_needed)] = ', '.join(actions_needed)
+
+            table.append_row(row_data)
+
+        # Remove the root uri column unless we are showing all.
+        if all is not True:
+            table.pop_column(col_root_uri)
+
+        # Remove the actions needed column if there are no actions needed.
+        if not list(filter(None, table[col_action_needed])):
+            table.pop_column(col_action_needed)
 
         print(table)
-        return table
 
     def find_project_resource_by(self, operator='and', **kwargs):
         """
