@@ -20,6 +20,7 @@ from ...data_type import DataType
 from ...data_uri import DataUri
 from ...sys_path import SysPath
 from ...ki_env import KiEnv
+from ...ki_utils import KiUtils
 from ...ki_project_resource import KiProjectResource
 
 
@@ -277,7 +278,7 @@ class SynapseAdapter(BaseAdapter):
     def _push_children(self, root_ki_project_resource, syn_parent, local_path):
         kiproject = root_ki_project_resource.kiproject
 
-        dirs, files = self._get_dirs_and_files(local_path)
+        dirs, files = KiUtils.get_dirs_and_files(local_path)
 
         for entry in files + dirs:
             sys_path = SysPath(entry.path)
@@ -293,22 +294,6 @@ class SynapseAdapter(BaseAdapter):
                                                      root_ki_project_resource=root_ki_project_resource)
 
             self._data_push(child_resource, syn_parent)
-
-    def _get_dirs_and_files(self, local_path):
-        dirs = []
-        files = []
-
-        entries = list(os.scandir(local_path))
-        for entry in entries:
-            if entry.is_dir(follow_symlinks=False):
-                dirs.append(entry)
-            else:
-                files.append(entry)
-
-        dirs.sort(key=lambda f: f.name)
-        files.sort(key=lambda f: f.name)
-
-        return dirs, files
 
     def _get_remote_path(self, syn_entity):
         """

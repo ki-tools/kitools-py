@@ -14,6 +14,7 @@
 
 import os
 import json as JSON
+from collections import deque
 from beautifultable import BeautifulTable
 from .ki_project_template import KiProjectTemplate
 from .ki_project_resource import KiProjectResource
@@ -59,13 +60,15 @@ class KiProject(object):
         self._loaded = False
 
         if self.load():
-            # Ensure the kiproject structure exists
+            # Ensure the KiProject structure exists
             KiProjectTemplate(self.local_path).write()
 
-            print('KiProject successfully loaded and ready to use.')
+            self.show_missing_resources()
             self._loaded = True
+            print('KiProject successfully loaded and ready to use.')
         else:
             if self._init_project():
+                self.show_missing_resources()
                 self._loaded = True
                 print('KiProject initialized successfully and ready to use.')
             else:
@@ -285,6 +288,42 @@ class KiProject(object):
             table.pop_column(col_action_needed)
 
         print(table)
+
+    def show_missing_resources(self):
+        """
+        Shows all local DataType directories and files that have not been added to the KiProject resources.
+
+        :return: None
+        """
+        missing = self.find_missing_resources()
+        if missing:
+            print('WARNING: The following local resources have not been added to this KiProject.')
+            for path in missing:
+                print(' - {0}'.format(SysPath(path, rel_start=self.local_path).rel_path))
+
+    def find_missing_resources(self):
+        """
+        Finds all local DataType directories and files that have not been added to the KiProject resources.
+
+        :return: List of paths
+        """
+        missing = []
+
+        paths = deque(self._root_data_paths())
+
+        while paths:
+            path = paths.popleft()
+            dirs, files = KiUtils.get_dirs_and_files(path)
+
+            for entry in (dirs + files):
+                resource = self.find_project_resource_by(abs_path=entry.path)
+                if not resource:
+                    missing.append(entry.path)
+
+                if entry.is_dir():
+                    paths.append(entry.path)
+
+        return missing
 
     def find_project_resource_by(self, operator='and', **kwargs):
         """
@@ -747,5 +786,5 @@ class KiProject(object):
         """
         paths = []
         for data_type in DataType.ALL:
-            paths.append(os.path.join(self.data_path, data_type))
+            paths.append(self.data_type_to_project_path(data_type))
         return paths

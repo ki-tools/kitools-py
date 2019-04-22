@@ -18,6 +18,7 @@ import json as JSON
 import uuid
 import shutil
 import synapseclient
+from collections import deque
 from src.kitools import KiProject, KiProjectResource, DataType, DataUri, SysPath
 from src.kitools import NotADataTypePathError, DataTypeMismatchError
 
@@ -162,11 +163,8 @@ def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
 
 @pytest.fixture(scope='session')
 def mk_local_data_dir(mk_uniq_string, write_file):
-    def _mk(kiproject):
-        all_data_paths = []
-
-        for data_type_name in DataType.ALL:
-            all_data_paths.append(kiproject.data_type_to_project_path(data_type_name))
+    def _mk(kiproject, return_all=False):
+        all_data_paths = kiproject._root_data_paths()
 
         # Create some local data files.
         local_data_files = []
@@ -189,6 +187,8 @@ def mk_local_data_dir(mk_uniq_string, write_file):
                 filename = 'file_{0}.csv'.format(mk_uniq_string())
                 file_path = os.path.join(folder_path, filename)
                 write_file(file_path, 'version1')
+                if return_all:
+                    local_data_files.append(file_path)
 
         return local_data_folders, local_data_files
 
@@ -798,7 +798,7 @@ def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_
 
     # The file exists in the Synapse project and has been pulled locally.
     # Pushing again should NOT upload the file again.
-    # NOTE: This will fail until this issue is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/674
+    # NOTE: This will fail until this issue is fixed: https://sagebionetworks.jira.com/browse/SYNPY-946
     mocker.spy(synapseclient.client, 'upload_file_handle')
     kiproject.data_push(syn_file_uri)
     assert synapseclient.client.upload_file_handle.call_count == 0
@@ -1037,3 +1037,19 @@ def test_it_finds_a_resource_to_change_by_its_attributes(mk_kiproject, mk_local_
         assert kiproject.data_change(resource.remote_uri) == resource
         assert kiproject.data_change(resource.abs_path) == resource
         assert kiproject.data_change(resource.rel_path) == resource
+
+
+def test_it_finds_local_files_and_folders_not_in_the_manifest(mk_kiproject, mk_local_data_dir):
+    kiproject = mk_kiproject()
+
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject, return_all=True)
+    paths = deque(local_data_folders + local_data_files)
+
+    assert sorted(kiproject.find_missing_resources()) == sorted(paths)
+
+    while paths:
+        path = paths.popleft()
+        kiproject.data_add(path)
+        assert sorted(kiproject.find_missing_resources()) == sorted(paths)
+
+    assert sorted(kiproject.find_missing_resources()) == []
