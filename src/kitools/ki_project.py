@@ -16,6 +16,7 @@ import os
 import json as JSON
 from collections import deque
 from beautifultable import BeautifulTable
+from pathlib import PurePath
 from .ki_project_template import KiProjectTemplate
 from .ki_project_resource import KiProjectResource
 from .data_type import DataType
@@ -63,13 +64,13 @@ class KiProject(object):
             # Ensure the KiProject structure exists
             KiProjectTemplate(self.local_path).write()
 
-            self.show_missing_resources()
             self._loaded = True
+            self.show_missing_resources()
             print('KiProject successfully loaded and ready to use.')
         else:
             if self._init_project():
-                self.show_missing_resources()
                 self._loaded = True
+                self.show_missing_resources()
                 print('KiProject initialized successfully and ready to use.')
             else:
                 print('KiProject initialization failed.')
@@ -118,6 +119,8 @@ class KiProject(object):
         :param resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
         :return: KiProjectResource
         """
+        self._ensure_loaded()
+
         project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
         # Remove any children.
@@ -295,6 +298,8 @@ class KiProject(object):
 
         :return: None
         """
+        self._ensure_loaded()
+
         missing = self.find_missing_resources()
         if missing:
             print('WARNING: The following local resources have not been added to this KiProject.')
@@ -479,7 +484,8 @@ class KiProject(object):
             'root_id': ki_project_resource.root_id,
             'data_type': ki_project_resource.data_type,
             'remote_uri': ki_project_resource.remote_uri,
-            'rel_path': ki_project_resource.rel_path,
+            # Always store the path in Posix format ("/" vs "\").
+            'rel_path': PurePath(ki_project_resource.rel_path).as_posix() if ki_project_resource.rel_path else None,
             'name': ki_project_resource.name,
             'version': ki_project_resource.version
         }

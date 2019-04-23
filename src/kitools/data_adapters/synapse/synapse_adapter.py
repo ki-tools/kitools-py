@@ -105,7 +105,8 @@ class SynapseAdapter(BaseAdapter):
 
         remote_entity = SynapseRemoteEntity(entity, local_path=download_path)
 
-        assert remote_entity.local_path == ki_project_resource.abs_path
+        # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
+        assert SysPath(remote_entity.local_path).abs_path.lower() == SysPath(ki_project_resource.abs_path).abs_path.lower()
 
         if remote_entity.is_directory:
             # Create the local directory for the folder.
@@ -271,7 +272,8 @@ class SynapseAdapter(BaseAdapter):
 
         remote_entity = SynapseRemoteEntity(syn_entity, local_path=sys_path.abs_path)
 
-        assert remote_entity.local_path == ki_project_resource.abs_path
+        # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
+        assert SysPath(remote_entity.local_path).abs_path.lower() == SysPath(ki_project_resource.abs_path).abs_path.lower()
 
         return remote_entity
 
