@@ -290,7 +290,9 @@ class KiProject(object):
         if not list(filter(None, table[col_action_needed])):
             table.pop_column(col_action_needed)
 
-        print(table)
+        # Encode is needed on Windows otherwise this error occurs:
+        # "UnicodeEncodeError: 'charmap' codec can't encode characters in position..."
+        print(table).encode('utf-8')
 
     def show_missing_resources(self):
         """
