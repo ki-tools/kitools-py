@@ -292,7 +292,7 @@ class KiProject(object):
 
         # Encode is needed on Windows otherwise this error occurs:
         # "UnicodeEncodeError: 'charmap' codec can't encode characters in position..."
-        print(table).encode('utf-8')
+        print(table)
 
     def show_missing_resources(self):
         """
