@@ -5,12 +5,11 @@ environment:
     - PYTHON: "C:\\Python37-x64"
 
 install:
-  - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - "python -m pip install -U pip"
-  - "pip install -r requirements.txt"
+  - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
+  - python -m pip install -U pip
+  - pip install -r requirements.txt
 
 build: off
 
 test_script:
-  # https://stackoverflow.com/a/32383309/9800909
-  - "pytest -v -s --cov"
+  - cmd: pytest -v -s --cov
