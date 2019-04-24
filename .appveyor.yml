@@ -11,6 +11,10 @@ install:
 
 build: off
 
+before_test:
+  # https://stackoverflow.com/a/32383309/9800909
+  - "chcp 65001"
+
 test_script:
   - "pytest -v -s --cov"
 
