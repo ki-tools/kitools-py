@@ -13,4 +13,4 @@ build: off
 
 test_script:
   # https://stackoverflow.com/a/32383309/9800909
-  - "chcp 65001 & pytest -v -s --cov"
+  - "chcp 1252 & pytest -v -s --cov"
