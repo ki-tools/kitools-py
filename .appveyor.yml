@@ -9,9 +9,8 @@ install:
   - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
   - python -m pip install -U pip
   - pip install -r requirements.txt
-  - pip install win-unicode-console
 
 build: off
 
 test_script:
-  - python -m pytest -v -s --cov
+  - pytest -v -s --cov
