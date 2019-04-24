@@ -13,4 +13,4 @@ install:
 build: off
 
 test_script:
-  - pythom -m pytest -v -s --cov
+  - python -m pytest -v -s --cov
