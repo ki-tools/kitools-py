@@ -410,17 +410,16 @@ def test_it_updates_the_config_file_when_saved(mk_kiproject, mk_fake_uri, mk_fak
     assert_matches_config(kiproject)
 
 
-def test_it_saves_resource_rel_paths_as_posix_paths(mk_kiproject, mk_fake_project_file, read_file):
+def test_it_saves_resource_rel_paths_as_posix_paths(mk_kiproject):
+    # NOTE: This test needs to be run in each supported env (Linux/Mac, Windows).
     kiproject = mk_kiproject(with_fake_project_files=True)
-    for resource in kiproject.resources:
-        resource.abs_path = resource.abs_path.replace('/', '\\')
-    kiproject.save()
 
     with open(kiproject._config_path) as f:
         json = JSON.load(f)
 
     jresources = json['resources']
     assert len(jresources) > 0
+
     for jresource in jresources:
         assert '\\' not in jresource['rel_path']
         assert '/' in jresource['rel_path']
