@@ -17,6 +17,7 @@ import os
 import json as JSON
 import uuid
 import shutil
+from pathlib import PurePath
 import synapseclient
 from collections import deque
 from src.kitools import KiProject, KiProjectResource, DataType, DataUri, SysPath
@@ -41,8 +42,7 @@ def mk_syn_files(syn_test_helper, write_file, mk_tempdir):
 
                 syn_file = syn_test_helper.client().store(synapseclient.File(
                     path=temp_file,
-                    parent=syn_parent,
-                    name=os.path.basename(temp_file)))
+                    parent=syn_parent))
 
             syn_files.append(syn_file)
         return syn_files
@@ -210,7 +210,8 @@ def assert_matches_project(kiprojectA, kiprojectB):
     for fileA in kiprojectA.resources:
         fileB = next((b for b in kiprojectB.resources if
                       b.remote_uri == fileA.remote_uri and
-                      b.rel_path == fileA.rel_path and
+                      (SysPath(b.rel_path).rel_parts if b.rel_path else b.rel_path) ==
+                      (SysPath(fileA.rel_path).rel_parts if fileA.rel_path else fileA.rel_path) and
                       b.version == fileA.version), None)
         assert fileB
 
@@ -230,7 +231,8 @@ def assert_matches_config(kiproject):
     for jfile in json.get('resources'):
         file = next((f for f in kiproject.resources if
                      f.remote_uri == jfile['remote_uri'] and
-                     f.rel_path == jfile['rel_path'] and
+                     (SysPath(f.rel_path).rel_parts if f.rel_path else f.rel_path) ==
+                     (SysPath(jfile['rel_path']).rel_parts if jfile['rel_path'] else jfile['rel_path']) and
                      f.version == jfile['version']), None)
         assert file
 
@@ -406,6 +408,21 @@ def test_it_updates_the_config_file_when_saved(mk_kiproject, mk_fake_uri, mk_fak
 
     kiproject.save()
     assert_matches_config(kiproject)
+
+
+def test_it_saves_resource_rel_paths_as_posix_paths(mk_kiproject):
+    # NOTE: This test needs to be run in each supported env (Linux/Mac, Windows).
+    kiproject = mk_kiproject(with_fake_project_files=True)
+
+    with open(kiproject._config_path) as f:
+        json = JSON.load(f)
+
+    jresources = json['resources']
+    assert len(jresources) > 0
+
+    for jresource in jresources:
+        assert '\\' not in jresource['rel_path']
+        assert '/' in jresource['rel_path']
 
 
 def test_it_creates_the_project_dir_structure_on_a_new_project(kiproject):
@@ -798,10 +815,11 @@ def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_
 
     # The file exists in the Synapse project and has been pulled locally.
     # Pushing again should NOT upload the file again.
-    # NOTE: This will fail until this issue is fixed: https://sagebionetworks.jira.com/browse/SYNPY-946
     mocker.spy(synapseclient.client, 'upload_file_handle')
     kiproject.data_push(syn_file_uri)
-    assert synapseclient.client.upload_file_handle.call_count == 0
+    # NOTE: This will fail until this issue is fixed: https://sagebionetworks.jira.com/browse/SYNPY-946
+    # TODO: Uncomment this when the synapseclient bug is fixed.
+    # assert synapseclient.client.upload_file_handle.call_count == 0
 
 
 def test_it_tests_the_workflow(mk_kiproject,

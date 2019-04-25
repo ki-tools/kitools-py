@@ -48,7 +48,8 @@ def test_it_sets_the_cwd(test_dirs):
 
     assert SysPath(temp_dir_name, cwd=temp_dir_path)._cwd == temp_dir_path
     assert SysPath(temp_dir_name, cwd=temp_dir_path).abs_path == temp_dir
-    assert SysPath('dir1/file1.csv', cwd=temp_dir, rel_start=temp_dir).rel_path == 'dir1/file1.csv'
+    file_path = os.path.join('dir1', 'file1.csv')
+    assert SysPath(file_path, cwd=temp_dir, rel_start=temp_dir).rel_path == file_path
 
 
 def test_it_sets_the_abs_path(test_dirs):
@@ -59,14 +60,16 @@ def test_it_sets_the_abs_path(test_dirs):
     assert SysPath(temp_dir, cwd=temp_dir).abs_path == temp_dir
 
     # From relative path
-    assert SysPath('dir1/file1.csv', cwd=temp_dir).abs_path == child_file
-    assert SysPath('dir1/file1.csv').abs_path != child_file
+    file_path = os.path.join('dir1', 'file1.csv')
+    assert SysPath(file_path, cwd=temp_dir).abs_path == child_file
+    assert SysPath(file_path).abs_path != child_file
 
 
 def test_it_sets_the_rel_path(test_dirs):
     temp_dir, child_dir, child_file = test_dirs
 
+    file_path = os.path.join('dir1', 'file1.csv')
     assert SysPath(temp_dir, rel_start=temp_dir).rel_path == '.'
     assert SysPath(temp_dir, cwd=temp_dir, rel_start=temp_dir).rel_path == '.'
-    assert SysPath(child_file, rel_start=temp_dir).rel_path == 'dir1/file1.csv'
-    assert SysPath(child_file, cwd=temp_dir, rel_start=temp_dir).rel_path == 'dir1/file1.csv'
+    assert SysPath(child_file, rel_start=temp_dir).rel_path == file_path
+    assert SysPath(child_file, cwd=temp_dir, rel_start=temp_dir).rel_path == file_path
