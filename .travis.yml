@@ -19,16 +19,17 @@ matrix:
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
-  - if [ $TRAVIS_OS_NAME == osx ] ; then brew update || true ; fi
-  - if [ $TRAVIS_OS_NAME == osx ] && [ $PYENV == py35 ] ; then brew install python35 || true ; fi
-  - if [ $TRAVIS_OS_NAME == osx ] && [ $PYENV == py36 ] ; then brew install python36 || true ; fi
-  - python --version
-  - python -m pip install -U pip
-  - pip install -r requirements.txt
-  - pip install coveralls
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew update || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py35 ] ; then brew install python35 || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py36 ] ; then brew install python36 || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; export $PYTHON=python3; $PIP=pip3 ; else export $PYTHON=python; $PIP=pip ; fi
+  - $PYTHON --version
+  - $PYTHON -m pip install -U pip
+  - $PIP install -r requirements.txt
+  - $PIP install coveralls
 before_script:
-  - coverage erase
+  - $PYTHON -m coverage erase
 script:
-  - pytest -v -s --cov
+  - $PYTHON -m pytest -v -s --cov
 after_success:
-  - coveralls
+  - $PYTHON -m coveralls
