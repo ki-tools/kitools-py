@@ -5,42 +5,35 @@ matrix:
   include:
     - os: linux
       python: 3.5
-      env:
-        - PYENV=py35
-        - PYTHON=python
-        - PIP=pip
     - os: linux
       python: 3.6
-      env:
-        - PYENV=py36
-        - PYTHON=python
-        - PIP=pip
     - os: osx
       language: generic
       env:
-        - PYENV=py35
-        - PYTHON=python3
-        - PIP=pip3
+        - PYENV_VERSION=3.5.0
     - os: osx
       language: generic
       env:
-        - PYENV=py36
-        - PYTHON=python3
-        - PIP=pip3
+        - PYENV_VERSION=3.6.0
 
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew update || true ; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py35 ] ; then brew install python35 || true ; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py36 ] ; then brew install python36 || true ; fi
-  - $PYTHON --version
-  - $PYTHON -m pip install -U pip
-  - $PIP install -r requirements.txt
-  - $PIP install coveralls
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew install openssl readline || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew outdated pyenv || brew upgrade pyenv || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew install pyenv-virtualenv || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then pyenv install $PYENV_VERSION || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then export PATH="/Users/travis/.pyenv/shims:${PATH}" || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then pyenv-virtualenv venv || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then source venv/bin/activate || true ; fi
+  - python --version
+  - python -m pip install -U pip
+  - pip install -r requirements.txt
+  - pip install coveralls
 before_script:
-  - $PYTHON -m coverage erase
+  - python -m coverage erase
 script:
-  - $PYTHON -m pytest -v -s --cov
+  - python -m pytest -v -s --cov
 after_success:
-  - $PYTHON -m coveralls
+  - python -m coveralls
