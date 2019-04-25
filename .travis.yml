@@ -19,14 +19,14 @@ matrix:
       language: generic
       env:
         - PYENV=py35
-        - PYTHON=python3.5
-        - PIP=pip3.5
+        - PYTHON=python3
+        - PIP=pip3
     - os: osx
       language: generic
       env:
         - PYENV=py36
-        - PYTHON=python3.6
-        - PIP=pip3.6
+        - PYTHON=python3
+        - PIP=pip3
 
 before_install:
   - export LOG_LEVEL=DEBUG
