@@ -5,16 +5,28 @@ matrix:
   include:
     - os: linux
       python: 3.5
-      env: PYENV=py35
+      env:
+        - PYENV=py35
+        - PYTHON=python
+        - PIP=pip
     - os: linux
       python: 3.6
-      env: PYENV=py36
+      env:
+        - PYENV=py36
+        - PYTHON=python
+        - PIP=pip
     - os: osx
       language: generic
-      env: PYENV=py35
+      env:
+        - PYENV=py35
+        - PYTHON=python3.5
+        - PIP=pip3.5
     - os: osx
       language: generic
-      env: PYENV=py36
+      env:
+        - PYENV=py36
+        - PYTHON=python3.6
+        - PIP=pip3.6
 
 before_install:
   - export LOG_LEVEL=DEBUG
@@ -22,7 +34,6 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew update || true ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py35 ] ; then brew install python35 || true ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py36 ] ; then brew install python36 || true ; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; export $PYTHON=python3 $PIP=pip3 || true ; else export $PYTHON=python $PIP=pip || true ; fi
   - $PYTHON --version
   - $PYTHON -m pip install -U pip
   - $PIP install -r requirements.txt
