@@ -22,7 +22,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew update || true ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py35 ] ; then brew install python35 || true ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] && [ $PYENV == py36 ] ; then brew install python36 || true ; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; export $PYTHON=python3; $PIP=pip3 ; else export $PYTHON=python; $PIP=pip ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; export $PYTHON=python3; $PIP=pip3 ; else export $PYTHON=python; $PIP=pip ; fi || true
   - $PYTHON --version
   - $PYTHON -m pip install -U pip
   - $PIP install -r requirements.txt
