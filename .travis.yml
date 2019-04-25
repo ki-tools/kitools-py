@@ -10,11 +10,11 @@ matrix:
     - os: osx
       language: generic
       env:
-        - PYENV_VERSION=3.5.0
+        - PYENV_VERSION=3.5.4
     - os: osx
       language: generic
       env:
-        - PYENV_VERSION=3.6.0
+        - PYENV_VERSION=3.6.8
 
 before_install:
   - export LOG_LEVEL=DEBUG
