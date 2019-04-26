@@ -14,6 +14,7 @@
 
 import os
 from .sys_path import SysPath
+from .data_type import DataType
 
 
 class KiProjectTemplate:
@@ -43,10 +44,6 @@ class KiProjectTemplate:
 
     @staticmethod
     def project_dir_names():
-        return [
-            'data',
-            'data{0}core'.format(os.sep),
-            'data{0}derived'.format(os.sep),
-            'data{0}discovered'.format(os.sep),
-            'scripts'.format(os.sep),
-            'reports'.format(os.sep)]
+        data_dirs = ['data'] + ['data{0}{1}'.format(os.sep, data_type_name) for data_type_name in DataType.ALL]
+        other_dirs = ['scripts', 'reports']
+        return data_dirs + other_dirs

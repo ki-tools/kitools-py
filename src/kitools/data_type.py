@@ -23,8 +23,8 @@ class DataType(object):
 
     CORE = 'core'
     DISCOVERED = 'discovered'
-    DERIVED = 'derived'
-    ALL = [CORE, DISCOVERED, DERIVED]
+    ARTIFACTS = 'artifacts'
+    ALL = [CORE, DISCOVERED, ARTIFACTS]
 
     def __init__(self, name):
         prepared_name = name.lower().strip() if name else None

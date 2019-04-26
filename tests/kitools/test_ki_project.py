@@ -138,12 +138,12 @@ def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
                 Folder2_1/
                     file1_2
                     file2_2
-        /derived
+        /artifacts
             <same as core...>
         /discovered
             <same as core...>
 
-    This method will return the root files/folders under data/core, data/derived, data/discovered.
+    This method will return the root files/folders under data/core, data/artifacts, data/discovered.
     The data and data_type folders are NOT returned.
     """
     syn_project = mk_syn_project()
