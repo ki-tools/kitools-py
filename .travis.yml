@@ -19,6 +19,8 @@ matrix:
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew update || true ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew outdated pyenv || brew upgrade pyenv || true ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then pyenv install $PYENV_VERSION || true ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then python3 -m venv .venv || true ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then source .venv/bin/activate || true ; fi
