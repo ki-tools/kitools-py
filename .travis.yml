@@ -32,7 +32,6 @@ before_script:
   - python -m coverage erase
 script:
   - python --version
-  - pyenv versions
   - python -m pytest -v -s --cov
 after_success:
   - python -m coveralls
