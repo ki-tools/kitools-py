@@ -20,7 +20,6 @@ import os
 import uuid
 import tempfile
 import random
-import concurrent.futures
 import synapseclient as syn
 
 script_dir = os.path.dirname(__file__)
@@ -134,27 +133,24 @@ def create_demo_curator():
 
     demo_commands.append('')
     demo_commands.append('# Open the KiProject:')
-    demo_commands.append('kiproject = KiProject("{0}")'.format(kiproject.local_path))
+    demo_commands.append(
+        'kiproject = KiProject({0}"{1}")'.format(('r' if os.sep == '\\' else ''), kiproject.local_path))
 
     # Add the synapse project files/folders.
     syn_temp_dir = mk_dirs(kiproject_path, '.demo-data')
     temp_data_path = mk_dirs(syn_temp_dir, DataType.DATA_DIR_NAME)
 
     # Create files and folders in each DataType directory.
-    futures = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        for data_type_name in DataType.ALL:
-            dt_folder_path = mk_dirs(temp_data_path, data_type_name)
-            syn_data_type_folder = syn_client.store(syn.Folder(name=data_type_name, parent=syn_data_folder))
-            kiproject.data_add(DataUri('syn', syn_data_type_folder.id).uri, name=syn_data_type_folder.name)
+    for data_type_name in DataType.ALL:
+        dt_folder_path = mk_dirs(temp_data_path, data_type_name)
+        syn_data_type_folder = syn_client.store(syn.Folder(name=data_type_name, parent=syn_data_folder))
+        kiproject.data_add(DataUri('syn', syn_data_type_folder.id).uri, name=syn_data_type_folder.name)
 
-            futures.append(executor.submit(mk_local_files_and_folders,
-                                           dt_folder_path,
-                                           depth=3,
-                                           prefix='{0}_'.format(data_type_name),
-                                           syn_client=syn_client,
-                                           syn_parent=syn_data_type_folder))
-
+        mk_local_files_and_folders(dt_folder_path,
+                                   depth=3,
+                                   prefix='{0}_'.format(data_type_name),
+                                   syn_client=syn_client,
+                                   syn_parent=syn_data_type_folder)
     kiproject.data_pull()
 
     # Create some new files for data_add/data_push
@@ -166,8 +162,8 @@ def create_demo_curator():
         local_results, _ = mk_local_files_and_folders(dt_folder_path, prefix='new_study_file_', depth=0, file_count=1)
 
         for new_filename in local_results:
-            demo_commands.append('kiproject.data_add("{0}")'.format(SysPath(new_filename,
-                                                                            rel_start=kiproject.local_path).rel_path))
+            demo_commands.append('kiproject.data_add({0}"{1}")'.format(
+                ('r' if os.sep == '\\' else ''), SysPath(new_filename, rel_start=kiproject.local_path).rel_path))
 
     demo_commands.append('kiproject.data_push()')
 
@@ -179,7 +175,7 @@ def create_demo_curator():
         if change_count >= 3:
             break
 
-        if resource.rel_path.endswith('.dat'):
+        if resource.abs_path and resource.abs_path.endswith('.dat'):
             change_count += 1
             file_path = resource.abs_path
             write_random_data_to_file(file_path)
