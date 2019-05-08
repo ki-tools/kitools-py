@@ -76,3 +76,50 @@ def test_it_converts_version_to_a_string(kiproject, fake_uri, file_abs_path):
                              local_path=file_abs_path,
                              name=name,
                              version='').version is None
+
+
+def assert___str__(ki_project_resource):
+    details = str(ki_project_resource)
+
+    if ki_project_resource.name:
+        assert 'Name: {0}'.format(ki_project_resource.name) in details
+    else:
+        assert 'Name: {0}'.format('[not set]') in details
+
+    if ki_project_resource.data_type:
+        assert 'Date Type: {0}'.format(ki_project_resource.data_type) in details
+    else:
+        assert 'Date Type: {0}'.format('[has not been pulled... use data_pull() to pull this dataset]') in details
+
+    if ki_project_resource.version:
+        assert 'Version: {0}'.format(ki_project_resource.version) in details
+    else:
+        assert 'Version: {0}'.format('[latest]') in details
+
+    if ki_project_resource.remote_uri:
+        assert 'Remote URI: {0}'.format(ki_project_resource.remote_uri) in details
+    else:
+        assert 'Remote URI: {0}'.format('[has not been pushed... use data_push() to push this dataset]') in details
+
+    if ki_project_resource.abs_path:
+        assert 'Absolute Path: {0}'.format(ki_project_resource.abs_path) in details
+    else:
+        assert 'Absolute Path: {0}'.format('[has not been pulled... use data_pull() to pull this dataset]') in details
+
+    print(ki_project_resource)
+
+
+def test___str__returns_the_resource_details(kiproject, fake_uri, file_abs_path):
+    ki_project_resource = KiProjectResource(kiproject=kiproject,
+                                            remote_uri=None,
+                                            local_path=None,
+                                            version=None,
+                                            name=None)
+    assert___str__(ki_project_resource)
+
+    ki_project_resource = KiProjectResource(kiproject=kiproject,
+                                            remote_uri=fake_uri,
+                                            local_path=file_abs_path,
+                                            version='1',
+                                            name=os.path.basename(file_abs_path))
+    assert___str__(ki_project_resource)

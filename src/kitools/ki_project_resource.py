@@ -163,3 +163,15 @@ class KiProjectResource(object):
     @rel_path.setter
     def rel_path(self, value):
         self._set_local_path(value)
+
+    def __str__(self):
+        details = []
+        details.append('Name: {0}'.format(self.name if self.name else '[not set]'))
+        details.append('Date Type: {0}'.format(
+            self.data_type if self.data_type else '[has not been pulled... use data_pull() to pull this dataset]'))
+        details.append('Version: {0}'.format(self.version if self.version else '[latest]'))
+        details.append('Remote URI: {0}'.format(
+            self.remote_uri if self.remote_uri else '[has not been pushed... use data_push() to push this dataset]'))
+        details.append('Absolute Path: {0}'.format(
+            self.abs_path if self.abs_path else '[has not been pulled... use data_pull() to pull this dataset]'))
+        return os.linesep.join(details)
