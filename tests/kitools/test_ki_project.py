@@ -17,7 +17,6 @@ import os
 import json as JSON
 import uuid
 import shutil
-from pathlib import PurePath
 import synapseclient
 from collections import deque
 from src.kitools import KiProject, KiProjectResource, DataType, DataUri, SysPath
@@ -204,6 +203,7 @@ def assert_matches_project(kiprojectA, kiprojectB):
     assert kiprojectA.title == kiprojectB.title
     assert kiprojectA.description == kiprojectB.description
     assert kiprojectA.project_uri == kiprojectB.project_uri
+    assert kiprojectA.data_ignores == kiprojectB.data_ignores
 
     assert len(kiprojectA.resources) == len(kiprojectB.resources)
 
@@ -227,6 +227,7 @@ def assert_matches_config(kiproject):
     assert json.get('title', None) == kiproject.title
     assert json.get('description', None) == kiproject.description
     assert json.get('project_uri', None) == kiproject.project_uri
+    assert json.get('data_ignores', None) == kiproject.data_ignores
 
     for jfile in json.get('resources'):
         file = next((f for f in kiproject.resources if
@@ -1071,3 +1072,45 @@ def test_it_finds_local_files_and_folders_not_in_the_manifest(mk_kiproject, mk_l
         assert sorted(kiproject.find_missing_resources()) == sorted(paths)
 
     assert sorted(kiproject.find_missing_resources()) == []
+
+
+def test_it_excludes_local_files_and_folders_from_the_manifest(mk_kiproject, mk_local_data_dir):
+    kiproject = mk_kiproject()
+
+    local_data_folders, local_data_files = mk_local_data_dir(kiproject, return_all=True)
+    all_paths = (local_data_folders + local_data_files)
+
+    assert sorted(kiproject.find_missing_resources()) == sorted(all_paths)
+
+    for path in all_paths:
+        basename = os.path.basename(path)
+
+        patterns = []
+
+        # Match on absolute path
+        patterns.append(path)
+
+        # Match on the basename
+        patterns.append(basename)
+
+        # Match on partial basename
+        patterns.append(basename[:round(len(basename) / 2)] + '*')
+
+        for pattern in patterns:
+            assert path in kiproject.find_missing_resources()
+            kiproject.add_data_ignore(pattern)
+            assert path not in kiproject.find_missing_resources()
+            kiproject.remove_data_ignore(pattern)
+
+
+def test_it_can_add_and_remove_a_data_ignore_pattern(kiproject):
+    pattern = 'test.txt'
+    assert pattern not in kiproject.data_ignores
+
+    kiproject.add_data_ignore(pattern)
+    assert pattern in kiproject.data_ignores
+    assert_matches_config(kiproject)
+
+    kiproject.remove_data_ignore(pattern)
+    assert pattern not in kiproject.data_ignores
+    assert_matches_config(kiproject)

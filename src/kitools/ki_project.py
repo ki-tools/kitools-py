@@ -14,6 +14,7 @@
 
 import os
 import json as JSON
+import glob
 from collections import deque
 from beautifultable import BeautifulTable
 from pathlib import PurePath
@@ -28,6 +29,45 @@ from .exceptions import NotADataTypePathError, DataTypeMismatchError, KiProjectR
 
 class KiProject(object):
     CONFIG_FILENAME = 'kiproject.json'
+
+    DEFAULT_LINUX_DATA_IGNORES = frozenset([
+        '*~',
+        '.Trash-*',
+        '.directory',
+        '.fuse_hidden*',
+        '.nfs*'
+    ])
+
+    DEFAULT_OSX_DATA_IGNORES = frozenset([
+        '.DS_Store',
+        '.AppleDouble',
+        '.LSOverride',
+        '._*',
+        '.DocumentRevisions-V100',
+        '.fseventsd',
+        '.Spotlight-V100',
+        '.TemporaryItems',
+        '.Trashes',
+        '.VolumeIcon.icns',
+        '.com.apple.timemachine.donotpresent',
+        '.AppleDB',
+        '.AppleDesktop',
+        '.apdisk'
+    ])
+
+    DEFAULT_WINDOWS_DATA_IGNORES = frozenset([
+        'Thumbs.db',
+        'ehthumbs.db',
+        'ehthumbs_vista.db',
+        '*.stackdump',
+        '[Dd]esktop.ini',
+        '$RECYCLE.BIN/',
+        '*.lnk'
+    ])
+
+    DEFAULT_DATA_IGNORES = frozenset.union(DEFAULT_LINUX_DATA_IGNORES,
+                                           DEFAULT_OSX_DATA_IGNORES,
+                                           DEFAULT_WINDOWS_DATA_IGNORES)
 
     def __init__(self,
                  local_path,
@@ -55,6 +95,8 @@ class KiProject(object):
         self.description = description
         self.project_uri = project_uri
         self.resources = []
+
+        self._data_ignores = list(self.DEFAULT_DATA_IGNORES)
 
         self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
 
@@ -167,7 +209,7 @@ class KiProject(object):
             project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
             if project_resource.remote_uri is None:
-                print('Resource {0} cannot be pulled until it has been pushed.'.format(resource_or_identifier))
+                print('Resource cannot be pulled until it has been pushed:{0}{1}'.format(os.linesep, project_resource))
                 return None
 
             data_uri = DataUri.parse(project_resource.remote_uri)
@@ -196,7 +238,7 @@ class KiProject(object):
             project_resource = self._find_project_resource_by_value(resource_or_identifier)
 
             if project_resource.abs_path is None:
-                print('Resource {0} cannot be pushed until it has been pulled.'.format(resource_or_identifier))
+                print('Source cannot be pushed until it has been pulled:{0}{1}'.format(os.linesep, project_resource))
                 return None
 
             data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
@@ -292,6 +334,32 @@ class KiProject(object):
 
         print(table)
 
+    @property
+    def data_ignores(self):
+        return self._data_ignores
+
+    def add_data_ignore(self, pattern):
+        """
+        Add a glob pattern to ignore data files.
+
+        :param pattern: A glob pattern to match files to be ignored.
+        :return: None
+        """
+        if pattern not in self._data_ignores:
+            self._data_ignores.append(pattern)
+            self.save()
+
+    def remove_data_ignore(self, pattern):
+        """
+        Remove a glob pattern that ignores data files.
+
+        :param pattern: The glob pattern to remove.
+        :return: None
+        """
+        if pattern in self._data_ignores:
+            self._data_ignores.remove(pattern)
+            self.save()
+
     def show_missing_resources(self):
         """
         Shows all local DataType directories and files that have not been added to the KiProject resources.
@@ -316,13 +384,18 @@ class KiProject(object):
 
         paths = deque(self._root_data_paths())
 
+        ignored_paths = self._get_data_ignored_paths()
+
         while paths:
             path = paths.popleft()
             dirs, files = KiUtils.get_dirs_and_files(path)
 
             for entry in (dirs + files):
-                resource = self.find_project_resource_by(abs_path=entry.path)
-                if not resource:
+                if entry.path in ignored_paths:
+                    continue
+
+                resources = self.find_project_resources_by(abs_path=entry.path)
+                if not resources:
                     missing.append(entry.path)
 
                 if entry.is_dir():
@@ -453,6 +526,7 @@ class KiProject(object):
             'title': self.title,
             'description': self.description,
             'project_uri': self.project_uri,
+            'data_ignores': self.data_ignores,
             'resources': [self._ki_project_resource_to_json(f) for f in self.resources]
         }
 
@@ -466,6 +540,7 @@ class KiProject(object):
         self.title = json.get('title')
         self.description = json.get('description')
         self.project_uri = json.get('project_uri')
+        self._data_ignores = json.get('data_ignores', list(self.DEFAULT_DATA_IGNORES))
         self.resources = []
 
         jresources = json.get('resources')
@@ -745,6 +820,7 @@ class KiProject(object):
                                                  local_path=local_path,
                                                  name=name,
                                                  version=version)
+
             self.resources.append(project_resource)
 
         self.save()
@@ -794,3 +870,14 @@ class KiProject(object):
         for data_type in DataType.ALL:
             paths.append(self.data_type_to_project_path(data_type))
         return paths
+
+    def _get_data_ignored_paths(self):
+        """
+        Gets the absolute paths of all files and directories to ignore.
+
+        :return: List of absolute paths to ignore from the data directory.
+        """
+        ignored = []
+        for pattern in self.data_ignores:
+            ignored += glob.glob(os.path.join(self.data_path, '**', pattern), recursive=True)
+        return ignored
