@@ -116,6 +116,7 @@ def mk_syn_project(syn_test_helper):
 @pytest.fixture()
 def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_string, mk_fake_project_file):
     def _mk(dir=None,
+            data_type_template=None,
             with_fake_project_files=False,
             with_fake_project_files_count=1,
             with_non_root_project_files=False,
@@ -123,7 +124,7 @@ def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_st
 
         mk_mock_kiproject_input()
 
-        kiproject = KiProject(dir or mk_tempdir())
+        kiproject = KiProject((dir or mk_tempdir()), data_type_template=data_type_template)
 
         if with_fake_project_files:
             for _ in range(with_fake_project_files_count):
@@ -171,19 +172,17 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
     Mocks out the prompts during KiProject initialization.
     """
 
-    def _mk(create_project_in='y',
+    def _mk(create_project_in=None,
             raise_on_create_project_in=False,
-            data_type_template_name=KiDataTypeTemplate.default().name,
-            raise_on_data_type_template_name=False,
-            project_title=mk_uniq_string(),
+            project_title=None,
             raise_on_project_title=False,
-            create_remote_project_or_existing='c',
+            create_remote_project_or_existing=None,
             raise_on_create_remote_project_or_existing=False,
-            remote_project_name=mk_uniq_string(),
+            remote_project_name=None,
             raise_on_remote_project_name=False,
             remote_project_uri=None,
             raise_on_remote_project_uri=False,
-            try_again='n',
+            try_again=None,
             raise_on_try_again=False):
 
         def _input_mock(prompt):
@@ -191,27 +190,22 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
                 if raise_on_create_project_in:
                     raise MockKiProjectInputError(prompt)
                 else:
-                    return create_project_in
-            elif 'Template Name: ' in prompt:
-                if raise_on_data_type_template_name:
-                    raise MockKiProjectInputError(prompt)
-                else:
-                    return data_type_template_name
+                    return create_project_in or 'y'
             elif 'KiProject title:' in prompt:
                 if raise_on_project_title:
                     raise MockKiProjectInputError(prompt)
                 else:
-                    return project_title
+                    return project_title or mk_uniq_string()
             elif 'Create a remote project or use an existing? [c/e]:' in prompt:
                 if raise_on_create_remote_project_or_existing:
                     raise MockKiProjectInputError(prompt)
                 else:
-                    return create_remote_project_or_existing
+                    return create_remote_project_or_existing or 'c'
             elif 'Remote project name:' in prompt:
                 if raise_on_remote_project_name:
                     raise MockKiProjectInputError(prompt)
                 else:
-                    return remote_project_name
+                    return remote_project_name or mk_uniq_string()
             elif 'Remote project URI (e.g.,' in prompt:
                 if raise_on_remote_project_uri:
                     raise MockKiProjectInputError(prompt)
@@ -221,7 +215,7 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
                 if raise_on_try_again:
                     raise MockKiProjectInputError(prompt)
                 else:
-                    return try_again
+                    return try_again or 'n'
             else:
                 raise Exception('Unsupported mock input prompt: {0}'.format(prompt))
 

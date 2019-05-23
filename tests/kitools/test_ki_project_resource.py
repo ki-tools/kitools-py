@@ -78,6 +78,14 @@ def test_it_converts_version_to_a_string(kiproject, fake_uri, file_abs_path):
                              version='').version is None
 
 
+def test_it_json_serializes_rel_path_as_posix_path(kiproject, fake_uri, file_abs_path):
+    # NOTE: This test needs to be run in each supported env (Linux/Mac, Windows).
+    resource = KiProjectResource(kiproject=kiproject, remote_uri=fake_uri, local_path=file_abs_path)
+    json = resource.to_json()
+    assert '\\' not in json['rel_path']
+    assert '/' in json['rel_path']
+
+
 def assert___str__(ki_project_resource):
     details = str(ki_project_resource)
 

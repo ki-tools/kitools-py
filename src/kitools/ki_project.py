@@ -83,6 +83,7 @@ class KiProject(object):
         :param title: The title of the KiProject.
         :param description: The description of the KiProject.
         :param project_uri: The remote URI of the project that will hold the KiProject resources.
+        :param data_type_template: The name of the KiDataTypeTemplate to create the project with.
         """
 
         if not local_path or local_path.strip() == '':
@@ -95,9 +96,9 @@ class KiProject(object):
         self.description = description
         self.project_uri = project_uri
         self.data_types = []
-        if data_type_template:
-            self._set_data_types_from_template(data_type_template)
         self.resources = []
+
+        self._set_data_types_from_template(data_type_template or KiDataTypeTemplate.default())
 
         self._data_ignores = list(self.DEFAULT_DATA_IGNORES)
 
@@ -584,9 +585,6 @@ class KiProject(object):
         if not self._init_local_path():
             return False
 
-        if not self._init_data_types():
-            return False
-
         if not self._init_title():
             return False
 
@@ -609,34 +607,6 @@ class KiProject(object):
         else:
             answer = input('Create KiProject in: {0} [y/n]: '.format(self.local_path))
             return answer and answer.strip().lower() == 'y'
-
-    def _init_data_types(self):
-        """
-        Configures the KiDataTypes for the KiProject.
-
-        :return: True or False
-        """
-        if self._init_no_prompt:
-            if not self.data_types:
-                print('Data type template is required.')
-        else:
-            while not self.data_types:
-                print('Select a data types template:')
-                print('')
-                for template in KiDataTypeTemplate.all():
-                    print('Template: {0}'.format(template.name))
-                    for path in template.paths:
-                        print('  - {0} -> {1}'.format(path.name, path.rel_path))
-
-                answer = input('Template Name: ')
-                selected_template = KiDataTypeTemplate.get(answer)
-
-                if selected_template:
-                    self._set_data_types_from_template(selected_template)
-                else:
-                    print('Template "{0}" not found. Please enter a valid template name.'.format(answer))
-
-        return len(self.data_types) > 0
 
     def _set_data_types_from_template(self, name_or_template):
         """

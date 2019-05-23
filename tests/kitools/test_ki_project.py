@@ -288,6 +288,32 @@ def test_it_sets_the_kiproject_paths(mk_kiproject, mk_tempdir):
     assert kiproject._config_path == os.path.join(temp_dir, KiProject.CONFIG_FILENAME)
 
 
+def test_it_sets_the_default_data_types(mk_kiproject):
+    kiproject = mk_kiproject()
+    default_template = KiDataTypeTemplate.default()
+
+    assert len(kiproject.data_types) == len(default_template.paths)
+
+    for template_path in default_template.paths:
+        ki_data_type = kiproject.find_ki_data_type(template_path.name)
+        assert ki_data_type
+        assert ki_data_type.name == template_path.name
+        assert ki_data_type.rel_path == template_path.rel_path
+
+
+def test_it_sets_the_specified_data_types(mk_kiproject, mk_tempdir):
+    for template in KiDataTypeTemplate.all():
+        kiproject = mk_kiproject(data_type_template=template.name)
+
+        assert len(kiproject.data_types) == len(template.paths)
+
+        for template_path in template.paths:
+            ki_data_type = kiproject.find_ki_data_type(template_path.name)
+            assert ki_data_type
+            assert ki_data_type.name == template_path.name
+            assert ki_data_type.rel_path == template_path.rel_path
+
+
 def test_it_expands_user_dir_in_local_path():
     # TODO: test this.
     pass
@@ -310,25 +336,7 @@ def test_it_does_not_prompt_for_create_project_in_when_init_no_prompt(mk_tempdir
     kiproject = KiProject(mk_tempdir(),
                           init_no_prompt=True,
                           title='test',
-                          project_uri=syn_project_uri,
-                          data_type_template=KiDataTypeTemplate.default().name)
-    kiproject._ensure_loaded()
-
-
-def test_it_does_not_prompt_for_data_type_template_when_init_no_prompt(mk_tempdir,
-                                                                       mk_mock_kiproject_input,
-                                                                       syn_project_uri,
-                                                                       MockKiProjectInputErrorClass):
-    mk_mock_kiproject_input(raise_on_data_type_template_name=True)
-
-    with pytest.raises(MockKiProjectInputErrorClass):
-        kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
-
-    kiproject = KiProject(mk_tempdir(),
-                          init_no_prompt=True,
-                          title='test',
-                          project_uri=syn_project_uri,
-                          data_type_template=KiDataTypeTemplate.default().name)
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
 
 
@@ -344,8 +352,7 @@ def test_it_does_not_prompt_for_project_title_when_init_no_prompt(mk_tempdir,
     kiproject = KiProject(mk_tempdir(),
                           init_no_prompt=True,
                           title='test',
-                          project_uri=syn_project_uri,
-                          data_type_template=KiDataTypeTemplate.default().name)
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
     assert kiproject.title == 'test'
 
@@ -362,8 +369,7 @@ def test_it_does_not_prompt_for_create_remote_project_or_existing_when_init_no_p
     kiproject = KiProject(mk_tempdir(),
                           init_no_prompt=True,
                           title='test',
-                          project_uri=syn_project_uri,
-                          data_type_template=KiDataTypeTemplate.default().name)
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
     assert kiproject.project_uri == syn_project_uri
 
@@ -393,8 +399,7 @@ def test_it_does_not_prompt_for_remote_project_uri_init_no_prompt(mk_tempdir,
     kiproject = KiProject(mk_tempdir(),
                           init_no_prompt=True,
                           title='test',
-                          project_uri=syn_project_uri,
-                          data_type_template=KiDataTypeTemplate.default().name)
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
     assert kiproject.project_uri == syn_project_uri
 
@@ -469,21 +474,6 @@ def test_it_updates_the_config_file_when_saved(mk_kiproject, mk_fake_uri, mk_fak
 
     kiproject.save()
     assert_matches_config(kiproject)
-
-
-def test_it_saves_resource_rel_paths_as_posix_paths(mk_kiproject):
-    # NOTE: This test needs to be run in each supported env (Linux/Mac, Windows).
-    kiproject = mk_kiproject(with_fake_project_files=True)
-
-    with open(kiproject._config_path) as f:
-        json = JSON.load(f)
-
-    jresources = json['resources']
-    assert len(jresources) > 0
-
-    for jresource in jresources:
-        assert '\\' not in jresource['rel_path']
-        assert '/' in jresource['rel_path']
 
 
 def test_it_creates_the_project_dir_structure_on_a_new_project(kiproject):

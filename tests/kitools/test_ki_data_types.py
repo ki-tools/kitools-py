@@ -13,5 +13,18 @@
 # limitations under the License.
 
 import pytest
+import os
+from src.kitools import KiDataType
 
-# TODO: Add tests
+
+@pytest.fixture()
+def kiproject(mk_kiproject):
+    return mk_kiproject()
+
+
+def test_it_json_serializes_rel_path_as_posix_path(kiproject):
+    # NOTE: This test needs to be run in each supported env (Linux/Mac, Windows).
+    ki_data_type = KiDataType(kiproject, 'test', os.path.join('a', 'b', 'c'))
+    json = ki_data_type.to_json()
+    assert '\\' not in json['rel_path']
+    assert '/' in json['rel_path']
