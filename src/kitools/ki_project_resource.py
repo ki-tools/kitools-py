@@ -78,7 +78,7 @@ class KiProjectResource(object):
         self._local_path = value
 
         if self.abs_path:
-            ki_data_type = self.kiproject.data_type_from_project_path(self.abs_path)
+            ki_data_type = self.kiproject.get_data_type_from_path(self.abs_path)
             self._set_data_type(ki_data_type)
 
     def _set_version(self, value):

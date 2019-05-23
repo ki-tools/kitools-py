@@ -125,7 +125,7 @@ class SynapseAdapter(BaseAdapter):
             child_data_uri = DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_child.get('id')).uri
             child_name = syn_child.get('name')
             child_local_path = os.path.join(download_path, child_name)
-            child_data_type = kiproject.data_type_from_project_path(child_local_path).name
+            child_data_type = kiproject.get_data_type_from_path(child_local_path).name
 
             child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
                                                                 remote_uri=child_data_uri,
@@ -273,7 +273,7 @@ class SynapseAdapter(BaseAdapter):
 
         for entry in files + dirs:
             sys_path = SysPath(entry.path)
-            child_data_type = kiproject.data_type_from_project_path(sys_path.abs_path).name
+            child_data_type = kiproject.get_data_type_from_path(sys_path.abs_path).name
 
             child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
                                                                 abs_path=sys_path.abs_path,

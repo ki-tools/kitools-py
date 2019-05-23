@@ -682,7 +682,7 @@ def test_it_errors_when_adding_a_data_type_that_does_not_match_the_local_path(ki
     local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
     for local_path in local_data_folders + local_data_files:
-        actual_data_type = kiproject.data_type_from_project_path(local_path)
+        actual_data_type = kiproject.get_data_type_from_path(local_path)
 
         dts = kiproject.data_types.copy()
         dts.remove(actual_data_type)
@@ -1008,25 +1008,25 @@ def test_it_removes_resources(mk_kiproject):
 def test_data_type_from_project_path(kiproject):
     for ki_data_type in kiproject.data_types:
         path = ki_data_type.abs_path
-        assert kiproject.data_type_from_project_path(path).name == ki_data_type.name
+        assert kiproject.get_data_type_from_path(path).name == ki_data_type.name
 
         other_paths = []
         for other_path in ['one', 'two', 'three', 'file.csv']:
             other_paths.append(other_path)
             new_path = os.path.join(path, *other_paths)
-            assert kiproject.data_type_from_project_path(new_path).name == ki_data_type.name
+            assert kiproject.get_data_type_from_path(new_path).name == ki_data_type.name
 
 
 def test_is_project_data_type_path(kiproject, mk_tempdir):
     temp_dir = mk_tempdir()
 
-    assert kiproject.is_project_data_type_path(temp_dir) is False
+    assert kiproject.is_data_type_path(temp_dir) is False
 
     for root_data_path in kiproject._root_data_paths():
-        assert kiproject.is_project_data_type_path(root_data_path) is False
+        assert kiproject.is_data_type_path(root_data_path) is False
 
         data_type_child_path = os.path.join(root_data_path, 'test.csv')
-        assert kiproject.is_project_data_type_path(data_type_child_path) is True
+        assert kiproject.is_data_type_path(data_type_child_path) is True
 
     # TODO: add more tests
 

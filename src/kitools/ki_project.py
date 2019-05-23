@@ -469,7 +469,7 @@ class KiProject(object):
         else:
             return None
 
-    def data_type_from_project_path(self, local_path):
+    def get_data_type_from_path(self, local_path):
         """
         Gets the DataType from a local path. The local path must be in one of the KiProject's KiDataType directories.
 
@@ -485,7 +485,7 @@ class KiProject(object):
 
         return None
 
-    def is_project_data_type_path(self, local_path):
+    def is_data_type_path(self, local_path):
         """
         Gets if the local_path is in one of the DataType directories.
 
@@ -493,7 +493,7 @@ class KiProject(object):
         :return: True or False
         """
         try:
-            is_data_path = self.data_type_from_project_path(local_path) is not None
+            is_data_path = self.get_data_type_from_path(local_path) is not None
             is_root_data_path = is_data_path and local_path in self._root_data_paths()
 
             if is_data_path and not is_root_data_path:
@@ -785,12 +785,12 @@ class KiProject(object):
 
         if local_path:
             # Make sure the file is in one of the data directories.
-            if not self.is_project_data_type_path(local_path):
+            if not self.is_data_type_path(local_path):
                 raise NotAKiDataTypePathError(local_path, self.data_types)
 
             # Make sure the data_type param matches the local_path.
             if data_type:
-                local_path_data_type = self.data_type_from_project_path(local_path)
+                local_path_data_type = self.get_data_type_from_path(local_path)
                 if local_path_data_type is None or data_type != local_path_data_type:
                     raise KiDataTypeMismatchError(
                         'data_type: {0} does not match local_path: {1}.'.format(data_type.name, local_path))
