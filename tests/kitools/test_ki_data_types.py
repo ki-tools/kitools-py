@@ -13,18 +13,5 @@
 # limitations under the License.
 
 import pytest
-from src.kitools import DataType, InvalidDataTypeError
 
-
-def test___init__():
-    # Valid data_types.
-    for type in DataType.ALL:
-        dt = DataType(type)
-        assert dt.name == type
-
-    # Invalid data_types.
-    for bad_data_type in [None, '', ' ', 'not-a-valid-type']:
-        with pytest.raises(InvalidDataTypeError) as ex:
-            DataType(bad_data_type)
-        assert str(ex.value) == 'Invalid DataType: {0}. Must of one of: {1}'.format(bad_data_type,
-                                                                                    ', '.join(DataType.ALL))
+# TODO: Add tests

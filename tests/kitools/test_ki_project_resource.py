@@ -14,7 +14,7 @@
 
 import pytest
 import os
-from src.kitools import KiProjectResource, DataType
+from src.kitools import KiProjectResource
 
 
 @pytest.fixture()
@@ -29,7 +29,7 @@ def fake_uri(mk_fake_uri):
 
 @pytest.fixture()
 def file_abs_path(kiproject, write_file):
-    path = os.path.join(kiproject.data_type_to_project_path(DataType.CORE), 'test.csv')
+    path = os.path.join(kiproject.data_types[0].abs_path, 'test.csv')
     write_file(path, 'test file')
     return path
 

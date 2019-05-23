@@ -17,14 +17,14 @@ import json as JSON
 import glob
 from collections import deque
 from beautifultable import BeautifulTable
-from pathlib import PurePath
-from .ki_project_template import KiProjectTemplate
 from .ki_project_resource import KiProjectResource
-from .data_type import DataType
+from .ki_data_type import KiDataType
+from .ki_data_type_template import KiDataTypeTemplate
 from .data_uri import DataUri
 from .sys_path import SysPath
 from .ki_utils import KiUtils
-from .exceptions import NotADataTypePathError, DataTypeMismatchError, KiProjectResourceNotFoundError
+from .exceptions import NotAKiDataTypePathError, KiDataTypeMismatchError, KiProjectResourceNotFoundError, \
+    InvalidKiDataTypeError
 
 
 class KiProject(object):
@@ -74,6 +74,7 @@ class KiProject(object):
                  title=None,
                  description=None,
                  project_uri=None,
+                 data_type_template=None,
                  init_no_prompt=False):
         """
         Instantiates the KiProject.
@@ -90,10 +91,12 @@ class KiProject(object):
         self._init_no_prompt = init_no_prompt
 
         self.local_path = SysPath(local_path).abs_path
-        self.data_path = os.path.join(self.local_path, DataType.DATA_DIR_NAME)
         self.title = title
         self.description = description
         self.project_uri = project_uri
+        self.data_types = []
+        if data_type_template:
+            self._set_data_types_from_template(data_type_template)
         self.resources = []
 
         self._data_ignores = list(self.DEFAULT_DATA_IGNORES)
@@ -103,8 +106,7 @@ class KiProject(object):
         self._loaded = False
 
         if self.load():
-            # Ensure the KiProject structure exists
-            KiProjectTemplate(self.local_path).write()
+            self._ensure_project_structure()
 
             self._loaded = True
             self.show_missing_resources()
@@ -447,28 +449,40 @@ class KiProject(object):
 
         return results
 
-    def data_type_to_project_path(self, data_type):
+    def find_ki_data_type(self, name_or_ki_data_type, raise_on_missing=True):
         """
-        Gets the absolute path to the DataType directory in the KiProject.
+        Finds a KiDataType by it's name.
+        :param name_or_ki_data_type: The KiDataType name to find.
+        :param raise_on_missing: Whether or not to raise an error if not found.
+        :return: KiDataType or None
+        """
+        if isinstance(name_or_ki_data_type, KiDataType):
+            name_or_ki_data_type = name_or_ki_data_type.name
 
-        :param data_type: The DataType to get the path for.
-        :return: Absolute path to the local directory as a string.
-        """
-        return os.path.join(self.data_path, DataType(data_type).name)
+        for ki_data_type in self.data_types:
+            if ki_data_type.name == name_or_ki_data_type:
+                return ki_data_type
+
+        if raise_on_missing:
+            raise InvalidKiDataTypeError(name_or_ki_data_type, self.data_types)
+        else:
+            return None
 
     def data_type_from_project_path(self, local_path):
         """
-        Gets the DataType from a local path. The local path must be in one of the KiProject's DataType directories.
+        Gets the DataType from a local path. The local path must be in one of the KiProject's KiDataType directories.
 
         :param local_path: Path to get the DataType from.
         :return: The DataType or None.
         """
-        sys_path = SysPath(local_path, cwd=self.local_path, rel_start=self.data_path)
+        sorted_ki_data_types = sorted(self.data_types, reverse=True, key=lambda d: len(d.rel_path))
+        sys_path = SysPath(local_path, cwd=self.local_path, rel_start=self.local_path)
 
-        if len(sys_path.rel_parts) > 0:
-            return DataType(sys_path.rel_parts[0])
-        else:
-            return None
+        for ki_data_type in sorted_ki_data_types:
+            if sys_path.rel_path.startswith(ki_data_type.rel_path):
+                return ki_data_type
+
+        return None
 
     def is_project_data_type_path(self, local_path):
         """
@@ -499,7 +513,7 @@ class KiProject(object):
         loaded = False
         if os.path.isfile(self._config_path):
             with open(self._config_path) as f:
-                self._json_to_self(JSON.load(f))
+                self.from_json(JSON.load(f))
                 loaded = True
 
         return loaded
@@ -511,12 +525,13 @@ class KiProject(object):
         :return: None
         """
         # Sort the resources before saving.
-        self.resources.sort(key=lambda r: r.rel_path or r.data_type or r.name or r.remote_uri or r.id)
+        self.resources.sort(
+            key=lambda r: r.rel_path or (r.data_type.name if r.data_type else None) or r.name or r.remote_uri or r.id)
 
         with open(self._config_path, 'w') as f:
-            JSON.dump(self._self_to_json(), f, indent=2)
+            JSON.dump(self.to_json(), f, indent=2)
 
-    def _self_to_json(self):
+    def to_json(self):
         """
         Serializes the KiProject to JSON.
 
@@ -527,10 +542,11 @@ class KiProject(object):
             'description': self.description,
             'project_uri': self.project_uri,
             'data_ignores': self.data_ignores,
-            'resources': [self._ki_project_resource_to_json(f) for f in self.resources]
+            'data_types': [item.to_json() for item in self.data_types],
+            'resources': [item.to_json() for item in self.resources]
         }
 
-    def _json_to_self(self, json):
+    def from_json(self, json):
         """
         Deserializes JSON into the KiProject.
 
@@ -541,45 +557,14 @@ class KiProject(object):
         self.description = json.get('description')
         self.project_uri = json.get('project_uri')
         self._data_ignores = json.get('data_ignores', list(self.DEFAULT_DATA_IGNORES))
+        self.data_types = []
         self.resources = []
 
-        jresources = json.get('resources')
-        for jresource in jresources:
-            self.resources.append(self._json_to_ki_project_resource(jresource))
+        for jdata_type in json.get('data_types'):
+            self.data_types.append(KiDataType.from_json(jdata_type, self))
 
-    def _ki_project_resource_to_json(self, ki_project_resource):
-        """
-        Serializes a KiProjectResource into JSON.
-
-        :param ki_project_resource: The KiProjectResource to serialize.
-        :return: Hash
-        """
-        return {
-            'id': ki_project_resource.id,
-            'root_id': ki_project_resource.root_id,
-            'data_type': ki_project_resource.data_type,
-            'remote_uri': ki_project_resource.remote_uri,
-            # Always store the path in Posix format ("/" vs "\").
-            'rel_path': PurePath(ki_project_resource.rel_path).as_posix() if ki_project_resource.rel_path else None,
-            'name': ki_project_resource.name,
-            'version': ki_project_resource.version
-        }
-
-    def _json_to_ki_project_resource(self, json):
-        """
-        Deserializes JSON into the KiProjectResource.
-
-        :param json: The JSON to deserialize.
-        :return: KiProjectResource
-        """
-        return KiProjectResource(self,
-                                 id=json.get('id'),
-                                 root_id=json.get('root_id'),
-                                 data_type=json.get('data_type'),
-                                 remote_uri=json.get('remote_uri'),
-                                 local_path=json.get('rel_path'),
-                                 name=json.get('name'),
-                                 version=json.get('version'))
+        for jresource in json.get('resources'):
+            self.resources.append(KiProjectResource.from_json(jresource, self))
 
     def _ensure_loaded(self):
         """
@@ -599,13 +584,16 @@ class KiProject(object):
         if not self._init_local_path():
             return False
 
+        if not self._init_data_types():
+            return False
+
         if not self._init_title():
             return False
 
         if not self._init_project_uri():
             return False
 
-        KiProjectTemplate(self.local_path).write()
+        self._ensure_project_structure()
 
         self.save()
         return True
@@ -621,6 +609,53 @@ class KiProject(object):
         else:
             answer = input('Create KiProject in: {0} [y/n]: '.format(self.local_path))
             return answer and answer.strip().lower() == 'y'
+
+    def _init_data_types(self):
+        """
+        Configures the KiDataTypes for the KiProject.
+
+        :return: True or False
+        """
+        if self._init_no_prompt:
+            if not self.data_types:
+                print('Data type template is required.')
+        else:
+            while not self.data_types:
+                print('Select a data types template:')
+                print('')
+                for template in KiDataTypeTemplate.all():
+                    print('Template: {0}'.format(template.name))
+                    for path in template.paths:
+                        print('  - {0} -> {1}'.format(path.name, path.rel_path))
+
+                answer = input('Template Name: ')
+                selected_template = KiDataTypeTemplate.get(answer)
+
+                if selected_template:
+                    self._set_data_types_from_template(selected_template)
+                else:
+                    print('Template "{0}" not found. Please enter a valid template name.'.format(answer))
+
+        return len(self.data_types) > 0
+
+    def _set_data_types_from_template(self, name_or_template):
+        """
+        Sets the data_types from a template.
+
+        :param name_or_template: The name or the KiDataTypeTemplate template.
+        :return: None
+        """
+        if isinstance(name_or_template, KiDataTypeTemplate):
+            name_or_template = name_or_template.name
+
+        template = KiDataTypeTemplate.get(name_or_template)
+        if not template:
+            raise Exception('Data type template: {0} not found.'.format(name_or_template))
+
+        self.data_types = []
+
+        for template_path in template.paths:
+            self.data_types.append(KiDataType(self, template_path.name, template_path.rel_path))
 
     def _init_title(self):
         """
@@ -733,6 +768,24 @@ class KiProject(object):
 
         return False
 
+    def _ensure_project_structure(self):
+        # Project root
+        SysPath(self.local_path).ensure_dirs()
+
+        # Data types
+        for ki_data_type in self.data_types:
+            SysPath(ki_data_type.abs_path).ensure_dirs()
+
+        # Other supporting directories
+        for dir_name in ['scripts', 'reports']:
+            SysPath(os.path.join(self.local_path, dir_name)).ensure_dirs()
+
+        # Git ignore
+        gitignore_path = os.path.join(self.local_path, '.gitignore')
+        if not os.path.isfile(gitignore_path):
+            # TODO: implement this
+            pass
+
     def _data_add(self,
                   remote_uri=None,
                   local_path=None,
@@ -756,17 +809,21 @@ class KiProject(object):
         if not remote_uri and not local_path:
             raise ValueError('remote_uri or local_path must be supplied.')
 
+        if data_type:
+            # Get the KiDataType
+            data_type = self.find_ki_data_type(data_type)
+
         if local_path:
             # Make sure the file is in one of the data directories.
             if not self.is_project_data_type_path(local_path):
-                raise NotADataTypePathError(self.data_path, local_path, DataType.ALL)
+                raise NotAKiDataTypePathError(local_path, self.data_types)
 
             # Make sure the data_type param matches the local_path.
             if data_type:
                 local_path_data_type = self.data_type_from_project_path(local_path)
-                if local_path_data_type is None or data_type != local_path_data_type.name:
-                    raise DataTypeMismatchError(
-                        'data_type: {0} does not match local_path: {1}.'.format(data_type, local_path))
+                if local_path_data_type is None or data_type != local_path_data_type:
+                    raise KiDataTypeMismatchError(
+                        'data_type: {0} does not match local_path: {1}.'.format(data_type.name, local_path))
 
         root_id = root_ki_project_resource.id if root_ki_project_resource else None
 
@@ -867,8 +924,8 @@ class KiProject(object):
         :return: List of absolute paths.
         """
         paths = []
-        for data_type in DataType.ALL:
-            paths.append(self.data_type_to_project_path(data_type))
+        for ki_data_type in self.data_types:
+            paths.append(ki_data_type.abs_path)
         return paths
 
     def _get_data_ignored_paths(self):
@@ -879,5 +936,6 @@ class KiProject(object):
         """
         ignored = []
         for pattern in self.data_ignores:
-            ignored += glob.glob(os.path.join(self.data_path, '**', pattern), recursive=True)
+            for ki_data_type in self.data_types:
+                ignored += glob.glob(os.path.join(ki_data_type.abs_path, '**', pattern), recursive=True)
         return ignored

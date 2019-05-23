@@ -13,18 +13,23 @@
 # limitations under the License.
 
 import pytest
-import os
-from src.kitools import DataType
-from src.kitools.exceptions import InvalidDataTypeError, NotADataTypePathError
+from src.kitools.exceptions import InvalidKiDataTypeError, NotAKiDataTypePathError
 
 
-def test_InvalidDataTypeError():
-    ex = InvalidDataTypeError('test', DataType.ALL)
-    assert str(ex) == 'Invalid DataType: {0}. Must of one of: {1}'.format('test', ', '.join(DataType.ALL))
+@pytest.fixture()
+def kiproject(mk_kiproject):
+    return mk_kiproject()
 
 
-def test_NotADataTypePathError(mk_tempdir, mk_tempfile):
+def test_InvalidDataTypeError(kiproject):
+    ex = InvalidKiDataTypeError('test', kiproject.data_types)
+
+    all = [d.name for d in kiproject.data_types]
+    assert str(ex) == 'Invalid DataType: {0}. Must of one of: {1}'.format('test', ', '.join(all))
+
+
+def test_NotADataTypePathError(kiproject, mk_tempdir, mk_tempfile):
     data_path = mk_tempdir()
     bad_path = mk_tempfile()
-    ex = NotADataTypePathError(data_path, bad_path, DataType.ALL)
+    ex = NotAKiDataTypePathError(bad_path, kiproject.data_types)
     assert 'must be in one of the data directories:' in str(ex)

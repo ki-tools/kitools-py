@@ -14,13 +14,14 @@
 
 from .ki_project import KiProject
 from .ki_project_resource import KiProjectResource
-from .data_type import DataType
+from .ki_data_type import KiDataType
+from .ki_data_type_template import KiDataTypeTemplate
 from .data_uri import DataUri
 from .sys_path import SysPath
 from .ki_utils import KiUtils
 from .ki_env import KiEnv
 from .data_adapters import SynapseAdapter
-from .exceptions import InvalidDataTypeError, NotADataTypePathError, DataTypeMismatchError, InvalidDataUriError
+from .exceptions import InvalidKiDataTypeError, NotAKiDataTypePathError, KiDataTypeMismatchError, InvalidDataUriError
 
 name = 'kitools'
 

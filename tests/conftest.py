@@ -18,7 +18,7 @@ import tempfile
 import shutil
 import json
 import uuid
-from src.kitools import KiProject, KiProjectResource, DataUri, DataType
+from src.kitools import KiProject, KiProjectResource, DataUri, KiDataTypeTemplate
 from src.kitools.data_adapters import SynapseAdapter
 from tests.synapse_test_helper import SynapseTestHelper
 
@@ -173,6 +173,8 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
 
     def _mk(create_project_in='y',
             raise_on_create_project_in=False,
+            data_type_template_name=KiDataTypeTemplate.default().name,
+            raise_on_data_type_template_name=False,
             project_title=mk_uniq_string(),
             raise_on_project_title=False,
             create_remote_project_or_existing='c',
@@ -190,6 +192,11 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
                     raise MockKiProjectInputError(prompt)
                 else:
                     return create_project_in
+            elif 'Template Name: ' in prompt:
+                if raise_on_data_type_template_name:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return data_type_template_name
             elif 'KiProject title:' in prompt:
                 if raise_on_project_title:
                     raise MockKiProjectInputError(prompt)
@@ -264,8 +271,11 @@ def mk_fake_uri(mk_uniq_integer):
 
 @pytest.fixture(scope='session')
 def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
-    def _mk(kiproject, data_type=DataType.CORE, root_id=None):
-        file_path = os.path.join(kiproject.data_type_to_project_path(data_type), '{0}.csv'.format(mk_uniq_string()))
+    def _mk(kiproject, ki_data_type=None, root_id=None):
+        if not ki_data_type:
+            ki_data_type = kiproject.data_types[0]
+
+        file_path = os.path.join(ki_data_type.abs_path, '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 
@@ -281,12 +291,15 @@ def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
 
 @pytest.fixture(scope='session')
 def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
-    def _mk(kiproject, data_type=DataType.CORE):
-        file_path = os.path.join(kiproject.data_type_to_project_path(data_type), '{0}.csv'.format(mk_uniq_string()))
+    def _mk(kiproject, ki_data_type=None):
+        if not ki_data_type:
+            ki_data_type = kiproject.data_types[0]
+
+        file_path = os.path.join(ki_data_type.abs_path, '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 
-        kiproject.data_push(file_path, data_type=data_type)
+        kiproject.data_push(file_path, data_type=ki_data_type)
         return kiproject.find_project_resource_by(abs_path=file_path)
 
     yield _mk
