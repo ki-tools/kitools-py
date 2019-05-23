@@ -26,7 +26,7 @@ script_dir = os.path.dirname(__file__)
 sys.path.append(os.path.join(script_dir, '..', 'src'))
 
 try:
-    from kitools import KiProject, DataUri, SysPath
+    from kitools import KiProject, DataUri, SysPath, KiDataTypeTemplate
 except Exception as ex:
     print('WARNING: Failed to kitools: {0}'.format(ex))
 
@@ -128,7 +128,8 @@ def create_demo_curator():
     kiproject = KiProject(kiproject_path,
                           init_no_prompt=True,
                           title='Demo KiProject {0}'.format(demo_id),
-                          project_uri=DataUri('syn', syn_project.id).uri)
+                          project_uri=DataUri('syn', syn_project.id).uri,
+                          data_type_template=KiDataTypeTemplate.default())
 
     demo_commands.append('')
     demo_commands.append('# Open the KiProject:')
