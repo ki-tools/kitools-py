@@ -17,7 +17,7 @@ import os
 from src.kitools.sys_path import SysPath
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def test_dirs(mk_tempdir, write_file):
     temp_dir = mk_tempdir()
     child_dir = os.path.join(temp_dir, 'dir1')

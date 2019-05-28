@@ -18,7 +18,7 @@ import tempfile
 import shutil
 import json
 import uuid
-from src.kitools import KiProject, KiProjectResource, DataUri, KiDataTypeTemplate
+from src.kitools import KiProject, KiProjectResource, DataUri
 from src.kitools.data_adapters import SynapseAdapter
 from tests.synapse_test_helper import SynapseTestHelper
 
@@ -53,11 +53,15 @@ def synapse_test_config():
     if not syn_password:
         raise Exception('Missing environment variable: SYNAPSE_PASSWORD')
 
+    syn_cache_path = tempfile.mkdtemp()
+
     config = """
 [authentication]
 username = {0}
 password = {1}
-    """.format(syn_username, syn_password)
+[cache]
+location = {2}
+    """.format(syn_username, syn_password, syn_cache_path)
 
     fd, tmp_filename = tempfile.mkstemp(suffix='.synapseConfig')
     with os.fdopen(fd, 'w') as tmp:
@@ -70,8 +74,11 @@ password = {1}
     if os.path.isfile(tmp_filename):
         os.remove(tmp_filename)
 
+    if os.path.isdir(syn_cache_path):
+        shutil.rmtree(syn_cache_path)
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope='class')
 def syn_test_helper():
     helper = SynapseTestHelper()
     yield helper
@@ -85,17 +92,17 @@ def new_syn_test_helper():
     helper.dispose()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def syn_client(syn_test_helper):
     return syn_test_helper.client()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def syn_project(syn_test_helper):
     return syn_test_helper.create_project()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def syn_project_uri(syn_project):
     return DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_project.id).uri
 
@@ -105,7 +112,7 @@ def new_syn_project(new_syn_test_helper):
     return new_syn_test_helper.create_project()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_syn_project(syn_test_helper):
     def _mk():
         return syn_test_helper.create_project()
@@ -239,7 +246,7 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
     SynapseAdapter.create_project = real_create_project
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_uniq_string():
     def _mk():
         return str(uuid.uuid4()).replace('-', '_')
@@ -247,7 +254,7 @@ def mk_uniq_string():
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_uniq_integer():
     def _mk():
         return uuid.uuid4().int
@@ -255,7 +262,7 @@ def mk_uniq_integer():
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_fake_uri(mk_uniq_integer):
     def _mk(scheme='syn'):
         return DataUri(scheme, '{0}{1}'.format(scheme, mk_uniq_integer())).uri
@@ -263,7 +270,7 @@ def mk_fake_uri(mk_uniq_integer):
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
     def _mk(kiproject, ki_data_type=None, root_id=None):
         if not ki_data_type:
@@ -283,7 +290,7 @@ def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
     def _mk(kiproject, ki_data_type=None):
         if not ki_data_type:
@@ -299,7 +306,7 @@ def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_tempdir():
     created = []
 
@@ -315,7 +322,7 @@ def mk_tempdir():
             shutil.rmtree(path)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_tempfile(mk_tempdir, syn_test_helper):
     temp_dir = mk_tempdir()
 
@@ -331,7 +338,7 @@ def mk_tempfile(mk_tempdir, syn_test_helper):
         shutil.rmtree(temp_dir)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def write_file():
     def _write(file, content):
         # Create the directory if it doesn't exist.
@@ -344,7 +351,7 @@ def write_file():
     yield _write
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def read_file():
     def _read(file):
         with open(file, mode='r') as f:
@@ -353,7 +360,7 @@ def read_file():
     yield _read
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def delete_file():
     def _delete(file):
         if os.path.isfile(file):

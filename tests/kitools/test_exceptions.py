@@ -17,19 +17,17 @@ from src.kitools.exceptions import InvalidKiDataTypeError, NotAKiDataTypePathErr
 
 
 @pytest.fixture()
-def kiproject(mk_kiproject):
-    return mk_kiproject()
+def data_types(mk_kiproject):
+    return mk_kiproject().data_types
 
 
-def test_InvalidDataTypeError(kiproject):
-    ex = InvalidKiDataTypeError('test', kiproject.data_types)
+def test_InvalidDataTypeError(data_types):
+    ex = InvalidKiDataTypeError('test', data_types)
 
-    all = [d.name for d in kiproject.data_types]
+    all = [d.name for d in data_types]
     assert str(ex) == 'Invalid DataType: {0}. Must of one of: {1}'.format('test', ', '.join(all))
 
 
-def test_NotADataTypePathError(kiproject, mk_tempdir, mk_tempfile):
-    data_path = mk_tempdir()
-    bad_path = mk_tempfile()
-    ex = NotAKiDataTypePathError(bad_path, kiproject.data_types)
+def test_NotADataTypePathError(data_types):
+    ex = NotAKiDataTypePathError('/tmp/a/path', data_types)
     assert 'must be in one of the data directories:' in str(ex)

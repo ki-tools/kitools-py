@@ -23,7 +23,7 @@ from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, KiDataTy
 from src.kitools import NotAKiDataTypePathError, KiDataTypeMismatchError
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_syn_files(syn_test_helper, write_file, mk_tempdir):
     def _mk(syn_parent, file_num=2, versions=2, suffix=''):
         syn_files = []
@@ -49,7 +49,7 @@ def mk_syn_files(syn_test_helper, write_file, mk_tempdir):
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_syn_folders(syn_test_helper):
     def _mk(syn_parent, count=2, suffix=''):
         syn_folders = []
@@ -63,7 +63,7 @@ def mk_syn_folders(syn_test_helper):
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_syn_folders_files(mk_syn_files, mk_syn_folders):
     def _mk(syn_parent):
         root_files = mk_syn_files(syn_parent)
@@ -80,7 +80,7 @@ def mk_syn_folders_files(mk_syn_files, mk_syn_folders):
     yield _mk
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def syn_non_data(mk_syn_project, mk_syn_folders_files):
     """
     Creates this:
@@ -110,8 +110,8 @@ def syn_non_data(mk_syn_project, mk_syn_folders_files):
     return mk_syn_folders_files(syn_project)
 
 
-@pytest.fixture(scope='session')
-def mk_syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
+@pytest.fixture(scope='class')
+def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
     """
     Creates this:
 
@@ -137,38 +137,32 @@ def mk_syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
                 Folder2_1/
                     file1_2
                     file2_2
-        /artifacts
+        /auxiliary
             <same as core...>
-        /discovered
-            <same as core...>
+    /results
+        <same as core...>
 
     This method will return the root files/folders under data/core, data/artifacts, data/discovered.
     The data and data_type folders are NOT returned.
     """
+    syn_project = mk_syn_project()
+    root_folders = []
+    root_files = []
 
-    def _mk(ki_data_types):
-
-        syn_project = mk_syn_project()
-        root_folders = []
-        root_files = []
-
+    for template_path in KiDataTypeTemplate.default().paths:
         parent = syn_project
 
-        for ki_data_type in ki_data_types:
+        for name in SysPath(template_path.rel_path).rel_parts:
+            parent = syn_test_helper.client().store(synapseclient.Folder(name=name, parent=parent))
 
-            for name in SysPath(ki_data_type.rel_path).rel_parts:
-                parent = syn_test_helper.client().store(synapseclient.Folder(name=name, parent=parent))
+        folder, folders, files = mk_syn_folders_files(parent)
+        root_folders += folders
+        root_files += files
 
-            folder, folders, files = mk_syn_folders_files(parent)
-            root_folders += folders
-            root_files += files
-
-        return syn_project, root_folders, root_files
-
-    yield _mk
+    return syn_project, root_folders, root_files
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def mk_local_data_dir(mk_uniq_string, write_file):
     def _mk(kiproject, return_all=False):
         all_data_paths = kiproject._root_data_paths()
@@ -602,9 +596,9 @@ def test_it_finds_a_resource_to_add_by_its_attributes(mk_kiproject, mk_local_dat
         assert kiproject.data_add(resource.rel_path) == resource
 
 
-def test_it_adds_a_remote_data_structure_file(mk_kiproject, mk_syn_data):
+def test_it_adds_a_remote_data_structure_file(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
-    syn_project, syn_folders, syn_files = mk_syn_data(kiproject.data_types)
+    syn_project, syn_folders, syn_files = syn_data
 
     for syn_file in syn_files:
         syn_file_uri = DataUri('syn', syn_file.id).uri
@@ -613,9 +607,9 @@ def test_it_adds_a_remote_data_structure_file(mk_kiproject, mk_syn_data):
         # TODO: add remaining assertions
 
 
-def test_it_adds_a_remote_data_structure_folder(mk_kiproject, mk_syn_data):
+def test_it_adds_a_remote_data_structure_folder(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
-    syn_project, syn_folders, syn_files = mk_syn_data(kiproject.data_types)
+    syn_project, syn_folders, syn_files = syn_data
 
     for syn_folder in syn_folders:
         ki_project_resource = kiproject.data_add(DataUri('syn', syn_folder.id).uri)
@@ -710,9 +704,9 @@ def test_it_finds_a_resource_to_pull_by_its_attributes(mk_kiproject, mk_local_da
     assert kiproject.data_pull(resource.rel_path) == resource.abs_path
 
 
-def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, mk_syn_data):
+def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
-    syn_project, syn_folders, syn_files = mk_syn_data(kiproject.data_types)
+    syn_project, syn_folders, syn_files = syn_data
 
     for syn_file in syn_files:
         syn_file_uri = DataUri('syn', syn_file.id).uri
@@ -726,9 +720,9 @@ def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, mk_syn_data):
         # TODO: check that file exist locally
 
 
-def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, mk_syn_data):
+def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_data):
     kiproject = mk_kiproject()
-    syn_project, syn_folders, syn_files = mk_syn_data(kiproject.data_types)
+    syn_project, syn_folders, syn_files = syn_data
 
     for syn_folder in syn_folders:
         syn_folder_uri = DataUri('syn', syn_folder.id).uri
@@ -877,7 +871,7 @@ def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_
 def test_it_tests_the_workflow(mk_kiproject,
                                mk_local_data_dir,
                                mk_uniq_string,
-                               mk_syn_data,
+                               syn_data,
                                syn_non_data):
     kiproject = mk_kiproject()
     local_data_folders, local_data_files = mk_local_data_dir(kiproject)
@@ -915,7 +909,7 @@ def test_it_tests_the_workflow(mk_kiproject,
     ###########################################################################
     # Add/Pull Remote Data Files and Folders
     ###########################################################################
-    _, syn_data_folders, syn_data_files = mk_syn_data(kiproject.data_types)
+    _, syn_data_folders, syn_data_files = syn_data
 
     # Files
     for syn_file in syn_data_files:
@@ -971,6 +965,18 @@ def test_it_tests_the_workflow(mk_kiproject,
         kiproject.data_remove(resource.remote_uri or resource.abs_path)
 
     assert len(kiproject.resources) == 0
+
+    ###########################################################################
+    # data_ignore
+    ###########################################################################
+    ignore_pattern = '*.png'
+    assert ignore_pattern not in kiproject.data_ignores
+
+    kiproject.add_data_ignore(ignore_pattern)
+    assert ignore_pattern in kiproject.data_ignores
+
+    kiproject.remove_data_ignore(ignore_pattern)
+    assert ignore_pattern not in kiproject.data_ignores
 
 
 def test_it_finds_a_resource_to_remove_by_its_attributes(mk_kiproject, mk_local_data_dir):
