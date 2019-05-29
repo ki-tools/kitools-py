@@ -14,7 +14,7 @@
 
 import pytest
 import os
-from src.kitools import KiProjectResource, DataType
+from src.kitools import KiProjectResource
 
 
 @pytest.fixture()
@@ -29,7 +29,7 @@ def fake_uri(mk_fake_uri):
 
 @pytest.fixture()
 def file_abs_path(kiproject, write_file):
-    path = os.path.join(kiproject.data_type_to_project_path(DataType.CORE), 'test.csv')
+    path = os.path.join(kiproject.data_types[0].abs_path, 'test.csv')
     write_file(path, 'test file')
     return path
 
@@ -76,6 +76,14 @@ def test_it_converts_version_to_a_string(kiproject, fake_uri, file_abs_path):
                              local_path=file_abs_path,
                              name=name,
                              version='').version is None
+
+
+def test_it_json_serializes_rel_path_as_posix_path(kiproject, fake_uri, file_abs_path):
+    # NOTE: This test needs to be run in each supported env (Linux/Mac, Windows).
+    resource = KiProjectResource(kiproject=kiproject, remote_uri=fake_uri, local_path=file_abs_path)
+    json = resource.to_json()
+    assert '\\' not in json['rel_path']
+    assert '/' in json['rel_path']
 
 
 def assert___str__(ki_project_resource):

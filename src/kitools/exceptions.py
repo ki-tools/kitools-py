@@ -21,7 +21,8 @@ class InvalidDataTypeError(ValueError):
     """
 
     def __init__(self, invalid_data_type, valid_data_types):
-        message = 'Invalid DataType: {0}. Must of one of: {1}'.format(invalid_data_type, ', '.join(valid_data_types))
+        names = [d.name for d in valid_data_types]
+        message = 'Invalid DataType: {0}. Must of one of: {1}'.format(invalid_data_type, ', '.join(names))
         super().__init__(message)
 
 
@@ -30,12 +31,12 @@ class NotADataTypePathError(ValueError):
     Raised when a local path is not in one of the KiProject's data directories.
     """
 
-    def __init__(self, data_path, invalid_data_type_path, valid_data_types):
+    def __init__(self, invalid_data_type_path, valid_data_types):
         message = 'Path: {0} must be in one of the data directories: '.format(invalid_data_type_path)
 
         valid_paths = []
         for data_type in valid_data_types:
-            valid_paths.append(os.path.join(data_path, data_type))
+            valid_paths.append(data_type.abs_path)
 
         message += ', '.join(valid_paths)
 

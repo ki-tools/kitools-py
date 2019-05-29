@@ -14,8 +14,9 @@
 
 import os
 import uuid
-from .data_type import DataType
+from pathlib import PurePath
 from .sys_path import SysPath
+from .data_type import DataType
 
 
 class KiProjectResource(object):
@@ -62,8 +63,11 @@ class KiProjectResource(object):
 
     def _set_data_type(self, value):
         if value:
+            if isinstance(value, DataType):
+                value = value.name
+
             # Validate the value.
-            value = DataType(value).name
+            value = self.kiproject.find_data_type(value)
         self._data_type = value
 
     def _set_local_path(self, value):
@@ -73,8 +77,9 @@ class KiProjectResource(object):
 
         self._local_path = value
 
-        if self.rel_path:
-            self.data_type = SysPath(self.rel_path).rel_parts[1]
+        if self.abs_path:
+            data_type = self.kiproject.get_data_type_from_path(self.abs_path)
+            self._set_data_type(data_type)
 
     def _set_version(self, value):
         self._version = str(value) if value else None
@@ -175,3 +180,37 @@ class KiProjectResource(object):
         details.append('Absolute Path: {0}'.format(
             self.abs_path if self.abs_path else '[has not been pulled... use data_pull() to pull this dataset]'))
         return os.linesep.join(details)
+
+    def to_json(self):
+        """
+        Serializes self into JSON.
+
+        :return: Hash
+        """
+        return {
+            'id': self.id,
+            'root_id': self.root_id,
+            'data_type': self.data_type.name if self.data_type else None,
+            'remote_uri': self.remote_uri,
+            # Always store the path in Posix format ("/" vs "\").
+            'rel_path': PurePath(self.rel_path).as_posix() if self.rel_path else None,
+            'name': self.name,
+            'version': self.version
+        }
+
+    @staticmethod
+    def from_json(json, kiproject):
+        """
+        Deserializes JSON into a KiProjectResource.
+
+        :param json: The JSON to deserialize.
+        :return: KiProjectResource
+        """
+        return KiProjectResource(kiproject,
+                                 id=json.get('id'),
+                                 root_id=json.get('root_id'),
+                                 data_type=json.get('data_type'),
+                                 remote_uri=json.get('remote_uri'),
+                                 local_path=json.get('rel_path'),
+                                 name=json.get('name'),
+                                 version=json.get('version'))

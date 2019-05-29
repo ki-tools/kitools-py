@@ -16,7 +16,7 @@ import os
 import synapseclient
 
 
-class KiEnv:
+class Env:
 
     @staticmethod
     def SYNAPSE_CONFIG_PATH():

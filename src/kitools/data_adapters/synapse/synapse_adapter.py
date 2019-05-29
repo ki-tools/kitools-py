@@ -16,12 +16,12 @@ import os
 import synapseclient
 from ..base_adapter import BaseAdapter
 from .synapse_remote_entity import SynapseRemoteEntity
-from ...data_type import DataType
 from ...data_uri import DataUri
 from ...sys_path import SysPath
-from ...ki_env import KiEnv
-from ...ki_utils import KiUtils
+from ...env import Env
+from ...utils import Utils
 from ...ki_project_resource import KiProjectResource
+from ...data_type import DataType
 
 
 class SynapseAdapter(BaseAdapter):
@@ -39,7 +39,7 @@ class SynapseAdapter(BaseAdapter):
         :return:
         """
         if not cls._client:
-            cls._client = synapseclient.Synapse(configPath=KiEnv.SYNAPSE_CONFIG_PATH())
+            cls._client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH())
             cls._client.login(silent=True)
         return cls._client
 
@@ -106,7 +106,8 @@ class SynapseAdapter(BaseAdapter):
         remote_entity = SynapseRemoteEntity(entity, local_path=download_path)
 
         # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
-        assert SysPath(remote_entity.local_path).abs_path.lower() == SysPath(ki_project_resource.abs_path).abs_path.lower()
+        assert SysPath(remote_entity.local_path).abs_path.lower() == \
+               SysPath(ki_project_resource.abs_path).abs_path.lower()
 
         if remote_entity.is_directory:
             # Create the local directory for the folder.
@@ -125,7 +126,7 @@ class SynapseAdapter(BaseAdapter):
             child_data_uri = DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_child.get('id')).uri
             child_name = syn_child.get('name')
             child_local_path = os.path.join(download_path, child_name)
-            child_data_type = kiproject.data_type_from_project_path(child_local_path).name
+            child_data_type = kiproject.get_data_type_from_path(child_local_path).name
 
             child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
                                                                 remote_uri=child_data_uri,
@@ -155,7 +156,7 @@ class SynapseAdapter(BaseAdapter):
         if not abs_path and ki_project_resource.data_type:
             # Figure out the path from the data_type
             name = syn_entity.name
-            abs_path = os.path.join(kiproject.data_type_to_project_path(ki_project_resource.data_type), name)
+            abs_path = os.path.join(ki_project_resource.data_type.abs_path, name)
 
         if abs_path:
             ki_project_resource.abs_path = abs_path
@@ -174,23 +175,11 @@ class SynapseAdapter(BaseAdapter):
         """
         remote_path = self._get_remote_path(entity)
 
-        # Get a list of the supported DataType paths (e.g., 'data/core/', etc.)
-        supported_data_type_paths = []
+        sorted_data_types = sorted(kiproject.data_types, reverse=True, key=lambda d: len(d.rel_path))
 
-        for data_type_name in DataType.ALL:
-            supported_data_type_paths.append('{0}/{1}'.format(DataType.DATA_DIR_NAME, data_type_name))
-
-        # Make sure the remote path conforms to the data_types directory structure.
-        remote_data_type = None
-
-        for path in supported_data_type_paths:
-            if remote_path.startswith(path):
-                remote_data_type = DataType(path.split('/')[1])
-                break
-
-        if remote_data_type:
-            os_path = remote_path.replace('/', os.sep)
-            return os.path.join(kiproject.local_path, os_path)
+        for data_type in sorted_data_types:
+            if remote_path.startswith(data_type.rel_path):
+                return os.path.join(kiproject.local_path, remote_path)
 
         return None
 
@@ -273,18 +262,19 @@ class SynapseAdapter(BaseAdapter):
         remote_entity = SynapseRemoteEntity(syn_entity, local_path=sys_path.abs_path)
 
         # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
-        assert SysPath(remote_entity.local_path).abs_path.lower() == SysPath(ki_project_resource.abs_path).abs_path.lower()
+        assert SysPath(remote_entity.local_path).abs_path.lower() == \
+               SysPath(ki_project_resource.abs_path).abs_path.lower()
 
         return remote_entity
 
     def _push_children(self, root_ki_project_resource, syn_parent, local_path):
         kiproject = root_ki_project_resource.kiproject
 
-        dirs, files = KiUtils.get_dirs_and_files(local_path)
+        dirs, files = Utils.get_dirs_and_files(local_path)
 
         for entry in files + dirs:
             sys_path = SysPath(entry.path)
-            child_data_type = kiproject.data_type_from_project_path(sys_path.abs_path).name
+            child_data_type = kiproject.get_data_type_from_path(sys_path.abs_path).name
 
             child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
                                                                 abs_path=sys_path.abs_path,
@@ -304,7 +294,7 @@ class SynapseAdapter(BaseAdapter):
         :return: String
         """
         if not (self._is_folder(syn_entity) or self._is_file(syn_entity)):
-            return None
+            return ''
 
         path_parts = [syn_entity.name]
 
@@ -313,7 +303,8 @@ class SynapseAdapter(BaseAdapter):
                 break
             path_parts.insert(0, e.name)
 
-        return '/'.join(path_parts)
+        # Return the path matching the OS's separator.
+        return os.sep.join(path_parts)
 
     def _find_or_create_syn_folder(self, syn_parent, folder_name):
         # TODO: can any of this be cached?

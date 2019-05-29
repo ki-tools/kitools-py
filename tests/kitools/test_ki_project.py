@@ -19,7 +19,7 @@ import uuid
 import shutil
 import synapseclient
 from collections import deque
-from src.kitools import KiProject, KiProjectResource, DataType, DataUri, SysPath
+from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, DataType, DataTypeTemplate
 from src.kitools import NotADataTypePathError, DataTypeMismatchError
 
 
@@ -137,10 +137,10 @@ def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
                 Folder2_1/
                     file1_2
                     file2_2
-        /artifacts
+        /auxiliary
             <same as core...>
-        /discovered
-            <same as core...>
+    /results
+        <same as core...>
 
     This method will return the root files/folders under data/core, data/artifacts, data/discovered.
     The data and data_type folders are NOT returned.
@@ -149,11 +149,13 @@ def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
     root_folders = []
     root_files = []
 
-    syn_data_folder = syn_test_helper.client().store(synapseclient.Folder(name='data', parent=syn_project))
+    for template_path in DataTypeTemplate.default().paths:
+        parent = syn_project
 
-    for data_type_name in DataType.ALL:
-        syn_folder = syn_test_helper.client().store(synapseclient.Folder(name=data_type_name, parent=syn_data_folder))
-        folder, folders, files = mk_syn_folders_files(syn_folder)
+        for name in SysPath(template_path.rel_path).rel_parts:
+            parent = syn_test_helper.client().store(synapseclient.Folder(name=name, parent=parent))
+
+        folder, folders, files = mk_syn_folders_files(parent)
         root_folders += folders
         root_files += files
 
@@ -205,6 +207,16 @@ def assert_matches_project(kiprojectA, kiprojectB):
     assert kiprojectA.project_uri == kiprojectB.project_uri
     assert kiprojectA.data_ignores == kiprojectB.data_ignores
 
+    # DataTypes
+    assert len(kiprojectA.data_types) == len(kiprojectB.data_types)
+
+    for data_typeA in kiprojectA.data_types:
+        data_typeB = next((b for b in kiprojectB.data_types if
+                           b.name == data_typeA.name and
+                           SysPath(b.rel_path).rel_parts == SysPath(data_typeA.rel_path).rel_parts), None)
+        assert data_typeB
+
+    # Resources
     assert len(kiprojectA.resources) == len(kiprojectB.resources)
 
     for fileA in kiprojectA.resources:
@@ -229,6 +241,14 @@ def assert_matches_config(kiproject):
     assert json.get('project_uri', None) == kiproject.project_uri
     assert json.get('data_ignores', None) == kiproject.data_ignores
 
+    # DataTypes
+    for jdata_type in json.get('data_types'):
+        data_type = next((d for d in kiproject.data_types if
+                          d.name == jdata_type['name'] and
+                          SysPath(d.rel_path).rel_parts == SysPath(jdata_type['rel_path']).rel_parts), None)
+        assert data_type
+
+    # Resources
     for jfile in json.get('resources'):
         file = next((f for f in kiproject.resources if
                      f.remote_uri == jfile['remote_uri'] and
@@ -244,8 +264,10 @@ def assert_data_type_paths(kiproject, exists=True):
     :param exists:
     :return:
     """
-    for data_type_name in DataType.ALL:
-        assert os.path.isdir(kiproject.data_type_to_project_path(data_type_name)) is exists
+    assert len(kiproject.data_types) > 0
+
+    for data_type in kiproject.data_types:
+        assert os.path.isdir(data_type.abs_path) is exists
 
 
 @pytest.fixture()
@@ -257,8 +279,33 @@ def test_it_sets_the_kiproject_paths(mk_kiproject, mk_tempdir):
     temp_dir = mk_tempdir()
     kiproject = mk_kiproject(dir=temp_dir)
     assert kiproject.local_path == temp_dir
-    assert kiproject.data_path == os.path.join(temp_dir, DataType.DATA_DIR_NAME)
     assert kiproject._config_path == os.path.join(temp_dir, KiProject.CONFIG_FILENAME)
+
+
+def test_it_sets_the_default_data_types(mk_kiproject):
+    kiproject = mk_kiproject()
+    default_template = DataTypeTemplate.default()
+
+    assert len(kiproject.data_types) == len(default_template.paths)
+
+    for template_path in default_template.paths:
+        data_type = kiproject.find_data_type(template_path.name)
+        assert data_type
+        assert data_type.name == template_path.name
+        assert data_type.rel_path == template_path.rel_path
+
+
+def test_it_sets_the_specified_data_types(mk_kiproject, mk_tempdir):
+    for template in DataTypeTemplate.all():
+        kiproject = mk_kiproject(data_type_template=template.name)
+
+        assert len(kiproject.data_types) == len(template.paths)
+
+        for template_path in template.paths:
+            data_type = kiproject.find_data_type(template_path.name)
+            assert data_type
+            assert data_type.name == template_path.name
+            assert data_type.rel_path == template_path.rel_path
 
 
 def test_it_expands_user_dir_in_local_path():
@@ -280,7 +327,10 @@ def test_it_does_not_prompt_for_create_project_in_when_init_no_prompt(mk_tempdir
     with pytest.raises(MockKiProjectInputErrorClass):
         kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject = KiProject(mk_tempdir(),
+                          init_no_prompt=True,
+                          title='test',
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
 
 
@@ -293,7 +343,10 @@ def test_it_does_not_prompt_for_project_title_when_init_no_prompt(mk_tempdir,
     with pytest.raises(MockKiProjectInputErrorClass):
         kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject = KiProject(mk_tempdir(),
+                          init_no_prompt=True,
+                          title='test',
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
     assert kiproject.title == 'test'
 
@@ -307,7 +360,10 @@ def test_it_does_not_prompt_for_create_remote_project_or_existing_when_init_no_p
     with pytest.raises(MockKiProjectInputErrorClass):
         kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject = KiProject(mk_tempdir(),
+                          init_no_prompt=True,
+                          title='test',
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
     assert kiproject.project_uri == syn_project_uri
 
@@ -334,7 +390,10 @@ def test_it_does_not_prompt_for_remote_project_uri_init_no_prompt(mk_tempdir,
     with pytest.raises(MockKiProjectInputErrorClass):
         kiproject = KiProject(mk_tempdir(), init_no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_no_prompt=True, title='test', project_uri=syn_project_uri)
+    kiproject = KiProject(mk_tempdir(),
+                          init_no_prompt=True,
+                          title='test',
+                          project_uri=syn_project_uri)
     kiproject._ensure_loaded()
     assert kiproject.project_uri == syn_project_uri
 
@@ -411,28 +470,14 @@ def test_it_updates_the_config_file_when_saved(mk_kiproject, mk_fake_uri, mk_fak
     assert_matches_config(kiproject)
 
 
-def test_it_saves_resource_rel_paths_as_posix_paths(mk_kiproject):
-    # NOTE: This test needs to be run in each supported env (Linux/Mac, Windows).
-    kiproject = mk_kiproject(with_fake_project_files=True)
-
-    with open(kiproject._config_path) as f:
-        json = JSON.load(f)
-
-    jresources = json['resources']
-    assert len(jresources) > 0
-
-    for jresource in jresources:
-        assert '\\' not in jresource['rel_path']
-        assert '/' in jresource['rel_path']
-
-
 def test_it_creates_the_project_dir_structure_on_a_new_project(kiproject):
     assert_data_type_paths(kiproject, exists=True)
 
 
 def test_it_recreates_the_project_dir_structure_on_an_existing_project(mk_kiproject):
     kiproject = mk_kiproject()
-    shutil.rmtree(os.path.join(kiproject.local_path, 'data'))
+    for data_type in kiproject.data_types:
+        shutil.rmtree(data_type.abs_path)
     assert_data_type_paths(kiproject, exists=False)
 
     # Reload the kiproject
@@ -440,7 +485,7 @@ def test_it_recreates_the_project_dir_structure_on_an_existing_project(mk_kiproj
     assert_data_type_paths(kiproject, exists=True)
 
 
-def test_find_project_file_by(mk_kiproject):
+def test_it_finds_a_project_resource_by_its_attributes(mk_kiproject):
     kiproject = mk_kiproject(with_fake_project_files=True, with_fake_project_files_count=3)
 
     props = ['id', 'root_id', 'remote_uri', 'abs_path', 'rel_path', 'name', 'version', 'data_type']
@@ -453,20 +498,46 @@ def test_find_project_file_by(mk_kiproject):
             if value:
                 all_args[prop] = value
 
+        ###########################################################################################
         # Finds by all properties
+        ###########################################################################################
         found = kiproject.find_project_resource_by(**all_args)
         assert found == ki_project_resource
 
+        ###########################################################################################
         # Find by each unique property individually.
+        ###########################################################################################
         for prop, value in all_args.items():
-            if prop not in uniq_props:
-                continue
-
             single_arg = {
                 prop: value
             }
-            found = kiproject.find_project_resource_by(**single_arg)
-            assert found == ki_project_resource
+
+            if prop in uniq_props:
+                found = kiproject.find_project_resource_by(**single_arg)
+                assert found == ki_project_resource
+            else:
+                found = kiproject.find_project_resources_by(**single_arg)
+                assert ki_project_resource in found
+
+        ###########################################################################################
+        # Find by DataType
+        ###########################################################################################
+
+        # By the DataType object.
+        assert isinstance(ki_project_resource.data_type, DataType)
+        found = kiproject.find_project_resources_by(data_type=ki_project_resource.data_type)
+        assert ki_project_resource in found
+
+        # Find by a different DataType object.
+        found = kiproject.find_project_resources_by(
+            data_type=DataType(ki_project_resource.data_type._project_local_path,
+                               ki_project_resource.data_type.name,
+                               ki_project_resource.data_type.rel_path))
+        assert ki_project_resource in found
+
+        # Find by the DataType name.
+        found = kiproject.find_project_resources_by(data_type=ki_project_resource.data_type.name)
+        assert ki_project_resource in found
 
     # TODO: test "and"/"or" operator.
 
@@ -578,7 +649,7 @@ def test_it_adds_a_remote_non_data_structure_file(mk_kiproject, syn_non_data):
 
     for syn_file in syn_files:
         syn_file_uri = DataUri('syn', syn_file.id).uri
-        ki_project_resource = kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
+        ki_project_resource = kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
         assert ki_project_resource
         # TODO: add remaining assertions
 
@@ -588,7 +659,7 @@ def test_it_adds_a_remote_non_data_structure_folder(mk_kiproject, syn_non_data):
     syn_parent, syn_folders, syn_files = syn_non_data
 
     for syn_folder in syn_folders:
-        ki_project_resource = kiproject.data_add(DataUri('syn', syn_folder.id).uri, data_type=DataType.CORE)
+        ki_project_resource = kiproject.data_add(DataUri('syn', syn_folder.id).uri, data_type=kiproject.data_types[0])
         assert ki_project_resource
         # TODO: add remaining assertions
 
@@ -618,9 +689,9 @@ def test_it_adds_a_local_data_structure_folder(mk_kiproject, mk_local_data_dir):
 def test_it_errors_when_adding_a_local_path_that_is_not_in_the_data_directories(kiproject, mk_tempfile):
     temp_file = mk_tempfile()
 
-    bad_paths = [temp_file, kiproject.data_path]
-    for data_type in DataType.ALL:
-        bad_paths.append(os.path.join(kiproject.data_path, data_type))
+    bad_paths = [temp_file, kiproject.local_path]
+    for data_type in kiproject.data_types:
+        bad_paths.append(data_type.abs_path)
 
     for bad_path in bad_paths:
         with pytest.raises(NotADataTypePathError):
@@ -631,9 +702,9 @@ def test_it_errors_when_adding_a_data_type_that_does_not_match_the_local_path(ki
     local_data_folders, local_data_files = mk_local_data_dir(kiproject)
 
     for local_path in local_data_folders + local_data_files:
-        actual_data_type = kiproject.data_type_from_project_path(local_path).name
+        actual_data_type = kiproject.get_data_type_from_path(local_path)
 
-        dts = DataType.ALL.copy()
+        dts = kiproject.data_types.copy()
         dts.remove(actual_data_type)
         wrong_data_type = dts[0]
 
@@ -699,7 +770,7 @@ def test_it_pulls_a_file_not_matching_the_data_structure(mk_kiproject, syn_non_d
         syn_file_uri = DataUri('syn', syn_file.id).uri
 
         # Add the folder to the KiProject
-        ki_project_resource = kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
+        ki_project_resource = kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
 
         # Pull the folder.
         remote_entity = kiproject.data_pull(ki_project_resource.remote_uri)
@@ -715,7 +786,7 @@ def test_it_pulls_a_folder_not_matching_the_data_structure(mk_kiproject, syn_non
         syn_folder_uri = DataUri('syn', syn_folder.id).uri
 
         # Add the folder to the KiProject
-        ki_project_resource = kiproject.data_add(syn_folder_uri, data_type=DataType.CORE)
+        ki_project_resource = kiproject.data_add(syn_folder_uri, data_type=kiproject.data_types[0])
 
         # Pull the folder.
         remote_entity = kiproject.data_pull(ki_project_resource.remote_uri)
@@ -781,7 +852,7 @@ def test_it_pushes_a_file_to_a_different_remote_project(syn_client, mk_kiproject
     syn_file = mk_syn_files(other_syn_project, file_num=1, versions=1, suffix='')[0]
 
     syn_file_uri = DataUri('syn', syn_file.id).uri
-    kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
+    kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
     local_file_path = kiproject.data_pull(syn_file_uri)
 
     new_file_contents = str(uuid.uuid4())
@@ -811,7 +882,7 @@ def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_
     syn_file = mk_syn_files(syn_core_folder, file_num=1, versions=1, suffix='')[0]
 
     syn_file_uri = DataUri('syn', syn_file.id).uri
-    resource = kiproject.data_add(syn_file_uri, data_type=DataType.CORE)
+    resource = kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
     kiproject.data_pull()
 
     # The file exists in the Synapse project and has been pulled locally.
@@ -890,13 +961,13 @@ def test_it_tests_the_workflow(mk_kiproject,
     # Files
     for syn_non_data_file in syn_non_data_files:
         remote_uri = DataUri('syn', syn_non_data_file.id).uri
-        resource = kiproject.data_add(remote_uri, data_type=DataType.CORE)
+        resource = kiproject.data_add(remote_uri, data_type=kiproject.data_types[0])
         abs_path = kiproject.data_pull(remote_uri)
 
     # Folders
     for syn_non_data_folder in syn_non_data_folders:
         remote_uri = DataUri('syn', syn_non_data_folder.id).uri
-        resource = kiproject.data_add(remote_uri, data_type=DataType.CORE)
+        resource = kiproject.data_add(remote_uri, data_type=kiproject.data_types[0])
         abs_path = kiproject.data_pull(remote_uri)
 
     ###########################################################################
@@ -920,6 +991,18 @@ def test_it_tests_the_workflow(mk_kiproject,
         kiproject.data_remove(resource.remote_uri or resource.abs_path)
 
     assert len(kiproject.resources) == 0
+
+    ###########################################################################
+    # data_ignore
+    ###########################################################################
+    ignore_pattern = '*.png'
+    assert ignore_pattern not in kiproject.data_ignores
+
+    kiproject.add_data_ignore(ignore_pattern)
+    assert ignore_pattern in kiproject.data_ignores
+
+    kiproject.remove_data_ignore(ignore_pattern)
+    assert ignore_pattern not in kiproject.data_ignores
 
 
 def test_it_finds_a_resource_to_remove_by_its_attributes(mk_kiproject, mk_local_data_dir):
@@ -954,33 +1037,28 @@ def test_it_removes_resources(mk_kiproject):
     assert len(kiproject.resources) == 0
 
 
-def test_data_type_to_project_path(kiproject):
-    for data_type in DataType.ALL:
-        assert kiproject.data_type_to_project_path(data_type) == os.path.join(kiproject.data_path, data_type)
-
-
 def test_data_type_from_project_path(kiproject):
-    for data_type_name in DataType.ALL:
-        path = kiproject.data_type_to_project_path(data_type_name)
-        assert kiproject.data_type_from_project_path(path).name == data_type_name
+    for data_type in kiproject.data_types:
+        path = data_type.abs_path
+        assert kiproject.get_data_type_from_path(path).name == data_type.name
 
         other_paths = []
         for other_path in ['one', 'two', 'three', 'file.csv']:
             other_paths.append(other_path)
             new_path = os.path.join(path, *other_paths)
-            assert kiproject.data_type_from_project_path(new_path).name == data_type_name
+            assert kiproject.get_data_type_from_path(new_path).name == data_type.name
 
 
 def test_is_project_data_type_path(kiproject, mk_tempdir):
     temp_dir = mk_tempdir()
 
-    assert kiproject.is_project_data_type_path(temp_dir) is False
+    assert kiproject.is_data_type_path(temp_dir) is False
 
     for root_data_path in kiproject._root_data_paths():
-        assert kiproject.is_project_data_type_path(root_data_path) is False
+        assert kiproject.is_data_type_path(root_data_path) is False
 
         data_type_child_path = os.path.join(root_data_path, 'test.csv')
-        assert kiproject.is_project_data_type_path(data_type_child_path) is True
+        assert kiproject.is_data_type_path(data_type_child_path) is True
 
     # TODO: add more tests
 
@@ -1004,15 +1082,15 @@ def test_data_pull_non_data_folder(syn_test_helper, mk_tempfile, mk_uniq_string,
     syn_test_helper.client().store(synapseclient.File(path=mk_tempfile(), parent=syn_folder5))
 
     kiproject = mk_kiproject()
-    kiproject.data_add(DataUri('syn', syn_folder1.id).uri, data_type=DataType.CORE)
+    kiproject.data_add(DataUri('syn', syn_folder1.id).uri, data_type=kiproject.data_types[0])
     kiproject.data_pull()
 
 
 def test_data_push_folder(mk_uniq_string, write_file, mk_kiproject):
     kiproject = mk_kiproject()
 
-    for data_type_name in DataType.ALL:
-        path = kiproject.data_type_to_project_path(data_type_name)
+    for data_type in kiproject.data_types:
+        path = data_type.abs_path
 
         write_file(os.path.join(path, mk_uniq_string()), 'version1')
 

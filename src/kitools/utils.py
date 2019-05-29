@@ -12,18 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
 import os
-from src.kitools.ki_project_template import KiProjectTemplate
+import uuid
 
 
-def test_write(mk_tempdir):
-    pass
+class Utils:
 
+    @staticmethod
+    def is_uuid(value):
+        try:
+            uuid.UUID(value)
+            return True
+        except ValueError:
+            return False
 
-def test_create_dirs(mk_tempdir):
-    pass
+    @staticmethod
+    def get_dirs_and_files(local_path):
+        dirs = []
+        files = []
 
+        entries = list(os.scandir(local_path))
+        for entry in entries:
+            if entry.is_dir(follow_symlinks=False):
+                dirs.append(entry)
+            else:
+                files.append(entry)
 
-def test_create_gitignore(mk_tempdir):
-    pass
+        dirs.sort(key=lambda f: f.name)
+        files.sort(key=lambda f: f.name)
+
+        return dirs, files
