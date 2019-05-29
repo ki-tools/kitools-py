@@ -217,7 +217,7 @@ class KiProject(object):
 
             data_uri = DataUri.parse(project_resource.remote_uri)
             data_uri.data_adapter().data_pull(project_resource)
-            return project_resource.abs_path
+            return project_resource
         else:
             results = []
             for project_resource in self.resources:
@@ -246,7 +246,7 @@ class KiProject(object):
 
             data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
             data_uri.data_adapter().data_push(project_resource)
-            return project_resource.abs_path
+            return project_resource
         else:
             print('Pushing all resources that have not been pushed.')
             results = []
