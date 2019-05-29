@@ -272,11 +272,11 @@ def mk_fake_uri(mk_uniq_integer):
 
 @pytest.fixture(scope='class')
 def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
-    def _mk(kiproject, ki_data_type=None, root_id=None):
-        if not ki_data_type:
-            ki_data_type = kiproject.data_types[0]
+    def _mk(kiproject, data_type=None, root_id=None):
+        if not data_type:
+            data_type = kiproject.data_types[0]
 
-        file_path = os.path.join(ki_data_type.abs_path, '{0}.csv'.format(mk_uniq_string()))
+        file_path = os.path.join(data_type.abs_path, '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 
@@ -292,15 +292,15 @@ def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
 
 @pytest.fixture(scope='class')
 def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
-    def _mk(kiproject, ki_data_type=None):
-        if not ki_data_type:
-            ki_data_type = kiproject.data_types[0]
+    def _mk(kiproject, data_type=None):
+        if not data_type:
+            data_type = kiproject.data_types[0]
 
-        file_path = os.path.join(ki_data_type.abs_path, '{0}.csv'.format(mk_uniq_string()))
+        file_path = os.path.join(data_type.abs_path, '{0}.csv'.format(mk_uniq_string()))
 
         write_file(file_path, mk_uniq_string())
 
-        kiproject.data_push(file_path, data_type=ki_data_type)
+        kiproject.data_push(file_path, data_type=data_type)
         return kiproject.find_project_resource_by(abs_path=file_path)
 
     yield _mk

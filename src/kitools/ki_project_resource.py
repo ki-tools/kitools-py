@@ -16,7 +16,7 @@ import os
 import uuid
 from pathlib import PurePath
 from .sys_path import SysPath
-from .ki_data_type import KiDataType
+from .data_type import DataType
 
 
 class KiProjectResource(object):
@@ -63,11 +63,11 @@ class KiProjectResource(object):
 
     def _set_data_type(self, value):
         if value:
-            if isinstance(value, KiDataType):
+            if isinstance(value, DataType):
                 value = value.name
 
             # Validate the value.
-            value = self.kiproject.find_ki_data_type(value)
+            value = self.kiproject.find_data_type(value)
         self._data_type = value
 
     def _set_local_path(self, value):
@@ -78,8 +78,8 @@ class KiProjectResource(object):
         self._local_path = value
 
         if self.abs_path:
-            ki_data_type = self.kiproject.get_data_type_from_path(self.abs_path)
-            self._set_data_type(ki_data_type)
+            data_type = self.kiproject.get_data_type_from_path(self.abs_path)
+            self._set_data_type(data_type)
 
     def _set_version(self, value):
         self._version = str(value) if value else None

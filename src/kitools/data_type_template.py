@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 
-
-class KiDataTypeTemplate(object):
+class DataTypeTemplate(object):
     _templates = []
 
     @classmethod
@@ -41,29 +39,7 @@ class KiDataTypeTemplate(object):
         self.is_default = is_default
 
 
-class KiDataTypeTemplatePath(object):
+class DataTypeTemplatePath(object):
     def __init__(self, name, rel_path):
         self.name = name
         self.rel_path = rel_path
-
-
-# Register the templates.
-KiDataTypeTemplate.register(
-    KiDataTypeTemplate(name='rally',
-                       description='Data Types for rally projects.',
-                       paths=[
-                           KiDataTypeTemplatePath('core', os.path.join('data', 'core')),
-                           KiDataTypeTemplatePath('auxiliary', os.path.join('data', 'auxiliary')),
-                           KiDataTypeTemplatePath('results', 'results')
-                       ],
-                       is_default=True)
-)
-
-KiDataTypeTemplate.register(
-    KiDataTypeTemplate(name='generic',
-                       description='Data Type for generic projects.',
-                       paths=[
-                           KiDataTypeTemplatePath('data', 'data')
-                       ],
-                       is_default=False)
-)

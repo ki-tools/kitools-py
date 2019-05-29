@@ -18,13 +18,13 @@ import glob
 from collections import deque
 from beautifultable import BeautifulTable
 from .ki_project_resource import KiProjectResource
-from .ki_data_type import KiDataType
-from .ki_data_type_template import KiDataTypeTemplate
+from .data_type import DataType
+from .data_type_template import DataTypeTemplate
 from .data_uri import DataUri
 from .sys_path import SysPath
-from .ki_utils import KiUtils
-from .exceptions import NotAKiDataTypePathError, KiDataTypeMismatchError, KiProjectResourceNotFoundError, \
-    InvalidKiDataTypeError
+from .utils import Utils
+from .exceptions import NotADataTypePathError, DataTypeMismatchError, KiProjectResourceNotFoundError, \
+    InvalidDataTypeError
 
 
 class KiProject(object):
@@ -83,7 +83,7 @@ class KiProject(object):
         :param title: The title of the KiProject.
         :param description: The description of the KiProject.
         :param project_uri: The remote URI of the project that will hold the KiProject resources.
-        :param data_type_template: The name of the KiDataTypeTemplate to create the project with.
+        :param data_type_template: The name of the DataTypeTemplate to create the project with.
         """
 
         if not local_path or local_path.strip() == '':
@@ -98,7 +98,7 @@ class KiProject(object):
         self.data_types = []
         self.resources = []
 
-        self._set_data_types_from_template(data_type_template or KiDataTypeTemplate.default())
+        self._set_data_types_from_template(data_type_template or DataTypeTemplate.default())
 
         self._data_ignores = list(self.DEFAULT_DATA_IGNORES)
 
@@ -391,7 +391,7 @@ class KiProject(object):
 
         while paths:
             path = paths.popleft()
-            dirs, files = KiUtils.get_dirs_and_files(path)
+            dirs, files = Utils.get_dirs_and_files(path)
 
             for entry in (dirs + files):
                 if entry.path in ignored_paths:
@@ -436,12 +436,18 @@ class KiProject(object):
         for resource in self.resources:
             matches = []
 
-            for attribute, value in kwargs.items():
+            for attribute, attribute_value in kwargs.items():
                 if not hasattr(resource, attribute):
                     raise ValueError('{0} does not have attribute: {1}'.format(type(resource), attribute))
 
-                if getattr(resource, attribute) == value:
+                resource_value = getattr(resource, attribute)
+
+                if resource_value == attribute_value:
                     matches.append(attribute)
+                elif isinstance(resource_value, DataType) and isinstance(attribute_value, str):
+                    # Handle searching by DataType Name.
+                    if resource_value.name == attribute_value:
+                        matches.append(attribute)
 
             if operator == 'and' and len(matches) == len(kwargs):
                 results.append(resource)
@@ -450,38 +456,38 @@ class KiProject(object):
 
         return results
 
-    def find_ki_data_type(self, name_or_ki_data_type, raise_on_missing=True):
+    def find_data_type(self, name_or_data_type, raise_on_missing=True):
         """
-        Finds a KiDataType by it's name.
-        :param name_or_ki_data_type: The KiDataType name to find.
+        Finds a DataType by it's name.
+        :param name_or_data_type: The DataType name to find.
         :param raise_on_missing: Whether or not to raise an error if not found.
-        :return: KiDataType or None
+        :return: DataType or None
         """
-        if isinstance(name_or_ki_data_type, KiDataType):
-            name_or_ki_data_type = name_or_ki_data_type.name
+        if isinstance(name_or_data_type, DataType):
+            name_or_data_type = name_or_data_type.name
 
-        for ki_data_type in self.data_types:
-            if ki_data_type.name == name_or_ki_data_type:
-                return ki_data_type
+        for data_type in self.data_types:
+            if data_type.name == name_or_data_type:
+                return data_type
 
         if raise_on_missing:
-            raise InvalidKiDataTypeError(name_or_ki_data_type, self.data_types)
+            raise InvalidDataTypeError(name_or_data_type, self.data_types)
         else:
             return None
 
     def get_data_type_from_path(self, local_path):
         """
-        Gets the DataType from a local path. The local path must be in one of the KiProject's KiDataType directories.
+        Gets the DataType from a local path. The local path must be in one of the KiProject's DataType directories.
 
         :param local_path: Path to get the DataType from.
         :return: The DataType or None.
         """
-        sorted_ki_data_types = sorted(self.data_types, reverse=True, key=lambda d: len(d.rel_path))
+        sorted_data_types = sorted(self.data_types, reverse=True, key=lambda d: len(d.rel_path))
         sys_path = SysPath(local_path, cwd=self.local_path, rel_start=self.local_path)
 
-        for ki_data_type in sorted_ki_data_types:
-            if sys_path.rel_path.startswith(ki_data_type.rel_path):
-                return ki_data_type
+        for data_type in sorted_data_types:
+            if sys_path.rel_path.startswith(data_type.rel_path):
+                return data_type
 
         return None
 
@@ -562,7 +568,7 @@ class KiProject(object):
         self.resources = []
 
         for jdata_type in json.get('data_types'):
-            self.data_types.append(KiDataType.from_json(jdata_type, self))
+            self.data_types.append(DataType.from_json(jdata_type, self.local_path))
 
         for jresource in json.get('resources'):
             self.resources.append(KiProjectResource.from_json(jresource, self))
@@ -612,20 +618,20 @@ class KiProject(object):
         """
         Sets the data_types from a template.
 
-        :param name_or_template: The name or the KiDataTypeTemplate template.
+        :param name_or_template: The name or the DataTypeTemplate template.
         :return: None
         """
-        if isinstance(name_or_template, KiDataTypeTemplate):
+        if isinstance(name_or_template, DataTypeTemplate):
             name_or_template = name_or_template.name
 
-        template = KiDataTypeTemplate.get(name_or_template)
+        template = DataTypeTemplate.get(name_or_template)
         if not template:
             raise Exception('Data type template: {0} not found.'.format(name_or_template))
 
         self.data_types = []
 
         for template_path in template.paths:
-            self.data_types.append(KiDataType(self, template_path.name, template_path.rel_path))
+            self.data_types.append(DataType(self.local_path, template_path.name, template_path.rel_path))
 
     def _init_title(self):
         """
@@ -743,8 +749,8 @@ class KiProject(object):
         SysPath(self.local_path).ensure_dirs()
 
         # Data types
-        for ki_data_type in self.data_types:
-            SysPath(ki_data_type.abs_path).ensure_dirs()
+        for data_type in self.data_types:
+            SysPath(data_type.abs_path).ensure_dirs()
 
         # Other supporting directories
         for dir_name in ['scripts', 'reports']:
@@ -780,19 +786,19 @@ class KiProject(object):
             raise ValueError('remote_uri or local_path must be supplied.')
 
         if data_type:
-            # Get the KiDataType
-            data_type = self.find_ki_data_type(data_type)
+            # Get the DataType
+            data_type = self.find_data_type(data_type)
 
         if local_path:
             # Make sure the file is in one of the data directories.
             if not self.is_data_type_path(local_path):
-                raise NotAKiDataTypePathError(local_path, self.data_types)
+                raise NotADataTypePathError(local_path, self.data_types)
 
             # Make sure the data_type param matches the local_path.
             if data_type:
                 local_path_data_type = self.get_data_type_from_path(local_path)
                 if local_path_data_type is None or data_type != local_path_data_type:
-                    raise KiDataTypeMismatchError(
+                    raise DataTypeMismatchError(
                         'data_type: {0} does not match local_path: {1}.'.format(data_type.name, local_path))
 
         root_id = root_ki_project_resource.id if root_ki_project_resource else None
@@ -872,7 +878,7 @@ class KiProject(object):
             result = self.find_project_resource_by(id=value.id)
         elif DataUri.is_uri(value):
             result = self.find_project_resource_by(remote_uri=value)
-        elif KiUtils.is_uuid(value):
+        elif Utils.is_uuid(value):
             result = self.find_project_resource_by(id=value)
         elif SysPath(value, cwd=self.local_path).exists:
             sys_path = SysPath(value, cwd=self.local_path)
@@ -894,8 +900,8 @@ class KiProject(object):
         :return: List of absolute paths.
         """
         paths = []
-        for ki_data_type in self.data_types:
-            paths.append(ki_data_type.abs_path)
+        for data_type in self.data_types:
+            paths.append(data_type.abs_path)
         return paths
 
     def _get_data_ignored_paths(self):
@@ -906,6 +912,6 @@ class KiProject(object):
         """
         ignored = []
         for pattern in self.data_ignores:
-            for ki_data_type in self.data_types:
-                ignored += glob.glob(os.path.join(ki_data_type.abs_path, '**', pattern), recursive=True)
+            for data_type in self.data_types:
+                ignored += glob.glob(os.path.join(data_type.abs_path, '**', pattern), recursive=True)
         return ignored

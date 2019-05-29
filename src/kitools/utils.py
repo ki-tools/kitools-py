@@ -15,7 +15,8 @@
 import os
 import uuid
 
-class KiUtils:
+
+class Utils:
 
     @staticmethod
     def is_uuid(value):

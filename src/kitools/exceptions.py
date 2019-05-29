@@ -15,37 +15,37 @@
 import os
 
 
-class InvalidKiDataTypeError(ValueError):
+class InvalidDataTypeError(ValueError):
     """
-    Raised on invalid KiDataType.
+    Raised on invalid DataType.
     """
 
-    def __init__(self, invalid_data_type, valid_ki_data_types):
-        names = [d.name for d in valid_ki_data_types]
+    def __init__(self, invalid_data_type, valid_data_types):
+        names = [d.name for d in valid_data_types]
         message = 'Invalid DataType: {0}. Must of one of: {1}'.format(invalid_data_type, ', '.join(names))
         super().__init__(message)
 
 
-class NotAKiDataTypePathError(ValueError):
+class NotADataTypePathError(ValueError):
     """
     Raised when a local path is not in one of the KiProject's data directories.
     """
 
-    def __init__(self, invalid_data_type_path, valid_ki_data_types):
+    def __init__(self, invalid_data_type_path, valid_data_types):
         message = 'Path: {0} must be in one of the data directories: '.format(invalid_data_type_path)
 
         valid_paths = []
-        for ki_data_type in valid_ki_data_types:
-            valid_paths.append(ki_data_type.abs_path)
+        for data_type in valid_data_types:
+            valid_paths.append(data_type.abs_path)
 
         message += ', '.join(valid_paths)
 
         super().__init__(message)
 
 
-class KiDataTypeMismatchError(ValueError):
+class DataTypeMismatchError(ValueError):
     """
-    Raised when a KiDataType does not match another KiDataType, or expected KiDataType.
+    Raised when a DataType does not match another DataType, or expected DataType.
     """
     pass
 

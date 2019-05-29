@@ -26,7 +26,7 @@ script_dir = os.path.dirname(__file__)
 sys.path.append(os.path.join(script_dir, '..', 'src'))
 
 try:
-    from kitools import KiProject, DataUri, SysPath, KiDataTypeTemplate
+    from kitools import KiProject, DataUri, SysPath, DataTypeTemplate
 except Exception as ex:
     print('WARNING: Failed to kitools: {0}'.format(ex))
 
@@ -129,7 +129,7 @@ def create_demo_curator():
                           init_no_prompt=True,
                           title='Demo KiProject {0}'.format(demo_id),
                           project_uri=DataUri('syn', syn_project.id).uri,
-                          data_type_template=KiDataTypeTemplate.default())
+                          data_type_template=DataTypeTemplate.default())
 
     demo_commands.append('')
     demo_commands.append('# Open the KiProject:')
@@ -140,19 +140,19 @@ def create_demo_curator():
     syn_temp_dir = mk_dirs(kiproject_path, '.demo-data')
 
     # Create files and folders in each DataType directory.
-    for ki_data_type in kiproject.data_types:
+    for data_type in kiproject.data_types:
         parent = syn_project
 
-        dt_folder_path = mk_dirs(os.path.join(syn_temp_dir, ki_data_type.rel_path))
+        dt_folder_path = mk_dirs(os.path.join(syn_temp_dir, data_type.rel_path))
 
-        for name in SysPath(ki_data_type.rel_path).rel_parts:
+        for name in SysPath(data_type.rel_path).rel_parts:
             parent = syn_client.store(syn.Folder(name=name, parent=parent))
 
         kiproject.data_add(DataUri('syn', parent.id).uri, name=parent.name)
 
         mk_local_files_and_folders(dt_folder_path,
                                    depth=3,
-                                   prefix='{0}_'.format(ki_data_type.name),
+                                   prefix='{0}_'.format(data_type.name),
                                    syn_client=syn_client,
                                    syn_parent=parent)
     kiproject.data_pull()
@@ -160,8 +160,8 @@ def create_demo_curator():
     # Create some new files for data_add/data_push
     demo_commands.append('')
     demo_commands.append('# Add some new files and push them:')
-    for ki_data_type in kiproject.data_types:
-        dt_folder_path = mk_dirs(ki_data_type.abs_path)
+    for data_type in kiproject.data_types:
+        dt_folder_path = mk_dirs(data_type.abs_path)
 
         local_results, _ = mk_local_files_and_folders(dt_folder_path, prefix='new_study_file_', depth=0, file_count=1)
 

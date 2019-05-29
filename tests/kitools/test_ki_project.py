@@ -19,8 +19,8 @@ import uuid
 import shutil
 import synapseclient
 from collections import deque
-from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, KiDataTypeTemplate
-from src.kitools import NotAKiDataTypePathError, KiDataTypeMismatchError
+from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, DataType, DataTypeTemplate
+from src.kitools import NotADataTypePathError, DataTypeMismatchError
 
 
 @pytest.fixture(scope='class')
@@ -149,7 +149,7 @@ def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
     root_folders = []
     root_files = []
 
-    for template_path in KiDataTypeTemplate.default().paths:
+    for template_path in DataTypeTemplate.default().paths:
         parent = syn_project
 
         for name in SysPath(template_path.rel_path).rel_parts:
@@ -213,7 +213,7 @@ def assert_matches_project(kiprojectA, kiprojectB):
     for data_typeA in kiprojectA.data_types:
         data_typeB = next((b for b in kiprojectB.data_types if
                            b.name == data_typeA.name and
-                           b.rel_path == data_typeA.rel_path), None)
+                           SysPath(b.rel_path).rel_parts == SysPath(data_typeA.rel_path).rel_parts), None)
         assert data_typeB
 
     # Resources
@@ -266,8 +266,8 @@ def assert_data_type_paths(kiproject, exists=True):
     """
     assert len(kiproject.data_types) > 0
 
-    for ki_data_type in kiproject.data_types:
-        assert os.path.isdir(ki_data_type.abs_path) is exists
+    for data_type in kiproject.data_types:
+        assert os.path.isdir(data_type.abs_path) is exists
 
 
 @pytest.fixture()
@@ -284,28 +284,28 @@ def test_it_sets_the_kiproject_paths(mk_kiproject, mk_tempdir):
 
 def test_it_sets_the_default_data_types(mk_kiproject):
     kiproject = mk_kiproject()
-    default_template = KiDataTypeTemplate.default()
+    default_template = DataTypeTemplate.default()
 
     assert len(kiproject.data_types) == len(default_template.paths)
 
     for template_path in default_template.paths:
-        ki_data_type = kiproject.find_ki_data_type(template_path.name)
-        assert ki_data_type
-        assert ki_data_type.name == template_path.name
-        assert ki_data_type.rel_path == template_path.rel_path
+        data_type = kiproject.find_data_type(template_path.name)
+        assert data_type
+        assert data_type.name == template_path.name
+        assert data_type.rel_path == template_path.rel_path
 
 
 def test_it_sets_the_specified_data_types(mk_kiproject, mk_tempdir):
-    for template in KiDataTypeTemplate.all():
+    for template in DataTypeTemplate.all():
         kiproject = mk_kiproject(data_type_template=template.name)
 
         assert len(kiproject.data_types) == len(template.paths)
 
         for template_path in template.paths:
-            ki_data_type = kiproject.find_ki_data_type(template_path.name)
-            assert ki_data_type
-            assert ki_data_type.name == template_path.name
-            assert ki_data_type.rel_path == template_path.rel_path
+            data_type = kiproject.find_data_type(template_path.name)
+            assert data_type
+            assert data_type.name == template_path.name
+            assert data_type.rel_path == template_path.rel_path
 
 
 def test_it_expands_user_dir_in_local_path():
@@ -476,8 +476,8 @@ def test_it_creates_the_project_dir_structure_on_a_new_project(kiproject):
 
 def test_it_recreates_the_project_dir_structure_on_an_existing_project(mk_kiproject):
     kiproject = mk_kiproject()
-    for ki_data_type in kiproject.data_types:
-        shutil.rmtree(ki_data_type.abs_path)
+    for data_type in kiproject.data_types:
+        shutil.rmtree(data_type.abs_path)
     assert_data_type_paths(kiproject, exists=False)
 
     # Reload the kiproject
@@ -485,7 +485,7 @@ def test_it_recreates_the_project_dir_structure_on_an_existing_project(mk_kiproj
     assert_data_type_paths(kiproject, exists=True)
 
 
-def test_find_project_file_by(mk_kiproject):
+def test_it_finds_a_project_resource_by_its_attributes(mk_kiproject):
     kiproject = mk_kiproject(with_fake_project_files=True, with_fake_project_files_count=3)
 
     props = ['id', 'root_id', 'remote_uri', 'abs_path', 'rel_path', 'name', 'version', 'data_type']
@@ -498,20 +498,46 @@ def test_find_project_file_by(mk_kiproject):
             if value:
                 all_args[prop] = value
 
+        ###########################################################################################
         # Finds by all properties
+        ###########################################################################################
         found = kiproject.find_project_resource_by(**all_args)
         assert found == ki_project_resource
 
+        ###########################################################################################
         # Find by each unique property individually.
+        ###########################################################################################
         for prop, value in all_args.items():
-            if prop not in uniq_props:
-                continue
-
             single_arg = {
                 prop: value
             }
-            found = kiproject.find_project_resource_by(**single_arg)
-            assert found == ki_project_resource
+
+            if prop in uniq_props:
+                found = kiproject.find_project_resource_by(**single_arg)
+                assert found == ki_project_resource
+            else:
+                found = kiproject.find_project_resources_by(**single_arg)
+                assert ki_project_resource in found
+
+        ###########################################################################################
+        # Find by DataType
+        ###########################################################################################
+
+        # By the DataType object.
+        assert isinstance(ki_project_resource.data_type, DataType)
+        found = kiproject.find_project_resources_by(data_type=ki_project_resource.data_type)
+        assert ki_project_resource in found
+
+        # Find by a different DataType object.
+        found = kiproject.find_project_resources_by(
+            data_type=DataType(ki_project_resource.data_type._project_local_path,
+                               ki_project_resource.data_type.name,
+                               ki_project_resource.data_type.rel_path))
+        assert ki_project_resource in found
+
+        # Find by the DataType name.
+        found = kiproject.find_project_resources_by(data_type=ki_project_resource.data_type.name)
+        assert ki_project_resource in found
 
     # TODO: test "and"/"or" operator.
 
@@ -664,11 +690,11 @@ def test_it_errors_when_adding_a_local_path_that_is_not_in_the_data_directories(
     temp_file = mk_tempfile()
 
     bad_paths = [temp_file, kiproject.local_path]
-    for ki_data_type in kiproject.data_types:
-        bad_paths.append(ki_data_type.abs_path)
+    for data_type in kiproject.data_types:
+        bad_paths.append(data_type.abs_path)
 
     for bad_path in bad_paths:
-        with pytest.raises(NotAKiDataTypePathError):
+        with pytest.raises(NotADataTypePathError):
             kiproject.data_add(bad_path)
 
 
@@ -682,7 +708,7 @@ def test_it_errors_when_adding_a_data_type_that_does_not_match_the_local_path(ki
         dts.remove(actual_data_type)
         wrong_data_type = dts[0]
 
-        with pytest.raises(KiDataTypeMismatchError):
+        with pytest.raises(DataTypeMismatchError):
             kiproject.data_add(local_path, data_type=wrong_data_type)
 
 
@@ -1012,15 +1038,15 @@ def test_it_removes_resources(mk_kiproject):
 
 
 def test_data_type_from_project_path(kiproject):
-    for ki_data_type in kiproject.data_types:
-        path = ki_data_type.abs_path
-        assert kiproject.get_data_type_from_path(path).name == ki_data_type.name
+    for data_type in kiproject.data_types:
+        path = data_type.abs_path
+        assert kiproject.get_data_type_from_path(path).name == data_type.name
 
         other_paths = []
         for other_path in ['one', 'two', 'three', 'file.csv']:
             other_paths.append(other_path)
             new_path = os.path.join(path, *other_paths)
-            assert kiproject.get_data_type_from_path(new_path).name == ki_data_type.name
+            assert kiproject.get_data_type_from_path(new_path).name == data_type.name
 
 
 def test_is_project_data_type_path(kiproject, mk_tempdir):
@@ -1063,8 +1089,8 @@ def test_data_pull_non_data_folder(syn_test_helper, mk_tempfile, mk_uniq_string,
 def test_data_push_folder(mk_uniq_string, write_file, mk_kiproject):
     kiproject = mk_kiproject()
 
-    for ki_data_type in kiproject.data_types:
-        path = ki_data_type.abs_path
+    for data_type in kiproject.data_types:
+        path = data_type.abs_path
 
         write_file(os.path.join(path, mk_uniq_string()), 'version1')
 

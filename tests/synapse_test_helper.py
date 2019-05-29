@@ -14,7 +14,7 @@
 
 import os
 import uuid
-from src.kitools.ki_env import KiEnv
+from src.kitools.env import Env
 import synapseclient
 from synapseclient import Project, Folder, File
 
@@ -29,7 +29,7 @@ class SynapseTestHelper:
 
     def client(self):
         if not self._synapse_client:
-            self._synapse_client = synapseclient.Synapse(configPath=KiEnv.SYNAPSE_CONFIG_PATH())
+            self._synapse_client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH())
             self._synapse_client.login(silent=True)
 
         return self._synapse_client

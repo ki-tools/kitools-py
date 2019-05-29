@@ -17,16 +17,16 @@ from pathlib import PurePath
 from .sys_path import SysPath
 
 
-class KiDataType(object):
+class DataType(object):
     """
     Defines a friendly name and relative path for storing types of data within a KiProject.
     """
 
-    def __init__(self, kiproject, name, rel_path):
-        self._kiproject = kiproject
+    def __init__(self, project_local_path, name, rel_path):
+        self._project_local_path = project_local_path
         self._name = name
         # Get the rel_path from SysPath so the os.sep is correct.
-        self._rel_path = SysPath(rel_path, cwd=kiproject.local_path, rel_start=kiproject.local_path).rel_path
+        self._rel_path = SysPath(rel_path, cwd=project_local_path, rel_start=project_local_path).rel_path
 
     @property
     def name(self):
@@ -38,7 +38,7 @@ class KiDataType(object):
 
     @property
     def abs_path(self):
-        return os.path.join(self._kiproject.local_path, self.rel_path)
+        return os.path.join(self._project_local_path, self.rel_path)
 
     def to_json(self):
         """
@@ -53,14 +53,20 @@ class KiDataType(object):
         }
 
     @staticmethod
-    def from_json(json, kiproject):
+    def from_json(json, project_local_path):
         """
-        Deserializes JSON into a KiDataType.
+        Deserializes JSON into a DataType.
 
         :param json: The JSON to deserialize.
-        :return: KiDataType
+        :return: DataType
         """
-        return KiDataType(
-            kiproject,
+        return DataType(
+            project_local_path,
             json.get('name'),
             json.get('rel_path'))
+
+    def __eq__(self, other):
+        if isinstance(other, DataType):
+            return self.name == other.name and self.rel_path == other.rel_path and self.abs_path == other.abs_path
+        else:
+            return NotImplemented
