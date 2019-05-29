@@ -245,7 +245,7 @@ def assert_matches_config(kiproject):
     for jdata_type in json.get('data_types'):
         data_type = next((d for d in kiproject.data_types if
                           d.name == jdata_type['name'] and
-                          d.rel_path == jdata_type['rel_path']), None)
+                          SysPath(d.rel_path).rel_parts == SysPath(jdata_type['rel_path']).rel_parts), None)
         assert data_type
 
     # Resources
