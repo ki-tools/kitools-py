@@ -722,12 +722,12 @@ def test_it_finds_a_resource_to_pull_by_its_attributes(mk_kiproject, mk_local_da
     # Push everything so it can be pulled.
     kiproject.data_push(resource)
 
-    assert kiproject.data_pull(resource) == resource.abs_path
-    assert kiproject.data_pull(resource.id) == resource.abs_path
-    assert kiproject.data_pull(resource.name) == resource.abs_path
-    assert kiproject.data_pull(resource.remote_uri) == resource.abs_path
-    assert kiproject.data_pull(resource.abs_path) == resource.abs_path
-    assert kiproject.data_pull(resource.rel_path) == resource.abs_path
+    assert kiproject.data_pull(resource) == resource
+    assert kiproject.data_pull(resource.id) == resource
+    assert kiproject.data_pull(resource.name) == resource
+    assert kiproject.data_pull(resource.remote_uri) == resource
+    assert kiproject.data_pull(resource.abs_path) == resource
+    assert kiproject.data_pull(resource.rel_path) == resource
 
 
 def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_data):
@@ -741,8 +741,8 @@ def test_it_pulls_a_file_matching_the_data_structure(mk_kiproject, syn_data):
         ki_project_resource = kiproject.data_add(syn_file_uri)
 
         # Pull the folder.
-        remote_entity = kiproject.data_pull(ki_project_resource.remote_uri)
-        assert remote_entity
+        resource = kiproject.data_pull(ki_project_resource.remote_uri)
+        assert resource
         # TODO: check that file exist locally
 
 
@@ -757,8 +757,8 @@ def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_data):
         ki_project_resource = kiproject.data_add(syn_folder_uri)
 
         # Pull the folder.
-        remote_entity = kiproject.data_pull(ki_project_resource.remote_uri)
-        assert remote_entity
+        resource = kiproject.data_pull(ki_project_resource.remote_uri)
+        assert resource
         # TODO: check that file/folders exist locally
 
 
@@ -773,8 +773,8 @@ def test_it_pulls_a_file_not_matching_the_data_structure(mk_kiproject, syn_non_d
         ki_project_resource = kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
 
         # Pull the folder.
-        remote_entity = kiproject.data_pull(ki_project_resource.remote_uri)
-        assert remote_entity
+        resource = kiproject.data_pull(ki_project_resource.remote_uri)
+        assert resource
         # TODO: check that file/folders exist locally
 
 
@@ -789,8 +789,8 @@ def test_it_pulls_a_folder_not_matching_the_data_structure(mk_kiproject, syn_non
         ki_project_resource = kiproject.data_add(syn_folder_uri, data_type=kiproject.data_types[0])
 
         # Pull the folder.
-        remote_entity = kiproject.data_pull(ki_project_resource.remote_uri)
-        assert remote_entity
+        resource = kiproject.data_pull(ki_project_resource.remote_uri)
+        assert resource
         # TODO: check that file/folders exist locally
 
 
@@ -807,12 +807,12 @@ def test_it_finds_a_resource_to_push_by_its_attributes(mk_kiproject, mk_local_da
     file_path = local_data_files[0]
     resource = kiproject.data_add(file_path)
 
-    assert kiproject.data_push(resource) == resource.abs_path
-    assert kiproject.data_push(resource.id) == resource.abs_path
-    assert kiproject.data_push(resource.name) == resource.abs_path
-    assert kiproject.data_push(resource.remote_uri) == resource.abs_path
-    assert kiproject.data_push(resource.abs_path) == resource.abs_path
-    assert kiproject.data_push(resource.rel_path) == resource.abs_path
+    assert kiproject.data_push(resource) == resource
+    assert kiproject.data_push(resource.id) == resource
+    assert kiproject.data_push(resource.name) == resource
+    assert kiproject.data_push(resource.remote_uri) == resource
+    assert kiproject.data_push(resource.abs_path) == resource
+    assert kiproject.data_push(resource.rel_path) == resource
 
 
 def test_it_pushes_a_file_matching_the_data_structure(mk_kiproject, mk_local_data_dir):
@@ -824,8 +824,8 @@ def test_it_pushes_a_file_matching_the_data_structure(mk_kiproject, mk_local_dat
         ki_project_resource = kiproject.data_add(file_path)
 
         # Push the file
-        remote_entity = kiproject.data_push(ki_project_resource.name)
-        assert remote_entity
+        resource = kiproject.data_push(ki_project_resource.name)
+        assert resource
         # TODO: check that file/folders were pushed
 
 
@@ -838,8 +838,8 @@ def test_it_pushes_a_folder_matching_the_data_structure(mk_kiproject, mk_local_d
         ki_project_resource = kiproject.data_add(folder_path)
 
         # Push the file
-        remote_entity = kiproject.data_push(ki_project_resource.name)
-        assert remote_entity
+        resource = kiproject.data_push(ki_project_resource.name)
+        assert resource
         # TODO: check that file/folders were pushed
 
 
@@ -853,10 +853,10 @@ def test_it_pushes_a_file_to_a_different_remote_project(syn_client, mk_kiproject
 
     syn_file_uri = DataUri('syn', syn_file.id).uri
     kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
-    local_file_path = kiproject.data_pull(syn_file_uri)
+    resource = kiproject.data_pull(syn_file_uri)
 
     new_file_contents = str(uuid.uuid4())
-    write_file(local_file_path, new_file_contents)
+    write_file(resource.abs_path, new_file_contents)
 
     kiproject.data_push(syn_file_uri)
 
@@ -882,7 +882,7 @@ def test_it_does_not_push_a_file_unless_the_local_file_changed(mk_kiproject, mk_
     syn_file = mk_syn_files(syn_core_folder, file_num=1, versions=1, suffix='')[0]
 
     syn_file_uri = DataUri('syn', syn_file.id).uri
-    resource = kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
+    kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
     kiproject.data_pull()
 
     # The file exists in the Synapse project and has been pulled locally.
@@ -909,11 +909,11 @@ def test_it_tests_the_workflow(mk_kiproject,
     # Files
     for local_file in local_data_files:
         resource = kiproject.data_add(local_file)
-        abs_path = kiproject.data_push(resource)
-        assert abs_path == resource.abs_path
+        push_result = kiproject.data_push(resource)
+        assert push_result == resource
         # Re-add it
         resource_count = len(kiproject.resources)
-        resource = kiproject.data_add(local_file)
+        kiproject.data_add(local_file)
         assert len(kiproject.resources) == resource_count
         # Re-add with a change
         new_name = mk_uniq_string()
@@ -929,8 +929,8 @@ def test_it_tests_the_workflow(mk_kiproject,
     # Folders
     for local_folder in local_data_folders:
         resource = kiproject.data_add(local_folder)
-        abs_path = kiproject.data_push(resource)
-        assert abs_path == resource.abs_path
+        push_result = kiproject.data_push(resource)
+        assert push_result == resource
 
     ###########################################################################
     # Add/Pull Remote Data Files and Folders
@@ -941,17 +941,19 @@ def test_it_tests_the_workflow(mk_kiproject,
     for syn_file in syn_data_files:
         remote_uri = DataUri('syn', syn_file.id).uri
         resource = kiproject.data_add(remote_uri)
-        abs_path = kiproject.data_pull(remote_uri)
+        pull_result = kiproject.data_pull(remote_uri)
+        assert pull_result == resource
         # Lock the version
         resource = kiproject.data_change(remote_uri, version='2')
         assert resource.version == '2'
-        abs_path = kiproject.data_pull(remote_uri)
+        kiproject.data_pull(remote_uri)
 
     # Folders
     for syn_folder in syn_data_folders:
         remote_uri = DataUri('syn', syn_folder.id).uri
         resource = kiproject.data_add(remote_uri)
-        abs_path = kiproject.data_pull(remote_uri)
+        pull_result = kiproject.data_pull(remote_uri)
+        assert pull_result == resource
 
     ###########################################################################
     # Add/Pull Remote non-Data Files and Folders
@@ -962,13 +964,15 @@ def test_it_tests_the_workflow(mk_kiproject,
     for syn_non_data_file in syn_non_data_files:
         remote_uri = DataUri('syn', syn_non_data_file.id).uri
         resource = kiproject.data_add(remote_uri, data_type=kiproject.data_types[0])
-        abs_path = kiproject.data_pull(remote_uri)
+        pull_result = kiproject.data_pull(remote_uri)
+        assert pull_result == resource
 
     # Folders
     for syn_non_data_folder in syn_non_data_folders:
         remote_uri = DataUri('syn', syn_non_data_folder.id).uri
         resource = kiproject.data_add(remote_uri, data_type=kiproject.data_types[0])
-        abs_path = kiproject.data_pull(remote_uri)
+        pull_result = kiproject.data_pull(remote_uri)
+        assert pull_result == resource
 
     ###########################################################################
     # Push/Pull Everything
