@@ -23,7 +23,7 @@ from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, DataType
 from src.kitools import NotADataTypePathError, DataTypeMismatchError
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_syn_files(syn_test_helper, write_file, mk_tempdir):
     def _mk(syn_parent, file_num=2, versions=2, suffix=''):
         syn_files = []
@@ -49,7 +49,7 @@ def mk_syn_files(syn_test_helper, write_file, mk_tempdir):
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_syn_folders(syn_test_helper):
     def _mk(syn_parent, count=2, suffix=''):
         syn_folders = []
@@ -63,7 +63,7 @@ def mk_syn_folders(syn_test_helper):
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_syn_folders_files(mk_syn_files, mk_syn_folders):
     def _mk(syn_parent):
         root_files = mk_syn_files(syn_parent)
@@ -80,7 +80,7 @@ def mk_syn_folders_files(mk_syn_files, mk_syn_folders):
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def syn_non_data(mk_syn_project, mk_syn_folders_files):
     """
     Creates this:
@@ -110,7 +110,7 @@ def syn_non_data(mk_syn_project, mk_syn_folders_files):
     return mk_syn_folders_files(syn_project)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
     """
     Creates this:
@@ -162,7 +162,7 @@ def syn_data(mk_syn_project, syn_test_helper, mk_syn_folders_files):
     return syn_project, root_folders, root_files
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_local_data_dir(mk_uniq_string, write_file):
     def _mk(kiproject, return_all=False):
         all_data_paths = kiproject._root_data_paths()

@@ -78,7 +78,7 @@ location = {2}
         shutil.rmtree(syn_cache_path)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def syn_test_helper():
     helper = SynapseTestHelper()
     yield helper
@@ -92,17 +92,17 @@ def new_syn_test_helper():
     helper.dispose()
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def syn_client(syn_test_helper):
     return syn_test_helper.client()
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def syn_project(syn_test_helper):
     return syn_test_helper.create_project()
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def syn_project_uri(syn_project):
     return DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_project.id).uri
 
@@ -112,7 +112,7 @@ def new_syn_project(new_syn_test_helper):
     return new_syn_test_helper.create_project()
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_syn_project(syn_test_helper):
     def _mk():
         return syn_test_helper.create_project()
@@ -246,7 +246,7 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
     SynapseAdapter.create_project = real_create_project
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_uniq_string():
     def _mk():
         return str(uuid.uuid4()).replace('-', '_')
@@ -254,7 +254,7 @@ def mk_uniq_string():
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_uniq_integer():
     def _mk():
         return uuid.uuid4().int
@@ -262,7 +262,7 @@ def mk_uniq_integer():
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_fake_uri(mk_uniq_integer):
     def _mk(scheme='syn'):
         return DataUri(scheme, '{0}{1}'.format(scheme, mk_uniq_integer())).uri
@@ -270,7 +270,7 @@ def mk_fake_uri(mk_uniq_integer):
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
     def _mk(kiproject, data_type=None, root_id=None):
         if not data_type:
@@ -290,7 +290,7 @@ def mk_fake_project_file(mk_fake_uri, mk_uniq_string, write_file):
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
     def _mk(kiproject, data_type=None):
         if not data_type:
@@ -306,7 +306,7 @@ def add_project_file(mk_fake_uri, mk_uniq_string, write_file):
     yield _mk
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_tempdir():
     created = []
 
@@ -322,7 +322,7 @@ def mk_tempdir():
             shutil.rmtree(path)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def mk_tempfile(mk_tempdir, syn_test_helper):
     temp_dir = mk_tempdir()
 
@@ -338,7 +338,7 @@ def mk_tempfile(mk_tempdir, syn_test_helper):
         shutil.rmtree(temp_dir)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def write_file():
     def _write(file, content):
         # Create the directory if it doesn't exist.
@@ -351,7 +351,7 @@ def write_file():
     yield _write
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def read_file():
     def _read(file):
         with open(file, mode='r') as f:
@@ -360,7 +360,7 @@ def read_file():
     yield _read
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def delete_file():
     def _delete(file):
         if os.path.isfile(file):
