@@ -475,15 +475,15 @@ class KiProject(object):
         else:
             return None
 
-    def get_data_type_from_path(self, local_path):
+    def get_data_type_from_path(self, path):
         """
-        Gets the DataType from a local path. The local path must be in one of the KiProject's DataType directories.
+        Gets the DataType from a path. The path must be in one of the KiProject's DataType directories.
 
-        :param local_path: Path to get the DataType from.
+        :param path: Path to get the DataType from.
         :return: The DataType or None.
         """
         sorted_data_types = sorted(self.data_types, reverse=True, key=lambda d: len(d.rel_path))
-        sys_path = SysPath(local_path, cwd=self.local_path, rel_start=self.local_path)
+        sys_path = SysPath(path, cwd=self.local_path, rel_start=self.local_path)
 
         for data_type in sorted_data_types:
             if sys_path.rel_path.startswith(data_type.rel_path):

@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
+import shutil
 from pathlib import PurePath
 
 
@@ -69,3 +71,12 @@ class SysPath:
     def ensure_dirs(self):
         if not os.path.exists(self.abs_path):
             os.makedirs(self.abs_path)
+
+    def delete(self):
+        if self.exists:
+            if self.is_dir:
+                shutil.rmtree(self.abs_path)
+            elif self.is_file:
+                os.remove(self.abs_path)
+            else:
+                raise Exception('Cannot delete: "{0}". Only directories and files can be deleted.'.format(self.abs_path))
