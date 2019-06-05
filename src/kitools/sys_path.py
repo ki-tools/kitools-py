@@ -79,4 +79,5 @@ class SysPath:
             elif self.is_file:
                 os.remove(self.abs_path)
             else:
-                raise Exception('Cannot delete: "{0}". Only directories and files can be deleted.'.format(self.abs_path))
+                raise Exception(
+                    'Cannot delete: "{0}". Only directories and files can be deleted.'.format(self.abs_path))
