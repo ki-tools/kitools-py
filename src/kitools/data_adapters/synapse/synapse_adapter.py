@@ -144,44 +144,37 @@ class SynapseAdapter(BaseAdapter):
 
     def _set_abs_path_from_entity(self, ki_project_resource, syn_entity):
         """
-        Tries to figure out where a file/folder lives with in a KiProject data directory.
+        Tries to figure out where a file/folder lives with in a KiProject data directories.
         :param ki_project_resource:
         :param syn_entity:
         :return:
         """
         kiproject = ki_project_resource.kiproject
 
-        abs_path = self._find_abs_path_from_remote_path(kiproject, syn_entity)
+        remote_path = self._get_remote_path(syn_entity)
 
-        if not abs_path and ki_project_resource.data_type:
-            # Figure out the path from the data_type
-            name = syn_entity.name
-            abs_path = os.path.join(ki_project_resource.data_type.abs_path, name)
+        # Always use the resource's data_type if available.
+        data_type = ki_project_resource.data_type or kiproject.get_data_type_from_path(remote_path)
 
-        if abs_path:
-            ki_project_resource.abs_path = abs_path
-            kiproject.save()
-        else:
+        if data_type is None:
             raise Exception(
                 'Could not determine local file path for: {0}, try setting the data_type on this resource'.format(
                     ki_project_resource.remote_uri))
 
-    def _find_abs_path_from_remote_path(self, kiproject, entity):
-        """
-        Tries to find the absolute path within a KiProject for a Synapse File/Folder.
-        :param kiproject:
-        :param entity:
-        :return:
-        """
-        remote_path = self._get_remote_path(entity)
+        local_rel_path = remote_path
 
-        sorted_data_types = sorted(kiproject.data_types, reverse=True, key=lambda d: len(d.rel_path))
+        if local_rel_path.startswith(data_type.rel_path):
+            local_rel_path = local_rel_path.replace(data_type.rel_path, '', 1)
 
-        for data_type in sorted_data_types:
-            if remote_path.startswith(data_type.rel_path):
-                return os.path.join(kiproject.local_path, remote_path)
+        if local_rel_path.startswith(os.sep):
+            local_rel_path = local_rel_path[1:]
 
-        return None
+        abs_path = os.path.join(kiproject.local_path, data_type.rel_path, local_rel_path)
+
+        ki_project_resource.abs_path = abs_path
+        assert ki_project_resource.data_type is not None
+
+        kiproject.save()
 
     def data_push(self, ki_project_resource):
         kiproject = ki_project_resource.kiproject

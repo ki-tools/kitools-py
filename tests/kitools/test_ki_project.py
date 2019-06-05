@@ -17,6 +17,7 @@ import os
 import json as JSON
 import uuid
 import shutil
+from random import sample
 import synapseclient
 from collections import deque
 from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, DataType, DataTypeTemplate
@@ -762,36 +763,103 @@ def test_it_pulls_a_folder_matching_the_data_structure(mk_kiproject, syn_data):
         # TODO: check that file/folders exist locally
 
 
-def test_it_pulls_a_file_not_matching_the_data_structure(mk_kiproject, syn_non_data):
+def test_it_pulls_a_file_not_matching_the_data_structure(mk_kiproject, syn_non_data, syn_client):
     kiproject = mk_kiproject()
     syn_parent, syn_folders, syn_files = syn_non_data
 
+    # Pull the root files
     for syn_file in syn_files:
         syn_file_uri = DataUri('syn', syn_file.id).uri
+        data_type = sample(kiproject.data_types, 1)[0]
 
-        # Add the folder to the KiProject
-        ki_project_resource = kiproject.data_add(syn_file_uri, data_type=kiproject.data_types[0])
+        # Add the file to the KiProject
+        ki_project_resource = kiproject.data_add(syn_file_uri, data_type=data_type)
 
-        # Pull the folder.
+        # Pull the file.
         resource = kiproject.data_pull(ki_project_resource.remote_uri)
         assert resource
-        # TODO: check that file/folders exist locally
+
+        # Check that file/folders exist locally
+        expected_local_path = os.path.join(kiproject.local_path, data_type.rel_path, syn_file.name)
+        assert resource.abs_path == expected_local_path
+        assert os.path.exists(expected_local_path) is True
+
+    # Reset the local dirs/files
+    for resource in kiproject.find_project_resources_by(root_id=None):
+        kiproject.data_remove(resource)
+        SysPath(resource.abs_path).delete()
+
+    # Pull some child files
+    for syn_folder in syn_folders:
+        syn_child_files = syn_client.getChildren(parent=syn_folder, includeTypes=['file'])
+
+        for syn_child_file in syn_child_files:
+            syn_file_uri = DataUri('syn', syn_child_file.get('id')).uri
+            data_type = sample(kiproject.data_types, 1)[0]
+
+            # Add the file to the KiProject
+            ki_project_resource = kiproject.data_add(syn_file_uri, data_type=data_type)
+
+            # Pull the file.
+            resource = kiproject.data_pull(ki_project_resource.remote_uri)
+            assert resource
+
+            # Check that file/folders exist locally
+            expected_local_path = os.path.join(kiproject.local_path,
+                                               data_type.rel_path,
+                                               syn_folder.name,
+                                               syn_child_file.get('name'))
+            assert resource.abs_path == expected_local_path
+            assert os.path.exists(expected_local_path) is True
 
 
-def test_it_pulls_a_folder_not_matching_the_data_structure(mk_kiproject, syn_non_data):
+def test_it_pulls_a_folder_not_matching_the_data_structure(mk_kiproject, syn_non_data, syn_client):
     kiproject = mk_kiproject()
     syn_parent, syn_folders, syn_files = syn_non_data
 
+    # Pull the root folders
     for syn_folder in syn_folders:
         syn_folder_uri = DataUri('syn', syn_folder.id).uri
+        data_type = sample(kiproject.data_types, 1)[0]
 
         # Add the folder to the KiProject
-        ki_project_resource = kiproject.data_add(syn_folder_uri, data_type=kiproject.data_types[0])
+        ki_project_resource = kiproject.data_add(syn_folder_uri, data_type=data_type)
 
         # Pull the folder.
         resource = kiproject.data_pull(ki_project_resource.remote_uri)
         assert resource
-        # TODO: check that file/folders exist locally
+
+        # Check that file/folders exist locally
+        expected_local_path = os.path.join(kiproject.local_path, data_type.rel_path, syn_folder.name)
+        assert resource.abs_path == expected_local_path
+        assert os.path.exists(expected_local_path) is True
+
+    # Reset the local dirs/files
+    for resource in kiproject.find_project_resources_by(root_id=None):
+        kiproject.data_remove(resource)
+        SysPath(resource.abs_path).delete()
+
+    # Pull some child folders
+    for syn_folder in syn_folders:
+        syn_child_folders = syn_client.getChildren(parent=syn_folder, includeTypes=['folder'])
+        for syn_child_folder in syn_child_folders:
+            syn_file_uri = DataUri('syn', syn_child_folder.get('id')).uri
+            data_type = sample(kiproject.data_types, 1)[0]
+
+            # Add the file to the KiProject
+            ki_project_resource = kiproject.data_add(syn_file_uri, data_type=data_type)
+
+            # Pull the file.
+            resource = kiproject.data_pull(ki_project_resource.remote_uri)
+            assert resource
+
+            # Check that file/folders exist locally
+            expected_local_path = os.path.join(kiproject.local_path,
+                                               data_type.rel_path,
+                                               syn_folder.name,
+                                               syn_child_folder.get('name'))
+            assert resource.abs_path == expected_local_path
+            assert os.path.exists(expected_local_path) is True
 
 
 def test_it_does_not_pull_a_file_unless_the_remote_file_changed():
