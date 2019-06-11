@@ -6,8 +6,8 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="kitools",
     version="0.0.1",
-    author="Patrick Stout",
-    author_email="pstout@prevagroup.com",
+    author="Patrick Stout, Ryan Hafen, Sergey Feldman",
+    author_email="pstout@prevagroup.com, rhafen@gmail.com, sergey@data-cowboys.com",
     license="Apache2",
     description="ki tools package",
     long_description=long_description,
