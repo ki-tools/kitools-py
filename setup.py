@@ -28,7 +28,7 @@ setuptools.setup(
         "Intended Audience :: Developers"
     ),
     install_requires=[
-        "synapseclient==1.9.2",
-        "beautifultable==0.7.0"
+        "synapseclient>=1.9.2,<2.0.0",
+        "beautifultable>=0.7.0,<1.0.0"
     ]
 )
