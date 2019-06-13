@@ -42,6 +42,11 @@ publish_test: build
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 
+.PHONY: publish
+publish: build
+	twine upload dist/*
+
+
 .PHONY: uninstall
 uninstall:
 	pip uninstall -y kitools
