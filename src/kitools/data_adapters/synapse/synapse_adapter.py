@@ -32,7 +32,7 @@ class SynapseAdapter(BaseAdapter):
     """
 
     DATA_URI_SCHEME = 'syn'
-    VALID_NAME_REGEX = re.compile(r'^[A-Za-z0-9_\-\.\+\(\)]*$')
+    VALID_NAME_REGEX = re.compile(r'^[A-Za-z0-9_\-\.\+\(\) ]*$')
     _client = None
 
     @classmethod
