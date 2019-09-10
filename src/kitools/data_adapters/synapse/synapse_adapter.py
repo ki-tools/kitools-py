@@ -1,17 +1,3 @@
-# Copyright 2018-present, Bill & Melinda Gates Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import synapseclient
 from ..base_adapter import BaseAdapter
@@ -20,23 +6,20 @@ from ...data_uri import DataUri
 from ...sys_path import SysPath
 from ...env import Env
 from ...utils import Utils
-from ...ki_project_resource import KiProjectResource
-from ...data_type import DataType
 
 
 class SynapseAdapter(BaseAdapter):
-    """
-    Data Adapter for Synapse.
-    """
+    """Data Adapter for Synapse."""
 
     DATA_URI_SCHEME = 'syn'
     _client = None
 
     @classmethod
     def client(cls):
-        """
-        Gets a new or cached instance of a logged in Synapse client.
-        :return:
+        """Gets a new or cached instance of a logged in Synapse client.
+
+        Returns:
+            synapseclient.Synapse
         """
         if not cls._client:
             cls._client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH())
@@ -44,9 +27,19 @@ class SynapseAdapter(BaseAdapter):
         return cls._client
 
     def name(self):
+        """Gets the name of the data adapter.
+
+        Returns:
+            String
+        """
         return 'Synapse'
 
     def connected(self):
+        """Gets if the synapseclient is connected and logged in.
+
+        Returns:
+            True or False
+        """
         try:
             return SynapseAdapter.client()._loggedIn() is not False
         except Exception as ex:
@@ -55,6 +48,16 @@ class SynapseAdapter(BaseAdapter):
         return False
 
     def get_entity(self, remote_id, version=None, local_path=None):
+        """Gets an entity from Synapse.
+
+        Args:
+            remote_id: The id of the Synapse entity.
+            version: The version of the entity to get. Set to None to get the latest version.
+            local_path: Where to download the entity to (in the case of downloadable entities).
+
+        Returns:
+            SynapseRemoteEntity
+        """
         entity = SynapseAdapter.client().get(
             remote_id,
             downloadFile=local_path is not None,
@@ -68,15 +71,34 @@ class SynapseAdapter(BaseAdapter):
         return remote_entity
 
     def create_project(self, name):
+        """Creates a new project in Synapse.
+
+        Args:
+            name: The name of the project to create.
+
+        Returns:
+            SynapseRemoteEntity
+
+        Raises:
+            Exception: Raised if a project with the same name already exists.
+        """
         # Check if the project already exists.
         syn_project_id = SynapseAdapter.client().findEntityId(name=name)
         if syn_project_id:
-            raise Exception('Synapse project already exists for name: {0}'.format(name))
+            raise Exception('Synapse project already exists with name: {0}'.format(name))
 
         syn_project = SynapseAdapter.client().store(synapseclient.Project(name=name))
         return SynapseRemoteEntity(syn_project)
 
     def data_pull(self, ki_project_resource):
+        """Downloads a resource and all of it's children.
+
+        Args:
+            ki_project_resource: The resource to download.
+
+        Returns:
+            SynapseRemoteEntity
+        """
         data_uri = DataUri.parse(ki_project_resource.remote_uri)
         syn_entity = SynapseAdapter.client().get(data_uri.id, downloadFile=False)
 
@@ -119,6 +141,16 @@ class SynapseAdapter(BaseAdapter):
         return remote_entity
 
     def _pull_children(self, root_ki_project_resource, syn_parent, download_path):
+        """Pulls all the children of a parent.
+
+        Args:
+            root_ki_project_resource: The root resource.
+            syn_parent: The Synapse parent entity.
+            download_path: Where to download the children.
+
+        Returns:
+            None
+        """
         kiproject = root_ki_project_resource.kiproject
         syn_children = SynapseAdapter.client().getChildren(syn_parent, includeTypes=['folder', 'file'])
 
@@ -143,11 +175,17 @@ class SynapseAdapter(BaseAdapter):
             self.data_pull(child_resource)
 
     def _set_abs_path_from_entity(self, ki_project_resource, syn_entity):
-        """
-        Tries to figure out where a file/folder lives with in a KiProject data directories.
-        :param ki_project_resource:
-        :param syn_entity:
-        :return:
+        """Tries to figure out where a file/folder lives with in a KiProject data directories.
+
+        Args:
+            ki_project_resource: The resource to set the path for.
+            syn_entity: The synapse entity to get the path for.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Raised when the path cannot be determined.
         """
         kiproject = ki_project_resource.kiproject
 
@@ -177,6 +215,14 @@ class SynapseAdapter(BaseAdapter):
         kiproject.save()
 
     def data_push(self, ki_project_resource):
+        """Uploads a resource and all of it's children to Synapse.
+
+        Args:
+            ki_project_resource: The resource to upload.
+
+        Returns:
+            SynapseRemoteEntity
+        """
         kiproject = ki_project_resource.kiproject
 
         project_data_uri = DataUri.parse(kiproject.project_uri)
@@ -222,6 +268,15 @@ class SynapseAdapter(BaseAdapter):
         return self._data_push(ki_project_resource, syn_parent)
 
     def _data_push(self, ki_project_resource, syn_parent):
+        """Uploads a resource to Synapse parent entity.
+
+        Args:
+            ki_project_resource: The resource to upload.
+            syn_parent: The Synapse parent entity.
+
+        Returns:
+            SynapseRemoteEntity
+        """
         kiproject = ki_project_resource.kiproject
         sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
         syn_entity = None
@@ -261,6 +316,16 @@ class SynapseAdapter(BaseAdapter):
         return remote_entity
 
     def _push_children(self, root_ki_project_resource, syn_parent, local_path):
+        """Uploads child objects to Synapse.
+
+        Args:
+            root_ki_project_resource: The resource to upload.
+            syn_parent: The Synapse parent to upload to.
+            local_path: The local path if files and folders to upload.
+
+        Returns:
+            SynapseRemoteEntity
+        """
         kiproject = root_ki_project_resource.kiproject
 
         dirs, files = Utils.get_dirs_and_files(local_path)
@@ -281,10 +346,13 @@ class SynapseAdapter(BaseAdapter):
             self._data_push(child_resource, syn_parent)
 
     def _get_remote_path(self, syn_entity):
-        """
-        Gets the remote path for a Synapse Folder or File (e.g., folder1/folder2/file1.csv)
-        :param syn_entity: The Synapse entity to get the path for.
-        :return: String
+        """Gets the remote path for a Synapse Folder or File (e.g., folder1/folder2/file1.csv)
+
+        Args:
+            syn_entity: The Synapse entity to get the path for.
+
+        Returns:
+            String
         """
         if not (self._is_folder(syn_entity) or self._is_file(syn_entity)):
             return ''
@@ -300,6 +368,16 @@ class SynapseAdapter(BaseAdapter):
         return os.sep.join(path_parts)
 
     def _find_or_create_syn_folder(self, syn_parent, folder_name):
+        """Finds or creates a folder in Synapse.
+
+        Args:
+            syn_parent: The Synapse entity to find or create the folder under.
+            folder_name: The name of the folder to find or create.
+
+        Returns:
+            synapseclient.Folder
+        """
+
         # TODO: can any of this be cached?
         syn_entity_id = SynapseAdapter.client().findEntityId(folder_name, parent=syn_parent)
 
@@ -315,26 +393,72 @@ class SynapseAdapter(BaseAdapter):
         return SynapseAdapter.client().store(synapseclient.Folder(name=folder_name, parent=syn_parent))
 
     def _is_project(self, syn_entity):
+        """Gets if the Synapse entity is a Project.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        """
         return isinstance(syn_entity, synapseclient.Project)
 
     def _is_folder(self, syn_entity):
+        """Gets if the Synapse entity is a Folder.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        """
         return isinstance(syn_entity, synapseclient.Folder)
 
     def _is_file(self, syn_entity):
+        """Gets if the Synapse entity is a File.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        """
         return isinstance(syn_entity, synapseclient.File)
 
     def _is_project_folder_file(self, syn_entity):
+        """Gets if the Synapse entity is a Project, Folder, or File.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        """
         return self._is_project(syn_entity) or self._is_folder(syn_entity) or self._is_file(syn_entity)
 
 
 class SynapseParentIter:
+    """Iterator for traversing Synapse parents."""
+
     def __init__(self, syn_entity):
+        """Instantiates a new instance.
+
+        Args:
+            syn_entity: The Synapse entity to start with.
+        """
         self._current_entity = syn_entity
 
     def __iter__(self):
         return self
 
     def __next__(self):
+        """Gets the next parent entity until the Project entity is found.
+
+        NOTE: There is a parent above a Synapse Project but it is not accessible.
+
+        Returns:
+            The next Synapse parent.
+        """
         if isinstance(self._current_entity, synapseclient.Project):
             raise StopIteration()
 

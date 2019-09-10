@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="kitools",
-    version="0.0.1",
+    version="0.0.2",
     author="Patrick Stout, Ryan Hafen, Sergey Feldman",
     author_email="pstout@prevagroup.com, rhafen@gmail.com, sergey@data-cowboys.com",
     license="Apache2",

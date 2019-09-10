@@ -1,25 +1,20 @@
-# Copyright 2018-present, Bill & Melinda Gates Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import uuid
 
 
 class Utils:
+    """Utility methods for the package."""
 
     @staticmethod
     def is_uuid(value):
+        """Gets if the value is a UUID.
+
+        Args:
+            value: The value to check.
+
+        Returns:
+            True or False
+        """
         try:
             uuid.UUID(value)
             return True
@@ -28,6 +23,14 @@ class Utils:
 
     @staticmethod
     def get_dirs_and_files(local_path):
+        """Gets all the directories and files in a local path.
+
+        Args:
+            local_path: The path to get files and folders for.
+
+        Returns:
+            List of directory path, List of file paths.
+        """
         dirs = []
         files = []
 

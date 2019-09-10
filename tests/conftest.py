@@ -1,24 +1,10 @@
-# Copyright 2018-present, Bill & Melinda Gates Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import pytest
 import os
 import tempfile
 import shutil
 import json
 import uuid
-from src.kitools import KiProject, KiProjectResource, DataUri
+from src.kitools import KiProject, KiProjectInitParams, KiProjectResource, DataUri
 from src.kitools.data_adapters import SynapseAdapter
 from tests.synapse_test_helper import SynapseTestHelper
 
@@ -131,7 +117,8 @@ def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_st
 
         mk_mock_kiproject_input()
 
-        kiproject = KiProject((dir or mk_tempdir()), data_type_template=data_type_template)
+        init_params = KiProjectInitParams(data_type_template=data_type_template)
+        kiproject = KiProject((dir or mk_tempdir()), init_params=init_params)
 
         if with_fake_project_files:
             for _ in range(with_fake_project_files_count):
@@ -157,6 +144,7 @@ def syn_dispose_of(syn_test_helper):
     def _sdo(kiproject):
         syn_project = syn_test_helper.client().get(DataUri.parse(kiproject.project_uri).id)
         syn_test_helper.dispose_of(syn_project)
+        return syn_project
 
     yield _sdo
 

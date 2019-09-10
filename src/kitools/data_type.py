@@ -1,28 +1,19 @@
-# Copyright 2018-present, Bill & Melinda Gates Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 from pathlib import PurePath
 from .sys_path import SysPath
 
 
 class DataType(object):
-    """
-    Defines a friendly name and relative path for storing types of data within a KiProject.
-    """
+    """Defines a friendly name and relative path for storing types of data within a KiProject."""
 
     def __init__(self, project_local_path, name, rel_path):
+        """Instantiates a new instance.
+
+        Args:
+            project_local_path: The local path of the KiProject
+            name: The name of the data type.
+            rel_path: The relative path of the data type directory.
+        """
         self._project_local_path = project_local_path
         self._name = name
         # Get the rel_path from SysPath so the os.sep is correct.
@@ -41,10 +32,10 @@ class DataType(object):
         return os.path.join(self._project_local_path, self.rel_path)
 
     def to_json(self):
-        """
-        Serializes self into JSON.
+        """Serializes self into JSON.
 
-        :return: Hash
+        Returns:
+            Primary properties as a Hash.
         """
         return {
             'name': self.name,
@@ -54,11 +45,14 @@ class DataType(object):
 
     @staticmethod
     def from_json(json, project_local_path):
-        """
-        Deserializes JSON into a DataType.
+        """Deserializes JSON into a DataType.
 
-        :param json: The JSON to deserialize.
-        :return: DataType
+        Args:
+            json: The JSON to deserialize.
+            project_local_path: The local path of the KiProject.
+
+        Returns:
+            DataType
         """
         return DataType(
             project_local_path,

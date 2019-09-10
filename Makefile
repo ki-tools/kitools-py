@@ -1,15 +1,23 @@
 .PHONY: build
-build: clean
+build: clean docs
 	python setup.py sdist
 	python setup.py bdist_wheel
 	twine check dist/*
 
 
-.PHONY: build_clean
+.PHONY: clean
 clean:
-	rm -rf build/*
-	rm -rf dist/*
-	rm -rf htmlcov
+	rm -rf ./build/*
+	rm -rf ./dist/*
+	rm -rf ./htmlcov
+
+
+.PHONY: docs
+docs:
+	rm -rf ./docs/*
+	pdoc --html --output-dir ./docs ./src/kitools
+	mv ./docs/kitools/* ./docs/
+	rmdir ./docs/kitools
 
 
 .PHONY: init_dev
