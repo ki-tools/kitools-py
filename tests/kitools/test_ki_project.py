@@ -6,7 +6,7 @@ import shutil
 from random import sample
 import synapseclient
 from collections import deque
-from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, DataType, DataTypeTemplate, KiProjectInitParams
+from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, DataType, DataTypeTemplate
 from src.kitools import NotADataTypePathError, DataTypeMismatchError
 
 
@@ -266,6 +266,18 @@ def kiproject(mk_kiproject):
     return mk_kiproject()
 
 
+@pytest.fixture
+def no_prompt_init_params(syn_test_helper, syn_project_uri):
+    # This is the minimum that needs to be set in order for a
+    # KiProject to init successfully with 'no_prompt'.
+    return {
+        'no_prompt': True,
+        'title': syn_test_helper.uniq_name(),
+        'description': syn_test_helper.uniq_name(),
+        'project_uri': syn_project_uri
+    }
+
+
 def test_it_sets_the_kiproject_paths(mk_kiproject, mk_tempdir):
     temp_dir = mk_tempdir()
     kiproject = mk_kiproject(dir=temp_dir)
@@ -309,15 +321,6 @@ def test_it_expands_vars_in_local_path():
     pass
 
 
-@pytest.fixture
-def no_prompt_init_params(syn_test_helper, syn_project_uri):
-    # This is the minimum that needs to be set in order for a
-    # KiProject to init successfully with 'no_prompt'.
-    return KiProjectInitParams(no_prompt=True,
-                               title=syn_test_helper.uniq_name(),
-                               project_uri=syn_project_uri)
-
-
 def test_it_does_not_prompt_for_create_project_in_when_no_prompt(mk_tempdir,
                                                                  mk_mock_kiproject_input,
                                                                  no_prompt_init_params,
@@ -325,9 +328,9 @@ def test_it_does_not_prompt_for_create_project_in_when_no_prompt(mk_tempdir,
     mk_mock_kiproject_input(raise_on_create_project_in=True)
 
     with pytest.raises(MockKiProjectInputErrorClass):
-        KiProject(mk_tempdir(), init_params=KiProjectInitParams(no_prompt=False))
+        KiProject(mk_tempdir(), no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_params=no_prompt_init_params)
+    kiproject = KiProject(mk_tempdir(), **no_prompt_init_params)
     assert kiproject._loaded is True
     assert SysPath(kiproject.local_path).exists
 
@@ -339,11 +342,25 @@ def test_it_does_not_prompt_for_project_title_when_no_prompt(mk_tempdir,
     mk_mock_kiproject_input(raise_on_project_title=True)
 
     with pytest.raises(MockKiProjectInputErrorClass):
-        KiProject(mk_tempdir(), init_params=KiProjectInitParams(no_prompt=False))
+        KiProject(mk_tempdir(), no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_params=no_prompt_init_params)
+    kiproject = KiProject(mk_tempdir(), **no_prompt_init_params)
     assert kiproject._loaded is True
-    assert kiproject.title == no_prompt_init_params.title
+    assert kiproject.title == no_prompt_init_params.get('title')
+
+
+def test_it_does_not_prompt_for_project_description_when_no_prompt(mk_tempdir,
+                                                                   mk_mock_kiproject_input,
+                                                                   no_prompt_init_params,
+                                                                   MockKiProjectInputErrorClass):
+    mk_mock_kiproject_input(raise_on_project_description=True)
+
+    with pytest.raises(MockKiProjectInputErrorClass):
+        KiProject(mk_tempdir(), no_prompt=False)
+
+    kiproject = KiProject(mk_tempdir(), **no_prompt_init_params)
+    assert kiproject._loaded is True
+    assert kiproject.description == no_prompt_init_params.get('description')
 
 
 def test_it_does_not_prompt_for_create_remote_project_or_existing_when_no_prompt(mk_tempdir,
@@ -353,11 +370,11 @@ def test_it_does_not_prompt_for_create_remote_project_or_existing_when_no_prompt
     mk_mock_kiproject_input(raise_on_create_remote_project_or_existing=True)
 
     with pytest.raises(MockKiProjectInputErrorClass):
-        KiProject(mk_tempdir(), init_params=KiProjectInitParams(no_prompt=False))
+        KiProject(mk_tempdir(), no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_params=no_prompt_init_params)
+    kiproject = KiProject(mk_tempdir(), **no_prompt_init_params)
     assert kiproject._loaded is True
-    assert kiproject.project_uri == no_prompt_init_params.project_uri
+    assert kiproject.project_uri == no_prompt_init_params.get('project_uri')
 
 
 def test_it_does_not_prompt_for_remote_project_name_when_no_prompt(mk_tempdir,
@@ -370,17 +387,19 @@ def test_it_does_not_prompt_for_remote_project_name_when_no_prompt(mk_tempdir,
                             create_remote_project_or_existing='c')
 
     with pytest.raises(MockKiProjectInputErrorClass):
-        KiProject(mk_tempdir(), init_params=KiProjectInitParams(no_prompt=False))
+        KiProject(mk_tempdir(), no_prompt=False)
 
-    init_params = KiProjectInitParams(no_prompt=True,
-                                      title=syn_test_helper.uniq_name(),
-                                      project_name=syn_test_helper.uniq_name())
+    init_params = {
+        'no_prompt': True,
+        'title': syn_test_helper.uniq_name(),
+        'project_name': syn_test_helper.uniq_name()
+    }
 
-    kiproject = KiProject(mk_tempdir(), init_params=init_params)
+    kiproject = KiProject(mk_tempdir(), **init_params)
     assert kiproject._loaded is True
-    assert kiproject.title == init_params.title
+    assert kiproject.title == init_params.get('title')
     syn_project = syn_dispose_of(kiproject)
-    assert syn_project.name == init_params.project_name
+    assert syn_project.name == init_params.get('project_name')
 
 
 def test_it_does_not_prompt_for_remote_project_uri_when_no_prompt(mk_tempdir,
@@ -391,11 +410,11 @@ def test_it_does_not_prompt_for_remote_project_uri_when_no_prompt(mk_tempdir,
                             create_remote_project_or_existing='e')
 
     with pytest.raises(MockKiProjectInputErrorClass):
-        KiProject(mk_tempdir(), init_params=KiProjectInitParams(no_prompt=False))
+        KiProject(mk_tempdir(), no_prompt=False)
 
-    kiproject = KiProject(mk_tempdir(), init_params=no_prompt_init_params)
+    kiproject = KiProject(mk_tempdir(), **no_prompt_init_params)
     assert kiproject._loaded is True
-    assert kiproject.project_uri == no_prompt_init_params.project_uri
+    assert kiproject.project_uri == no_prompt_init_params.get('project_uri')
 
 
 def test_it_creates_a_config_file_from_the_constructor(mk_kiproject, mk_mock_kiproject_input):

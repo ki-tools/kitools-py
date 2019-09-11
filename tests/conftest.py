@@ -4,7 +4,7 @@ import tempfile
 import shutil
 import json
 import uuid
-from src.kitools import KiProject, KiProjectInitParams, KiProjectResource, DataUri
+from src.kitools import KiProject, KiProjectResource, DataUri
 from src.kitools.data_adapters import SynapseAdapter
 from tests.synapse_test_helper import SynapseTestHelper
 
@@ -117,8 +117,7 @@ def mk_kiproject(syn_dispose_of, mk_mock_kiproject_input, mk_tempdir, mk_uniq_st
 
         mk_mock_kiproject_input()
 
-        init_params = KiProjectInitParams(data_type_template=data_type_template)
-        kiproject = KiProject((dir or mk_tempdir()), init_params=init_params)
+        kiproject = KiProject((dir or mk_tempdir()), data_type_template=data_type_template)
 
         if with_fake_project_files:
             for _ in range(with_fake_project_files_count):
@@ -171,6 +170,8 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
             raise_on_create_project_in=False,
             project_title=None,
             raise_on_project_title=False,
+            project_description=None,
+            raise_on_project_description=False,
             create_remote_project_or_existing=None,
             raise_on_create_remote_project_or_existing=False,
             remote_project_name=None,
@@ -191,6 +192,11 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
                     raise MockKiProjectInputError(prompt)
                 else:
                     return project_title or mk_uniq_string()
+            elif 'KiProject description:' in prompt:
+                if raise_on_project_description:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return project_description or mk_uniq_string()
             elif 'Create a remote project or use an existing? [c/e]:' in prompt:
                 if raise_on_create_remote_project_or_existing:
                     raise MockKiProjectInputError(prompt)

@@ -3,7 +3,6 @@ import json
 import glob
 from collections import deque
 from beautifultable import BeautifulTable
-from .ki_project_init_params import KiProjectInitParams
 from .ki_project_resource import KiProjectResource
 from .data_type import DataType
 from .data_type_template import DataTypeTemplate
@@ -58,17 +57,25 @@ class KiProject(object):
                                            DEFAULT_OSX_DATA_IGNORES,
                                            DEFAULT_WINDOWS_DATA_IGNORES)
 
-    def __init__(self, local_path, init_params=None):
+    def __init__(self, local_path, **kwargs):
         """Instantiates the KiProject.
 
         Args:
-            local_path: The local path to where the KiProject resides or will reside.
-            init_params: Parameters for initializing a new KiProject.
+            local_path: The local path to where the KiProject resides (or will reside if creating a new KiProject).
+            **kwargs: Keyword arguments.
+
+        Kwargs:
+            title: The title for the new KiProject.
+            description: The description for the new KiProject.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+            data_type_template: The name of the DataTypeTemplate to create the project with.
+            no_prompt: Suppress all prompts during KiProject initialization.
         """
         if not local_path or local_path.strip() == '':
             raise ValueError('local_path is required.')
-
-        init_params = init_params or KiProjectInitParams()
 
         self.local_path = SysPath(local_path).abs_path
         self.title = None
@@ -78,8 +85,6 @@ class KiProject(object):
         self.data_types = []
         self.resources = []
 
-        self._set_data_types_from_template(init_params.data_type_template or DataTypeTemplate.default())
-
         self._data_ignores = list(self.DEFAULT_DATA_IGNORES)
 
         self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
@@ -88,12 +93,11 @@ class KiProject(object):
 
         if self.load():
             self._ensure_project_structure()
-
             self._loaded = True
             self.show_missing_resources()
             print('KiProject successfully loaded and ready to use.')
         else:
-            if self._init_project(init_params):
+            if self._init_project(**kwargs):
                 self._loaded = True
                 self.show_missing_resources()
                 print('KiProject initialized successfully and ready to use.')
@@ -603,57 +607,93 @@ class KiProject(object):
         if not self._loaded:
             raise Exception('KiProject configuration not created or loaded.')
 
-    def _init_project(self, init_params):
+    def _init_project(self, **kwargs):
         """Configures and creates the KiProject.
 
         Args:
-            init_params: KiProjectInitParams to use for initialization.
+            **kwargs: Keyword arguments.
+
+        Kwargs:
+            title: The title for the new KiProject.
+            description: The description for the new KiProject.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+            data_type_template: The name of the DataTypeTemplate to create the project with.
+            no_prompt: Suppress all prompts during KiProject initialization.
 
         Returns:
             True or False
         """
-        if not self._init_local_path(init_params):
+        title = kwargs.get('title')
+        description = kwargs.get('description')
+        project_uri = kwargs.get('project_uri')
+        project_name = kwargs.get('project_name')
+        data_type_template = kwargs.get('data_type_template')
+        no_prompt = kwargs.get('no_prompt')
+
+        if project_uri and project_name:
+            print('ERROR: project_uri and project_name cannot both be set.')
             return False
 
-        if not self._init_title(init_params):
+        if project_uri and not DataUri.is_uri(project_uri):
+            print('ERROR: Invalid project_uri: {0}'.format(project_uri))
             return False
 
-        if not self._init_project_uri(init_params):
+        if data_type_template:
+            data_type_template = DataTypeTemplate.get(data_type_template)
+        else:
+            data_type_template = DataTypeTemplate.default()
+
+        if not self._init_local_path(no_prompt):
             return False
+
+        if not self._init_title(no_prompt, title):
+            return False
+
+        if not self._init_description(no_prompt, description):
+            return False
+
+        if not self._init_project_uri(no_prompt, project_uri, project_name):
+            return False
+
+        self._set_data_types_from_template(data_type_template)
 
         self._ensure_project_structure()
 
         self.save()
         return True
 
-    def _init_local_path(self, init_params):
+    def _init_local_path(self, no_prompt):
         """Ensures the local_path is set.
 
         Args:
-            init_params: KiProjectInitParams to use for initialization.
+            no_prompt: Suppress all prompts during KiProject initialization.
 
         Returns:
             True or False
         """
-        if init_params.no_prompt:
+        if no_prompt:
             print('KiProject path: {0}'.format(self.local_path))
             return True
         else:
             answer = input('Create KiProject in: {0} [y/n]: '.format(self.local_path))
             return answer and answer.strip().lower() == 'y'
 
-    def _init_title(self, init_params):
+    def _init_title(self, no_prompt, title):
         """Ensures the title is set.
 
         Args:
-            init_params: KiProjectInitParams to use for initialization.
+            no_prompt: Suppress all prompts during KiProject initialization.
+            title: The title for the new KiProject.
 
         Returns:
             True or False
         """
-        if init_params.title:
-            self.title = init_params.title
-        elif init_params.prompt:
+        if title:
+            self.title = title
+        elif not no_prompt:
             while self.title is None:
                 answer = input('KiProject title: ')
                 self.title = answer
@@ -663,36 +703,65 @@ class KiProject(object):
 
         return self.title is not None
 
-    def _init_project_uri(self, init_params):
-        """Ensures the project_uri is set and valid.
+    def _init_description(self, no_prompt, description):
+        """Ensures the description is set.
 
         Args:
-            init_params: KiProjectInitParams to use for initialization.
+            no_prompt: Suppress all prompts during KiProject initialization.
+            description: The description for the new KiProject.
 
         Returns:
             True or False
         """
-        if init_params.project_uri:
-            return self._init_project_uri_existing(init_params)
-        elif init_params.project_name:
-            return self._init_project_uri_new(init_params)
-        elif init_params.prompt:
+        if description:
+            self.description = description
+        elif not no_prompt:
+            while self.description is None:
+                answer = input('KiProject description: ')
+                self.description = answer
+
+        if self.description:
+            print('KiProject description: {0}'.format(self.description))
+
+        # Description is optional so always return True.
+        return True
+
+    def _init_project_uri(self, no_prompt, project_uri, project_name):
+        """Ensures the project_uri is set and valid.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+
+        Returns:
+            True or False
+        """
+        if project_uri:
+            return self._init_project_uri_existing(no_prompt, project_uri=project_uri)
+        elif project_name:
+            return self._init_project_uri_new(no_prompt, project_name=project_name)
+        elif not no_prompt:
             while self.project_uri is None:
                 answer = input('Create a remote project or use an existing? [c/e]: ')
                 if answer == 'c':
-                    return self._init_project_uri_new(init_params)
+                    return self._init_project_uri_new(no_prompt)
                 elif answer == 'e':
-                    return self._init_project_uri_existing(init_params)
+                    return self._init_project_uri_existing(no_prompt)
                 else:
                     print('Enter "c" to create a new remote project or "e" to use an existing remote project.')
         else:
             return False
 
-    def _init_project_uri_new(self, init_params):
+    def _init_project_uri_new(self, no_prompt, project_name=None):
         """Creates a new remote project and sets the project_uri.
 
         Args:
-            init_params: KiProjectInitParams to use for initialization.
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
 
         Returns:
             True or False
@@ -701,9 +770,9 @@ class KiProject(object):
 
         while not self.project_uri:
             try:
-                project_name = init_params.project_name
+                project_name = project_name
 
-                if not project_name and init_params.prompt:
+                if not project_name and not no_prompt:
                     project_name = input('Remote project name: ')
 
                 if project_name:
@@ -712,7 +781,7 @@ class KiProject(object):
                     print('Remote project: "{0}" created at URI: {1}'.format(remote_project.name, self.project_uri))
             except Exception as ex:
                 print('Error creating remote project: {0}'.format(str(ex)))
-                if init_params.no_prompt:
+                if no_prompt:
                     break
                 else:
                     answer = input('Try again? [y/n]: ')
@@ -721,21 +790,23 @@ class KiProject(object):
 
         return self.project_uri is not None
 
-    def _init_project_uri_existing(self, init_params):
+    def _init_project_uri_existing(self, no_prompt, project_uri=None):
         """Sets the project_uri to an existing remote project.
 
         Args:
-            init_params: KiProjectInitParams to use for initialization.
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
 
         Returns:
             True or False
         """
-        if init_params.project_uri:
-            if self._validate_project_uri(init_params.project_uri):
-                self.project_uri = init_params.project_uri
+        if project_uri:
+            if self._validate_project_uri(project_uri):
+                self.project_uri = project_uri
             else:
-                print('project_uri: {0} could not be validated.'.format(init_params.project_uri))
-        elif init_params.prompt:
+                print('project_uri: {0} could not be validated.'.format(project_uri))
+        elif not no_prompt:
             example_data_uri = DataUri(DataUri.default_scheme(), '{0}123456'.format(DataUri.default_scheme())).uri
 
             while not self.project_uri:

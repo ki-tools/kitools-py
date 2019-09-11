@@ -1,6 +1,5 @@
 import os
 from .ki_project import KiProject
-from .ki_project_init_params import KiProjectInitParams
 from .ki_project_resource import KiProjectResource
 from .data_type import DataType
 from .data_type_template import DataTypeTemplate, DataTypeTemplatePath

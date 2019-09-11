@@ -1,15 +1,15 @@
 # Change Log
 
-## Version 0.0.2 (2019-09-10)
+## Version 0.0.2 (2019-09-11)
 ### Changes
-- Added `KiProjectInitParams` class to store `KiProject` initialization parameters.
-- Added `init_params` parameter to `KiProject` constructor.
+- Refactored `KiProject` initialization.
+- Added initialization prompt for the `KiProject` description.
 - Added NOTICE file containing copyright. Removed copyright from source files.
 - Changed docstrings to "Google" style.
 - Added module docs.
 
 ### Breaking Changes
-- Removed initialization keyword parameters from `KiProject` constructor. Use `KiProjectInitParams` instead.
+- `KiProject` constructor argument `init_no_prompt` renamed to `no_prompt`.
 
 
 ## Version 0.0.1 (2019-06-11)
