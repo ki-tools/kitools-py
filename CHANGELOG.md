@@ -1,6 +1,6 @@
 # Change Log
 
-## Version 0.0.2 (2019-09-11)
+## Version 0.0.2 (2019-09-17)
 ### Changes
 - Refactored `KiProject` initialization.
 - Added initialization prompt for the `KiProject` description.
