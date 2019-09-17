@@ -30,7 +30,7 @@ def mk_dirs(*args):
 
 def write_random_data_to_file(file_path):
     with open(file_path, mode='w') as f:
-        for _ in range(1, random.randrange(1, 1000)):
+        for _ in range(1, random.randrange(2, 10)):
             f.write(str(uuid.uuid4()))
 
 
