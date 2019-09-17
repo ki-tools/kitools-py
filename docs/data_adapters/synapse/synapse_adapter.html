@@ -1,0 +1,1343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.6.2" />
+<title>kitools.data_adapters.synapse.synapse_adapter API documentation</title>
+<meta name="description" content="" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase;cursor:pointer}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>kitools.data_adapters.synapse.synapse_adapter</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">import os
+import synapseclient
+from ..base_adapter import BaseAdapter
+from .synapse_remote_entity import SynapseRemoteEntity
+from ...data_uri import DataUri
+from ...sys_path import SysPath
+from ...env import Env
+from ...utils import Utils
+
+
+class SynapseAdapter(BaseAdapter):
+    &#34;&#34;&#34;Data Adapter for Synapse.&#34;&#34;&#34;
+
+    DATA_URI_SCHEME = &#39;syn&#39;
+    _client = None
+
+    @classmethod
+    def client(cls):
+        &#34;&#34;&#34;Gets a new or cached instance of a logged in Synapse client.
+
+        Returns:
+            synapseclient.Synapse
+        &#34;&#34;&#34;
+        if not cls._client:
+            cls._client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH())
+            cls._client.login(silent=True)
+        return cls._client
+
+    def name(self):
+        &#34;&#34;&#34;Gets the name of the data adapter.
+
+        Returns:
+            String
+        &#34;&#34;&#34;
+        return &#39;Synapse&#39;
+
+    def connected(self):
+        &#34;&#34;&#34;Gets if the synapseclient is connected and logged in.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        try:
+            return SynapseAdapter.client()._loggedIn() is not False
+        except Exception as ex:
+            # TODO: log this exception
+            pass
+        return False
+
+    def get_entity(self, remote_id, version=None, local_path=None):
+        &#34;&#34;&#34;Gets an entity from Synapse.
+
+        Args:
+            remote_id: The id of the Synapse entity.
+            version: The version of the entity to get. Set to None to get the latest version.
+            local_path: Where to download the entity to (in the case of downloadable entities).
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        entity = SynapseAdapter.client().get(
+            remote_id,
+            downloadFile=local_path is not None,
+            downloadLocation=local_path,
+            ifcollision=&#39;overwrite.local&#39;,
+            version=version
+        )
+
+        remote_entity = SynapseRemoteEntity(entity)
+
+        return remote_entity
+
+    def create_project(self, name):
+        &#34;&#34;&#34;Creates a new project in Synapse.
+
+        Args:
+            name: The name of the project to create.
+
+        Returns:
+            SynapseRemoteEntity
+
+        Raises:
+            Exception: Raised if a project with the same name already exists.
+        &#34;&#34;&#34;
+        # Check if the project already exists.
+        syn_project_id = SynapseAdapter.client().findEntityId(name=name)
+        if syn_project_id:
+            raise Exception(&#39;Synapse project already exists with name: {0}&#39;.format(name))
+
+        syn_project = SynapseAdapter.client().store(synapseclient.Project(name=name))
+        return SynapseRemoteEntity(syn_project)
+
+    def data_pull(self, ki_project_resource):
+        &#34;&#34;&#34;Downloads a resource and all of it&#39;s children.
+
+        Args:
+            ki_project_resource: The resource to download.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        data_uri = DataUri.parse(ki_project_resource.remote_uri)
+        syn_entity = SynapseAdapter.client().get(data_uri.id, downloadFile=False)
+
+        if not ki_project_resource.abs_path:
+            # This is the first pull so figure out where it lives locally.
+            self._set_abs_path_from_entity(ki_project_resource, syn_entity)
+
+        download_path = ki_project_resource.abs_path
+
+        if self._is_file(syn_entity):
+            download_path = os.path.dirname(download_path)
+
+        # Make sure a version didn&#39;t get set on a folder.
+        # Synapse will blow up when requesting a version on a folder.
+        if self._is_folder(syn_entity) and ki_project_resource.version:
+            ki_project_resource.version = None
+            ki_project_resource.kiproject.save()
+
+        entity = SynapseAdapter.client().get(
+            data_uri.id,
+            downloadFile=True,
+            downloadLocation=download_path,
+            ifcollision=&#39;overwrite.local&#39;,
+            version=ki_project_resource.version
+        )
+
+        remote_entity = SynapseRemoteEntity(entity, local_path=download_path)
+
+        # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
+        assert SysPath(remote_entity.local_path).abs_path.lower() == \
+               SysPath(ki_project_resource.abs_path).abs_path.lower()
+
+        if remote_entity.is_directory:
+            # Create the local directory for the folder.
+            SysPath(remote_entity.local_path).ensure_dirs()
+            self._pull_children(ki_project_resource.root_resource or ki_project_resource,
+                                remote_entity.source,
+                                remote_entity.local_path)
+
+        return remote_entity
+
+    def _pull_children(self, root_ki_project_resource, syn_parent, download_path):
+        &#34;&#34;&#34;Pulls all the children of a parent.
+
+        Args:
+            root_ki_project_resource: The root resource.
+            syn_parent: The Synapse parent entity.
+            download_path: Where to download the children.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        kiproject = root_ki_project_resource.kiproject
+        syn_children = SynapseAdapter.client().getChildren(syn_parent, includeTypes=[&#39;folder&#39;, &#39;file&#39;])
+
+        for syn_child in syn_children:
+            child_data_uri = DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_child.get(&#39;id&#39;)).uri
+            child_name = syn_child.get(&#39;name&#39;)
+            child_local_path = os.path.join(download_path, child_name)
+            child_data_type = kiproject.get_data_type_from_path(child_local_path).name
+
+            child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
+                                                                remote_uri=child_data_uri,
+                                                                abs_path=child_local_path,
+                                                                root_id=root_ki_project_resource.id)
+
+            if not child_resource:
+                child_resource = kiproject._data_add(data_type=child_data_type,
+                                                     remote_uri=child_data_uri,
+                                                     local_path=child_local_path,
+                                                     name=child_name,
+                                                     root_ki_project_resource=root_ki_project_resource)
+
+            self.data_pull(child_resource)
+
+    def _set_abs_path_from_entity(self, ki_project_resource, syn_entity):
+        &#34;&#34;&#34;Tries to figure out where a file/folder lives with in a KiProject data directories.
+
+        Args:
+            ki_project_resource: The resource to set the path for.
+            syn_entity: The synapse entity to get the path for.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Raised when the path cannot be determined.
+        &#34;&#34;&#34;
+        kiproject = ki_project_resource.kiproject
+
+        remote_path = self._get_remote_path(syn_entity)
+
+        # Always use the resource&#39;s data_type if available.
+        data_type = ki_project_resource.data_type or kiproject.get_data_type_from_path(remote_path)
+
+        if data_type is None:
+            raise Exception(
+                &#39;Could not determine local file path for: {0}, try setting the data_type on this resource&#39;.format(
+                    ki_project_resource.remote_uri))
+
+        local_rel_path = remote_path
+
+        if local_rel_path.startswith(data_type.rel_path):
+            local_rel_path = local_rel_path.replace(data_type.rel_path, &#39;&#39;, 1)
+
+        if local_rel_path.startswith(os.sep):
+            local_rel_path = local_rel_path[1:]
+
+        abs_path = os.path.join(kiproject.local_path, data_type.rel_path, local_rel_path)
+
+        ki_project_resource.abs_path = abs_path
+        assert ki_project_resource.data_type is not None
+
+        kiproject.save()
+
+    def data_push(self, ki_project_resource):
+        &#34;&#34;&#34;Uploads a resource and all of it&#39;s children to Synapse.
+
+        Args:
+            ki_project_resource: The resource to upload.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        kiproject = ki_project_resource.kiproject
+
+        project_data_uri = DataUri.parse(kiproject.project_uri)
+
+        resource_belongs_to_ki_project = True
+        syn_parent = None
+
+        # Check if the synapse entity belongs to the KiProject&#39;s remote project
+        # and get the correct synapse parent if it doesn&#39;t.
+        if ki_project_resource.remote_uri is not None:
+            resource_data_uri = DataUri.parse(ki_project_resource.remote_uri)
+
+            syn_entity = SynapseAdapter.client().get(resource_data_uri.id, downloadFile=False)
+
+            syn_parents = [syn_entity] if self._is_project(syn_entity) else list(SynapseParentIter(syn_entity))
+
+            # The last item will always be a Synapse Project.
+            resource_syn_project = syn_parents[-1]
+            assert self._is_project(resource_syn_project)
+
+            if resource_syn_project.id != project_data_uri.id:
+                # The resource does not belong to the same Synapse project so get its parent.
+                resource_belongs_to_ki_project = False
+                syn_parent = syn_parents[0]
+            else:
+                syn_parent = resource_syn_project
+                assert project_data_uri.id == syn_parent.id
+
+        # If the resource belongs to the KiProject&#39;s remote project then get or create the remote folder structure.
+        if resource_belongs_to_ki_project:
+            if syn_parent is None:
+                syn_parent = SynapseAdapter.client().get(project_data_uri.id)
+
+            sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
+
+            # Get or create the folders in Synapse.
+            for part in sys_path.rel_parts:
+                # Break when we hit the filename.
+                if part == sys_path.basename:
+                    break
+                syn_parent = self._find_or_create_syn_folder(syn_parent, part)
+
+        return self._data_push(ki_project_resource, syn_parent)
+
+    def _data_push(self, ki_project_resource, syn_parent):
+        &#34;&#34;&#34;Uploads a resource to Synapse parent entity.
+
+        Args:
+            ki_project_resource: The resource to upload.
+            syn_parent: The Synapse parent entity.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        kiproject = ki_project_resource.kiproject
+        sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
+        syn_entity = None
+
+        if sys_path.is_dir:
+            # Find or create the folder in Synapse.
+            syn_entity = self._find_or_create_syn_folder(syn_parent, sys_path.basename)
+
+            # Push the children
+            self._push_children(ki_project_resource.root_resource or ki_project_resource, syn_entity, sys_path.abs_path)
+        else:
+            # Upload the file
+            syn_entity = SynapseAdapter.client().store(synapseclient.File(path=sys_path.abs_path, parent=syn_parent),
+                                                       forceVersion=False)
+
+        has_changes = False
+
+        # If this is the first push then update the KiProjectResource.
+        if ki_project_resource.remote_uri is None:
+            has_changes = True
+            ki_project_resource.remote_uri = DataUri(self.DATA_URI_SCHEME, syn_entity.id).uri
+
+        # Clear the version when pushing
+        if ki_project_resource.version is not None:
+            has_changes = True
+            ki_project_resource.version = None
+
+        if has_changes:
+            kiproject.save()
+
+        remote_entity = SynapseRemoteEntity(syn_entity, local_path=sys_path.abs_path)
+
+        # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
+        assert SysPath(remote_entity.local_path).abs_path.lower() == \
+               SysPath(ki_project_resource.abs_path).abs_path.lower()
+
+        return remote_entity
+
+    def _push_children(self, root_ki_project_resource, syn_parent, local_path):
+        &#34;&#34;&#34;Uploads child objects to Synapse.
+
+        Args:
+            root_ki_project_resource: The resource to upload.
+            syn_parent: The Synapse parent to upload to.
+            local_path: The local path if files and folders to upload.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        kiproject = root_ki_project_resource.kiproject
+
+        dirs, files = Utils.get_dirs_and_files(local_path)
+
+        for entry in files + dirs:
+            sys_path = SysPath(entry.path)
+            child_data_type = kiproject.get_data_type_from_path(sys_path.abs_path).name
+
+            child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
+                                                                abs_path=sys_path.abs_path,
+                                                                root_id=root_ki_project_resource.id)
+            if not child_resource:
+                child_resource = kiproject._data_add(data_type=child_data_type,
+                                                     local_path=sys_path.abs_path,
+                                                     name=sys_path.basename,
+                                                     root_ki_project_resource=root_ki_project_resource)
+
+            self._data_push(child_resource, syn_parent)
+
+    def _get_remote_path(self, syn_entity):
+        &#34;&#34;&#34;Gets the remote path for a Synapse Folder or File (e.g., folder1/folder2/file1.csv)
+
+        Args:
+            syn_entity: The Synapse entity to get the path for.
+
+        Returns:
+            String
+        &#34;&#34;&#34;
+        if not (self._is_folder(syn_entity) or self._is_file(syn_entity)):
+            return &#39;&#39;
+
+        path_parts = [syn_entity.name]
+
+        for e in SynapseParentIter(syn_entity):
+            if self._is_project(e):
+                break
+            path_parts.insert(0, e.name)
+
+        # Return the path matching the OS&#39;s separator.
+        return os.sep.join(path_parts)
+
+    def _find_or_create_syn_folder(self, syn_parent, folder_name):
+        &#34;&#34;&#34;Finds or creates a folder in Synapse.
+
+        Args:
+            syn_parent: The Synapse entity to find or create the folder under.
+            folder_name: The name of the folder to find or create.
+
+        Returns:
+            synapseclient.Folder
+        &#34;&#34;&#34;
+
+        # TODO: can any of this be cached?
+        syn_entity_id = SynapseAdapter.client().findEntityId(folder_name, parent=syn_parent)
+
+        if syn_entity_id:
+            syn_entity = SynapseAdapter.client().get(syn_entity_id)
+            if self._is_folder(syn_entity):
+                return syn_entity
+            else:
+                raise Exception(
+                    &#39;Cannot create folder, name: {0} already taken by another entity: {1}&#39;.format(folder_name,
+                                                                                                  syn_entity.id))
+
+        return SynapseAdapter.client().store(synapseclient.Folder(name=folder_name, parent=syn_parent))
+
+    def _is_project(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a Project.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return isinstance(syn_entity, synapseclient.Project)
+
+    def _is_folder(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a Folder.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return isinstance(syn_entity, synapseclient.Folder)
+
+    def _is_file(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a File.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return isinstance(syn_entity, synapseclient.File)
+
+    def _is_project_folder_file(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a Project, Folder, or File.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return self._is_project(syn_entity) or self._is_folder(syn_entity) or self._is_file(syn_entity)
+
+
+class SynapseParentIter:
+    &#34;&#34;&#34;Iterator for traversing Synapse parents.&#34;&#34;&#34;
+
+    def __init__(self, syn_entity):
+        &#34;&#34;&#34;Instantiates a new instance.
+
+        Args:
+            syn_entity: The Synapse entity to start with.
+        &#34;&#34;&#34;
+        self._current_entity = syn_entity
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        &#34;&#34;&#34;Gets the next parent entity until the Project entity is found.
+
+        NOTE: There is a parent above a Synapse Project but it is not accessible.
+
+        Returns:
+            The next Synapse parent.
+        &#34;&#34;&#34;
+        if isinstance(self._current_entity, synapseclient.Project):
+            raise StopIteration()
+
+        self._current_entity = SynapseAdapter.client().get(self._current_entity.get(&#39;parentId&#39;, None))
+
+        return self._current_entity</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter"><code class="flex name class">
+<span>class <span class="ident">SynapseAdapter</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Data Adapter for Synapse.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class SynapseAdapter(BaseAdapter):
+    &#34;&#34;&#34;Data Adapter for Synapse.&#34;&#34;&#34;
+
+    DATA_URI_SCHEME = &#39;syn&#39;
+    _client = None
+
+    @classmethod
+    def client(cls):
+        &#34;&#34;&#34;Gets a new or cached instance of a logged in Synapse client.
+
+        Returns:
+            synapseclient.Synapse
+        &#34;&#34;&#34;
+        if not cls._client:
+            cls._client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH())
+            cls._client.login(silent=True)
+        return cls._client
+
+    def name(self):
+        &#34;&#34;&#34;Gets the name of the data adapter.
+
+        Returns:
+            String
+        &#34;&#34;&#34;
+        return &#39;Synapse&#39;
+
+    def connected(self):
+        &#34;&#34;&#34;Gets if the synapseclient is connected and logged in.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        try:
+            return SynapseAdapter.client()._loggedIn() is not False
+        except Exception as ex:
+            # TODO: log this exception
+            pass
+        return False
+
+    def get_entity(self, remote_id, version=None, local_path=None):
+        &#34;&#34;&#34;Gets an entity from Synapse.
+
+        Args:
+            remote_id: The id of the Synapse entity.
+            version: The version of the entity to get. Set to None to get the latest version.
+            local_path: Where to download the entity to (in the case of downloadable entities).
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        entity = SynapseAdapter.client().get(
+            remote_id,
+            downloadFile=local_path is not None,
+            downloadLocation=local_path,
+            ifcollision=&#39;overwrite.local&#39;,
+            version=version
+        )
+
+        remote_entity = SynapseRemoteEntity(entity)
+
+        return remote_entity
+
+    def create_project(self, name):
+        &#34;&#34;&#34;Creates a new project in Synapse.
+
+        Args:
+            name: The name of the project to create.
+
+        Returns:
+            SynapseRemoteEntity
+
+        Raises:
+            Exception: Raised if a project with the same name already exists.
+        &#34;&#34;&#34;
+        # Check if the project already exists.
+        syn_project_id = SynapseAdapter.client().findEntityId(name=name)
+        if syn_project_id:
+            raise Exception(&#39;Synapse project already exists with name: {0}&#39;.format(name))
+
+        syn_project = SynapseAdapter.client().store(synapseclient.Project(name=name))
+        return SynapseRemoteEntity(syn_project)
+
+    def data_pull(self, ki_project_resource):
+        &#34;&#34;&#34;Downloads a resource and all of it&#39;s children.
+
+        Args:
+            ki_project_resource: The resource to download.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        data_uri = DataUri.parse(ki_project_resource.remote_uri)
+        syn_entity = SynapseAdapter.client().get(data_uri.id, downloadFile=False)
+
+        if not ki_project_resource.abs_path:
+            # This is the first pull so figure out where it lives locally.
+            self._set_abs_path_from_entity(ki_project_resource, syn_entity)
+
+        download_path = ki_project_resource.abs_path
+
+        if self._is_file(syn_entity):
+            download_path = os.path.dirname(download_path)
+
+        # Make sure a version didn&#39;t get set on a folder.
+        # Synapse will blow up when requesting a version on a folder.
+        if self._is_folder(syn_entity) and ki_project_resource.version:
+            ki_project_resource.version = None
+            ki_project_resource.kiproject.save()
+
+        entity = SynapseAdapter.client().get(
+            data_uri.id,
+            downloadFile=True,
+            downloadLocation=download_path,
+            ifcollision=&#39;overwrite.local&#39;,
+            version=ki_project_resource.version
+        )
+
+        remote_entity = SynapseRemoteEntity(entity, local_path=download_path)
+
+        # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
+        assert SysPath(remote_entity.local_path).abs_path.lower() == \
+               SysPath(ki_project_resource.abs_path).abs_path.lower()
+
+        if remote_entity.is_directory:
+            # Create the local directory for the folder.
+            SysPath(remote_entity.local_path).ensure_dirs()
+            self._pull_children(ki_project_resource.root_resource or ki_project_resource,
+                                remote_entity.source,
+                                remote_entity.local_path)
+
+        return remote_entity
+
+    def _pull_children(self, root_ki_project_resource, syn_parent, download_path):
+        &#34;&#34;&#34;Pulls all the children of a parent.
+
+        Args:
+            root_ki_project_resource: The root resource.
+            syn_parent: The Synapse parent entity.
+            download_path: Where to download the children.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        kiproject = root_ki_project_resource.kiproject
+        syn_children = SynapseAdapter.client().getChildren(syn_parent, includeTypes=[&#39;folder&#39;, &#39;file&#39;])
+
+        for syn_child in syn_children:
+            child_data_uri = DataUri(SynapseAdapter.DATA_URI_SCHEME, syn_child.get(&#39;id&#39;)).uri
+            child_name = syn_child.get(&#39;name&#39;)
+            child_local_path = os.path.join(download_path, child_name)
+            child_data_type = kiproject.get_data_type_from_path(child_local_path).name
+
+            child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
+                                                                remote_uri=child_data_uri,
+                                                                abs_path=child_local_path,
+                                                                root_id=root_ki_project_resource.id)
+
+            if not child_resource:
+                child_resource = kiproject._data_add(data_type=child_data_type,
+                                                     remote_uri=child_data_uri,
+                                                     local_path=child_local_path,
+                                                     name=child_name,
+                                                     root_ki_project_resource=root_ki_project_resource)
+
+            self.data_pull(child_resource)
+
+    def _set_abs_path_from_entity(self, ki_project_resource, syn_entity):
+        &#34;&#34;&#34;Tries to figure out where a file/folder lives with in a KiProject data directories.
+
+        Args:
+            ki_project_resource: The resource to set the path for.
+            syn_entity: The synapse entity to get the path for.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Raised when the path cannot be determined.
+        &#34;&#34;&#34;
+        kiproject = ki_project_resource.kiproject
+
+        remote_path = self._get_remote_path(syn_entity)
+
+        # Always use the resource&#39;s data_type if available.
+        data_type = ki_project_resource.data_type or kiproject.get_data_type_from_path(remote_path)
+
+        if data_type is None:
+            raise Exception(
+                &#39;Could not determine local file path for: {0}, try setting the data_type on this resource&#39;.format(
+                    ki_project_resource.remote_uri))
+
+        local_rel_path = remote_path
+
+        if local_rel_path.startswith(data_type.rel_path):
+            local_rel_path = local_rel_path.replace(data_type.rel_path, &#39;&#39;, 1)
+
+        if local_rel_path.startswith(os.sep):
+            local_rel_path = local_rel_path[1:]
+
+        abs_path = os.path.join(kiproject.local_path, data_type.rel_path, local_rel_path)
+
+        ki_project_resource.abs_path = abs_path
+        assert ki_project_resource.data_type is not None
+
+        kiproject.save()
+
+    def data_push(self, ki_project_resource):
+        &#34;&#34;&#34;Uploads a resource and all of it&#39;s children to Synapse.
+
+        Args:
+            ki_project_resource: The resource to upload.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        kiproject = ki_project_resource.kiproject
+
+        project_data_uri = DataUri.parse(kiproject.project_uri)
+
+        resource_belongs_to_ki_project = True
+        syn_parent = None
+
+        # Check if the synapse entity belongs to the KiProject&#39;s remote project
+        # and get the correct synapse parent if it doesn&#39;t.
+        if ki_project_resource.remote_uri is not None:
+            resource_data_uri = DataUri.parse(ki_project_resource.remote_uri)
+
+            syn_entity = SynapseAdapter.client().get(resource_data_uri.id, downloadFile=False)
+
+            syn_parents = [syn_entity] if self._is_project(syn_entity) else list(SynapseParentIter(syn_entity))
+
+            # The last item will always be a Synapse Project.
+            resource_syn_project = syn_parents[-1]
+            assert self._is_project(resource_syn_project)
+
+            if resource_syn_project.id != project_data_uri.id:
+                # The resource does not belong to the same Synapse project so get its parent.
+                resource_belongs_to_ki_project = False
+                syn_parent = syn_parents[0]
+            else:
+                syn_parent = resource_syn_project
+                assert project_data_uri.id == syn_parent.id
+
+        # If the resource belongs to the KiProject&#39;s remote project then get or create the remote folder structure.
+        if resource_belongs_to_ki_project:
+            if syn_parent is None:
+                syn_parent = SynapseAdapter.client().get(project_data_uri.id)
+
+            sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
+
+            # Get or create the folders in Synapse.
+            for part in sys_path.rel_parts:
+                # Break when we hit the filename.
+                if part == sys_path.basename:
+                    break
+                syn_parent = self._find_or_create_syn_folder(syn_parent, part)
+
+        return self._data_push(ki_project_resource, syn_parent)
+
+    def _data_push(self, ki_project_resource, syn_parent):
+        &#34;&#34;&#34;Uploads a resource to Synapse parent entity.
+
+        Args:
+            ki_project_resource: The resource to upload.
+            syn_parent: The Synapse parent entity.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        kiproject = ki_project_resource.kiproject
+        sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
+        syn_entity = None
+
+        if sys_path.is_dir:
+            # Find or create the folder in Synapse.
+            syn_entity = self._find_or_create_syn_folder(syn_parent, sys_path.basename)
+
+            # Push the children
+            self._push_children(ki_project_resource.root_resource or ki_project_resource, syn_entity, sys_path.abs_path)
+        else:
+            # Upload the file
+            syn_entity = SynapseAdapter.client().store(synapseclient.File(path=sys_path.abs_path, parent=syn_parent),
+                                                       forceVersion=False)
+
+        has_changes = False
+
+        # If this is the first push then update the KiProjectResource.
+        if ki_project_resource.remote_uri is None:
+            has_changes = True
+            ki_project_resource.remote_uri = DataUri(self.DATA_URI_SCHEME, syn_entity.id).uri
+
+        # Clear the version when pushing
+        if ki_project_resource.version is not None:
+            has_changes = True
+            ki_project_resource.version = None
+
+        if has_changes:
+            kiproject.save()
+
+        remote_entity = SynapseRemoteEntity(syn_entity, local_path=sys_path.abs_path)
+
+        # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
+        assert SysPath(remote_entity.local_path).abs_path.lower() == \
+               SysPath(ki_project_resource.abs_path).abs_path.lower()
+
+        return remote_entity
+
+    def _push_children(self, root_ki_project_resource, syn_parent, local_path):
+        &#34;&#34;&#34;Uploads child objects to Synapse.
+
+        Args:
+            root_ki_project_resource: The resource to upload.
+            syn_parent: The Synapse parent to upload to.
+            local_path: The local path if files and folders to upload.
+
+        Returns:
+            SynapseRemoteEntity
+        &#34;&#34;&#34;
+        kiproject = root_ki_project_resource.kiproject
+
+        dirs, files = Utils.get_dirs_and_files(local_path)
+
+        for entry in files + dirs:
+            sys_path = SysPath(entry.path)
+            child_data_type = kiproject.get_data_type_from_path(sys_path.abs_path).name
+
+            child_resource = kiproject.find_project_resource_by(data_type=child_data_type,
+                                                                abs_path=sys_path.abs_path,
+                                                                root_id=root_ki_project_resource.id)
+            if not child_resource:
+                child_resource = kiproject._data_add(data_type=child_data_type,
+                                                     local_path=sys_path.abs_path,
+                                                     name=sys_path.basename,
+                                                     root_ki_project_resource=root_ki_project_resource)
+
+            self._data_push(child_resource, syn_parent)
+
+    def _get_remote_path(self, syn_entity):
+        &#34;&#34;&#34;Gets the remote path for a Synapse Folder or File (e.g., folder1/folder2/file1.csv)
+
+        Args:
+            syn_entity: The Synapse entity to get the path for.
+
+        Returns:
+            String
+        &#34;&#34;&#34;
+        if not (self._is_folder(syn_entity) or self._is_file(syn_entity)):
+            return &#39;&#39;
+
+        path_parts = [syn_entity.name]
+
+        for e in SynapseParentIter(syn_entity):
+            if self._is_project(e):
+                break
+            path_parts.insert(0, e.name)
+
+        # Return the path matching the OS&#39;s separator.
+        return os.sep.join(path_parts)
+
+    def _find_or_create_syn_folder(self, syn_parent, folder_name):
+        &#34;&#34;&#34;Finds or creates a folder in Synapse.
+
+        Args:
+            syn_parent: The Synapse entity to find or create the folder under.
+            folder_name: The name of the folder to find or create.
+
+        Returns:
+            synapseclient.Folder
+        &#34;&#34;&#34;
+
+        # TODO: can any of this be cached?
+        syn_entity_id = SynapseAdapter.client().findEntityId(folder_name, parent=syn_parent)
+
+        if syn_entity_id:
+            syn_entity = SynapseAdapter.client().get(syn_entity_id)
+            if self._is_folder(syn_entity):
+                return syn_entity
+            else:
+                raise Exception(
+                    &#39;Cannot create folder, name: {0} already taken by another entity: {1}&#39;.format(folder_name,
+                                                                                                  syn_entity.id))
+
+        return SynapseAdapter.client().store(synapseclient.Folder(name=folder_name, parent=syn_parent))
+
+    def _is_project(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a Project.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return isinstance(syn_entity, synapseclient.Project)
+
+    def _is_folder(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a Folder.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return isinstance(syn_entity, synapseclient.Folder)
+
+    def _is_file(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a File.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return isinstance(syn_entity, synapseclient.File)
+
+    def _is_project_folder_file(self, syn_entity):
+        &#34;&#34;&#34;Gets if the Synapse entity is a Project, Folder, or File.
+
+        Args:
+            syn_entity: The Synapse entity to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        return self._is_project(syn_entity) or self._is_folder(syn_entity) or self._is_file(syn_entity)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="kitools.data_adapters.base_adapter.BaseAdapter" href="../base_adapter.html#kitools.data_adapters.base_adapter.BaseAdapter">BaseAdapter</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.DATA_URI_SCHEME"><code class="name">var <span class="ident">DATA_URI_SCHEME</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.client"><code class="name flex">
+<span>def <span class="ident">client</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Gets a new or cached instance of a logged in Synapse client.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>synapseclient.Synapse</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@classmethod
+def client(cls):
+    &#34;&#34;&#34;Gets a new or cached instance of a logged in Synapse client.
+
+    Returns:
+        synapseclient.Synapse
+    &#34;&#34;&#34;
+    if not cls._client:
+        cls._client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH())
+        cls._client.login(silent=True)
+    return cls._client</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.connected"><code class="name flex">
+<span>def <span class="ident">connected</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Gets if the synapseclient is connected and logged in.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>True</code> or <code>False</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def connected(self):
+    &#34;&#34;&#34;Gets if the synapseclient is connected and logged in.
+
+    Returns:
+        True or False
+    &#34;&#34;&#34;
+    try:
+        return SynapseAdapter.client()._loggedIn() is not False
+    except Exception as ex:
+        # TODO: log this exception
+        pass
+    return False</code></pre>
+</details>
+</dd>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.create_project"><code class="name flex">
+<span>def <span class="ident">create_project</span></span>(<span>self, name)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Creates a new project in Synapse.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>name</code></strong></dt>
+<dd>The name of the project to create.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>SynapseRemoteEntity</code></dt>
+<dd>&nbsp;</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><strong><code>Exception</code></strong></dt>
+<dd>Raised if a project with the same name already exists.</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def create_project(self, name):
+    &#34;&#34;&#34;Creates a new project in Synapse.
+
+    Args:
+        name: The name of the project to create.
+
+    Returns:
+        SynapseRemoteEntity
+
+    Raises:
+        Exception: Raised if a project with the same name already exists.
+    &#34;&#34;&#34;
+    # Check if the project already exists.
+    syn_project_id = SynapseAdapter.client().findEntityId(name=name)
+    if syn_project_id:
+        raise Exception(&#39;Synapse project already exists with name: {0}&#39;.format(name))
+
+    syn_project = SynapseAdapter.client().store(synapseclient.Project(name=name))
+    return SynapseRemoteEntity(syn_project)</code></pre>
+</details>
+</dd>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.data_pull"><code class="name flex">
+<span>def <span class="ident">data_pull</span></span>(<span>self, ki_project_resource)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Downloads a resource and all of it's children.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>ki_project_resource</code></strong></dt>
+<dd>The resource to download.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>SynapseRemoteEntity</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_pull(self, ki_project_resource):
+    &#34;&#34;&#34;Downloads a resource and all of it&#39;s children.
+
+    Args:
+        ki_project_resource: The resource to download.
+
+    Returns:
+        SynapseRemoteEntity
+    &#34;&#34;&#34;
+    data_uri = DataUri.parse(ki_project_resource.remote_uri)
+    syn_entity = SynapseAdapter.client().get(data_uri.id, downloadFile=False)
+
+    if not ki_project_resource.abs_path:
+        # This is the first pull so figure out where it lives locally.
+        self._set_abs_path_from_entity(ki_project_resource, syn_entity)
+
+    download_path = ki_project_resource.abs_path
+
+    if self._is_file(syn_entity):
+        download_path = os.path.dirname(download_path)
+
+    # Make sure a version didn&#39;t get set on a folder.
+    # Synapse will blow up when requesting a version on a folder.
+    if self._is_folder(syn_entity) and ki_project_resource.version:
+        ki_project_resource.version = None
+        ki_project_resource.kiproject.save()
+
+    entity = SynapseAdapter.client().get(
+        data_uri.id,
+        downloadFile=True,
+        downloadLocation=download_path,
+        ifcollision=&#39;overwrite.local&#39;,
+        version=ki_project_resource.version
+    )
+
+    remote_entity = SynapseRemoteEntity(entity, local_path=download_path)
+
+    # Compare path parts until this is fixed: https://github.com/Sage-Bionetworks/synapsePythonClient/issues/678
+    assert SysPath(remote_entity.local_path).abs_path.lower() == \
+           SysPath(ki_project_resource.abs_path).abs_path.lower()
+
+    if remote_entity.is_directory:
+        # Create the local directory for the folder.
+        SysPath(remote_entity.local_path).ensure_dirs()
+        self._pull_children(ki_project_resource.root_resource or ki_project_resource,
+                            remote_entity.source,
+                            remote_entity.local_path)
+
+    return remote_entity</code></pre>
+</details>
+</dd>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.data_push"><code class="name flex">
+<span>def <span class="ident">data_push</span></span>(<span>self, ki_project_resource)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Uploads a resource and all of it's children to Synapse.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>ki_project_resource</code></strong></dt>
+<dd>The resource to upload.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>SynapseRemoteEntity</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_push(self, ki_project_resource):
+    &#34;&#34;&#34;Uploads a resource and all of it&#39;s children to Synapse.
+
+    Args:
+        ki_project_resource: The resource to upload.
+
+    Returns:
+        SynapseRemoteEntity
+    &#34;&#34;&#34;
+    kiproject = ki_project_resource.kiproject
+
+    project_data_uri = DataUri.parse(kiproject.project_uri)
+
+    resource_belongs_to_ki_project = True
+    syn_parent = None
+
+    # Check if the synapse entity belongs to the KiProject&#39;s remote project
+    # and get the correct synapse parent if it doesn&#39;t.
+    if ki_project_resource.remote_uri is not None:
+        resource_data_uri = DataUri.parse(ki_project_resource.remote_uri)
+
+        syn_entity = SynapseAdapter.client().get(resource_data_uri.id, downloadFile=False)
+
+        syn_parents = [syn_entity] if self._is_project(syn_entity) else list(SynapseParentIter(syn_entity))
+
+        # The last item will always be a Synapse Project.
+        resource_syn_project = syn_parents[-1]
+        assert self._is_project(resource_syn_project)
+
+        if resource_syn_project.id != project_data_uri.id:
+            # The resource does not belong to the same Synapse project so get its parent.
+            resource_belongs_to_ki_project = False
+            syn_parent = syn_parents[0]
+        else:
+            syn_parent = resource_syn_project
+            assert project_data_uri.id == syn_parent.id
+
+    # If the resource belongs to the KiProject&#39;s remote project then get or create the remote folder structure.
+    if resource_belongs_to_ki_project:
+        if syn_parent is None:
+            syn_parent = SynapseAdapter.client().get(project_data_uri.id)
+
+        sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
+
+        # Get or create the folders in Synapse.
+        for part in sys_path.rel_parts:
+            # Break when we hit the filename.
+            if part == sys_path.basename:
+                break
+            syn_parent = self._find_or_create_syn_folder(syn_parent, part)
+
+    return self._data_push(ki_project_resource, syn_parent)</code></pre>
+</details>
+</dd>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.get_entity"><code class="name flex">
+<span>def <span class="ident">get_entity</span></span>(<span>self, remote_id, version=None, local_path=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Gets an entity from Synapse.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>remote_id</code></strong></dt>
+<dd>The id of the Synapse entity.</dd>
+<dt><strong><code>version</code></strong></dt>
+<dd>The version of the entity to get. Set to None to get the latest version.</dd>
+<dt><strong><code>local_path</code></strong></dt>
+<dd>Where to download the entity to (in the case of downloadable entities).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>SynapseRemoteEntity</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def get_entity(self, remote_id, version=None, local_path=None):
+    &#34;&#34;&#34;Gets an entity from Synapse.
+
+    Args:
+        remote_id: The id of the Synapse entity.
+        version: The version of the entity to get. Set to None to get the latest version.
+        local_path: Where to download the entity to (in the case of downloadable entities).
+
+    Returns:
+        SynapseRemoteEntity
+    &#34;&#34;&#34;
+    entity = SynapseAdapter.client().get(
+        remote_id,
+        downloadFile=local_path is not None,
+        downloadLocation=local_path,
+        ifcollision=&#39;overwrite.local&#39;,
+        version=version
+    )
+
+    remote_entity = SynapseRemoteEntity(entity)
+
+    return remote_entity</code></pre>
+</details>
+</dd>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.name"><code class="name flex">
+<span>def <span class="ident">name</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Gets the name of the data adapter.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>String</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def name(self):
+    &#34;&#34;&#34;Gets the name of the data adapter.
+
+    Returns:
+        String
+    &#34;&#34;&#34;
+    return &#39;Synapse&#39;</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="kitools.data_adapters.synapse.synapse_adapter.SynapseParentIter"><code class="flex name class">
+<span>class <span class="ident">SynapseParentIter</span></span>
+<span>(</span><span>syn_entity)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Iterator for traversing Synapse parents.</p>
+<p>Instantiates a new instance.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>syn_entity</code></strong></dt>
+<dd>The Synapse entity to start with.</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class SynapseParentIter:
+    &#34;&#34;&#34;Iterator for traversing Synapse parents.&#34;&#34;&#34;
+
+    def __init__(self, syn_entity):
+        &#34;&#34;&#34;Instantiates a new instance.
+
+        Args:
+            syn_entity: The Synapse entity to start with.
+        &#34;&#34;&#34;
+        self._current_entity = syn_entity
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        &#34;&#34;&#34;Gets the next parent entity until the Project entity is found.
+
+        NOTE: There is a parent above a Synapse Project but it is not accessible.
+
+        Returns:
+            The next Synapse parent.
+        &#34;&#34;&#34;
+        if isinstance(self._current_entity, synapseclient.Project):
+            raise StopIteration()
+
+        self._current_entity = SynapseAdapter.client().get(self._current_entity.get(&#39;parentId&#39;, None))
+
+        return self._current_entity</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="kitools.data_adapters.synapse" href="index.html">kitools.data_adapters.synapse</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter">SynapseAdapter</a></code></h4>
+<ul class="two-column">
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.DATA_URI_SCHEME" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.DATA_URI_SCHEME">DATA_URI_SCHEME</a></code></li>
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.client" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.client">client</a></code></li>
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.connected" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.connected">connected</a></code></li>
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.create_project" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.create_project">create_project</a></code></li>
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.data_pull" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.data_pull">data_pull</a></code></li>
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.data_push" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.data_push">data_push</a></code></li>
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.get_entity" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.get_entity">get_entity</a></code></li>
+<li><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.name" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseAdapter.name">name</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="kitools.data_adapters.synapse.synapse_adapter.SynapseParentIter" href="#kitools.data_adapters.synapse.synapse_adapter.SynapseParentIter">SynapseParentIter</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.6.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

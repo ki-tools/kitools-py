@@ -1,0 +1,3064 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.6.2" />
+<title>kitools.ki_project API documentation</title>
+<meta name="description" content="" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase;cursor:pointer}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>kitools.ki_project</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">import os
+import json
+import glob
+from collections import deque
+from beautifultable import BeautifulTable
+from .ki_project_resource import KiProjectResource
+from .data_type import DataType
+from .data_type_template import DataTypeTemplate
+from .data_uri import DataUri
+from .sys_path import SysPath
+from .utils import Utils
+from .exceptions import NotADataTypePathError, DataTypeMismatchError, KiProjectResourceNotFoundError, \
+    InvalidDataTypeError
+
+
+class KiProject(object):
+    &#34;&#34;&#34;Primary class for interacting with KI Projects.&#34;&#34;&#34;
+
+    CONFIG_FILENAME = &#39;kiproject.json&#39;
+
+    DEFAULT_LINUX_DATA_IGNORES = frozenset([
+        &#39;*~&#39;,
+        &#39;.Trash-*&#39;,
+        &#39;.directory&#39;,
+        &#39;.fuse_hidden*&#39;,
+        &#39;.nfs*&#39;
+    ])
+
+    DEFAULT_OSX_DATA_IGNORES = frozenset([
+        &#39;.DS_Store&#39;,
+        &#39;.AppleDouble&#39;,
+        &#39;.LSOverride&#39;,
+        &#39;._*&#39;,
+        &#39;.DocumentRevisions-V100&#39;,
+        &#39;.fseventsd&#39;,
+        &#39;.Spotlight-V100&#39;,
+        &#39;.TemporaryItems&#39;,
+        &#39;.Trashes&#39;,
+        &#39;.VolumeIcon.icns&#39;,
+        &#39;.com.apple.timemachine.donotpresent&#39;,
+        &#39;.AppleDB&#39;,
+        &#39;.AppleDesktop&#39;,
+        &#39;.apdisk&#39;
+    ])
+
+    DEFAULT_WINDOWS_DATA_IGNORES = frozenset([
+        &#39;Thumbs.db&#39;,
+        &#39;ehthumbs.db&#39;,
+        &#39;ehthumbs_vista.db&#39;,
+        &#39;*.stackdump&#39;,
+        &#39;[Dd]esktop.ini&#39;,
+        &#39;$RECYCLE.BIN/&#39;,
+        &#39;*.lnk&#39;
+    ])
+
+    DEFAULT_DATA_IGNORES = frozenset.union(DEFAULT_LINUX_DATA_IGNORES,
+                                           DEFAULT_OSX_DATA_IGNORES,
+                                           DEFAULT_WINDOWS_DATA_IGNORES)
+
+    def __init__(self, local_path, **kwargs):
+        &#34;&#34;&#34;Instantiates the KiProject.
+
+        Args:
+            local_path: The local path to where the KiProject resides (or will reside if creating a new KiProject).
+            **kwargs: Keyword arguments.
+
+        Kwargs:
+            title: The title for the new KiProject.
+            description: The description for the new KiProject.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+            data_type_template: The name of the DataTypeTemplate to create the project with.
+            no_prompt: Suppress all prompts during KiProject initialization.
+        &#34;&#34;&#34;
+        if not local_path or local_path.strip() == &#39;&#39;:
+            raise ValueError(&#39;local_path is required.&#39;)
+
+        self.local_path = SysPath(local_path).abs_path
+        self.title = None
+        self.description = None
+        self.project_uri = None
+        self.project_name = None
+        self.data_types = []
+        self.resources = []
+
+        self._data_ignores = list(self.DEFAULT_DATA_IGNORES)
+
+        self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
+
+        self._loaded = False
+
+        if self.load():
+            self._ensure_project_structure()
+            self._loaded = True
+            self.show_missing_resources()
+            print(&#39;KiProject successfully loaded and ready to use.&#39;)
+        else:
+            if self._init_project(**kwargs):
+                self._loaded = True
+                self.show_missing_resources()
+                print(&#39;KiProject initialized successfully and ready to use.&#39;)
+            else:
+                print(&#39;KiProject initialization failed.&#39;)
+
+    def data_add(self, remote_uri_or_local_path, name=None, version=None, data_type=None):
+        &#34;&#34;&#34;Adds a new resource to the KiProject.
+
+        A resource can be a remote or local file or directory.
+        If the resource already exists it will be updated with the provided parameters.
+
+        Examples:
+            &gt;&gt;&gt; import kitools
+            &gt;&gt;&gt; kiproject = kitools.KiProject(&#39;/tmp/my_project&#39;)
+            &gt;&gt;&gt; kiproject.data_add(&#39;syn:syn123456&#39;, name=&#39;my dataset&#39;)
+            &gt;&gt;&gt; kiproject.data_add(&#39;/home/me/file1.csv&#39;)
+            &gt;&gt;&gt; kiproject.data_add(&#39;syn:syn123457&#39;, data_type=&#39;core&#39;, version=&#39;2&#39;)
+
+        Args:
+            remote_uri_or_local_path: The remote URI (e.g., syn:syn123456) or local path of the directory for file.
+            name: A user friendly name for the resource.
+            version: The version of the file to add.
+            data_type: The DataType of the file. This is only required when a remote_uri is provided
+                and the remote folder structure does not match the KiProject&#39;s &#34;data&#34; structure.
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        if DataUri.is_uri(remote_uri_or_local_path):
+            return self._data_add(data_type=data_type,
+                                  remote_uri=remote_uri_or_local_path,
+                                  name=(name or remote_uri_or_local_path),
+                                  version=version)
+        else:
+            sys_local_path = SysPath(remote_uri_or_local_path, cwd=self.local_path)
+            if sys_local_path.exists:
+                return self._data_add(data_type=data_type,
+                                      local_path=sys_local_path.abs_path,
+                                      name=(name or sys_local_path.basename),
+                                      version=version)
+            else:
+                raise ValueError(&#39;Please specify a remote URI or a local file or folder path that exists.&#39;)
+
+    def data_remove(self, resource_or_identifier):
+        &#34;&#34;&#34;Removes a resource from the KiProject.
+
+        This does not delete the file locally or remotely, it is only removed from the KiProject manifest.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+        # Remove any children.
+        for child_resource in self.find_project_resources_by(root_id=project_resource.id):
+            self.resources.remove(child_resource)
+
+        # Remove the root.
+        self.resources.remove(project_resource)
+        self.save()
+        return project_resource
+
+    def data_change(self, resource_or_identifier, name=None, version=None):
+        &#34;&#34;&#34;Changes the name or version on a KiProjectResource.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+            name: The new name.
+            version: The new version (or &#39;None&#39; to clear the version).
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+        if name is not None:
+            project_resource.name = name
+
+        if version is not None:
+            project_resource.version = version
+
+        self.save()
+        return project_resource
+
+    def data_pull(self, resource_or_identifier=None):
+        &#34;&#34;&#34;Downloads a specific resource or all resources in the KiProject.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+        Returns:
+            The absolute path to the pulled resource or a list of absolute paths for all pulled resources.
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        if resource_or_identifier:
+            project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+            if project_resource.remote_uri is None:
+                print(&#39;Resource cannot be pulled until it has been pushed:{0}{1}&#39;.format(os.linesep, project_resource))
+                return None
+
+            data_uri = DataUri.parse(project_resource.remote_uri)
+            data_uri.data_adapter().data_pull(project_resource)
+            return project_resource
+        else:
+            results = []
+            for project_resource in self.resources:
+                # Skip any non-root resources. The root resource will handle pulling the child.
+                if project_resource.root_id:
+                    continue
+
+                results.append(self.data_pull(project_resource))
+            return results
+
+    def data_push(self, resource_or_identifier=None):
+        &#34;&#34;&#34;Uploads a specific resource or all local non-pushed resources.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+        Returns:
+            The absolute path to the pushed resource or a list of absolute paths for all pushed resources.
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        if resource_or_identifier:
+            project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+            if project_resource.abs_path is None:
+                print(&#39;Source cannot be pushed until it has been pulled:{0}{1}&#39;.format(os.linesep, project_resource))
+                return None
+
+            data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
+            data_uri.data_adapter().data_push(project_resource)
+            return project_resource
+        else:
+            print(&#39;Pushing all resources that have not been pushed.&#39;)
+            results = []
+            for project_resource in self.resources:
+                # Only push resources that have not been pushed yet.
+                if project_resource.remote_uri:
+                    continue
+
+                # Skip any non-root resources unless the root resource has already been pushed.
+                # The root resource will handle pushing the child.
+                if project_resource.root_id and project_resource.root_resource.remote_uri is None:
+                    continue
+
+                results.append(self.data_push(project_resource))
+            return results
+
+    def data_list(self, all=False):
+        &#34;&#34;&#34;Prints out a table of all the resources in the KiProject.
+
+        Args:
+            all: Set to True to include all child resources.
+
+        Returns:
+            BeautifulTable
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        # Only show non-root resources unless requested.
+        scoped_resources = self.resources if all else self.find_project_resources_by(root_id=None)
+
+        col_action_needed = &#39;Action Needed&#39;
+        col_remote_uri = &#39;Remote URI&#39;
+        col_root_uri = &#39;Root URI&#39;
+        col_version = &#39;Version&#39;
+        col_name = &#39;Name&#39;
+        col_path = &#39;Path&#39;
+
+        column_headers = [col_action_needed, col_remote_uri, col_root_uri, col_version, col_name, col_path]
+
+        table = BeautifulTable(max_width=1000)
+        table.set_style(BeautifulTable.STYLE_BOX)
+        # Remove the row separator.
+        table.row_separator_char = &#39;&#39;
+        table.column_headers = column_headers
+
+        for header in table.column_headers:
+            table.column_alignments[header] = BeautifulTable.ALIGN_LEFT
+
+        for resource in scoped_resources:
+            row_data = [&#39;&#39; for _ in column_headers]
+            actions_needed = []
+
+            # remote_uri
+            if resource.remote_uri:
+                row_data[column_headers.index(col_remote_uri)] = resource.remote_uri
+            else:
+                actions_needed.append(&#39;data_push()&#39;)
+
+            # root_id
+            if resource.root_id:
+                root_resource = self.find_project_resource_by(id=resource.root_id)
+                row_data[column_headers.index(col_root_uri)] = root_resource.remote_uri
+
+            # version
+            if resource.version:
+                row_data[column_headers.index(col_version)] = resource.version
+
+            # name
+            if resource.name:
+                row_data[column_headers.index(col_name)] = resource.name
+
+            # rel_path
+            if resource.rel_path:
+                row_data[column_headers.index(col_path)] = resource.rel_path
+            else:
+                actions_needed.append(&#39;data_pull()&#39;)
+
+            # action needed
+            row_data[column_headers.index(col_action_needed)] = &#39;, &#39;.join(actions_needed)
+
+            table.append_row(row_data)
+
+        # Remove the root uri column unless we are showing all.
+        if all is not True:
+            table.pop_column(col_root_uri)
+
+        # Remove the actions needed column if there are no actions needed.
+        if not list(filter(None, table[col_action_needed])):
+            table.pop_column(col_action_needed)
+
+        print(table)
+
+    @property
+    def data_ignores(self):
+        &#34;&#34;&#34;Ges the ignored data patterns.&#34;&#34;&#34;
+        return self._data_ignores
+
+    def add_data_ignore(self, pattern):
+        &#34;&#34;&#34;Add a glob pattern to ignore data files.
+
+        Args:
+            pattern: A glob pattern to match files to be ignored.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        if pattern not in self._data_ignores:
+            self._data_ignores.append(pattern)
+            self.save()
+
+    def remove_data_ignore(self, pattern):
+        &#34;&#34;&#34;Remove a glob pattern that ignores data files.
+
+        Args:
+            pattern: The glob pattern to remove.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        if pattern in self._data_ignores:
+            self._data_ignores.remove(pattern)
+            self.save()
+
+    def show_missing_resources(self):
+        &#34;&#34;&#34;Shows all local DataType directories and files that have not been added to the KiProject resources.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        missing = self.find_missing_resources()
+        if missing:
+            print(&#39;WARNING: The following local resources have not been added to this KiProject.&#39;)
+            for path in missing:
+                print(&#39; - {0}&#39;.format(SysPath(path, rel_start=self.local_path).rel_path))
+
+    def find_missing_resources(self):
+        &#34;&#34;&#34;Finds all local DataType directories and files that have not been added to the KiProject resources.
+
+        Returns:
+            List of paths
+        &#34;&#34;&#34;
+        missing = []
+
+        paths = deque(self._root_data_paths())
+
+        ignored_paths = self._get_data_ignored_paths()
+
+        while paths:
+            path = paths.popleft()
+            dirs, files = Utils.get_dirs_and_files(path)
+
+            for entry in (dirs + files):
+                if entry.path in ignored_paths:
+                    continue
+
+                resources = self.find_project_resources_by(abs_path=entry.path)
+                if not resources:
+                    missing.append(entry.path)
+
+                if entry.is_dir():
+                    paths.append(entry.path)
+
+        return missing
+
+    def find_project_resource_by(self, operator=&#39;and&#39;, **kwargs):
+        &#34;&#34;&#34;Finds a single resource in the KiProject by any of KiProjectResource attributes.
+
+        Args:
+            operator: The operator to use when finding by more than one attribute. Must be one of: &#39;and&#39;, &#39;or&#39;.
+            **kwargs: KiProjectResource attributes and values to find by.
+
+        Returns:
+            KiProjectResource or None
+
+        Raises:
+            Exception: Raised if more than one result is found.
+        &#34;&#34;&#34;
+        results = self.find_project_resources_by(operator=operator, **kwargs)
+        if len(results) == 1:
+            return results[0]
+        elif len(results) &gt; 1:
+            raise Exception(&#39;Found more than one matching resource.&#39;)
+
+    def find_project_resources_by(self, operator=&#39;and&#39;, **kwargs):
+        &#34;&#34;&#34;Finds all resources in the KiProject by any of KiProjectResource attributes.
+
+        Args:
+            operator: The operator to use when finding by more than one attribute. Must be one of: &#39;and&#39;, &#39;or&#39;.
+            **kwargs: KiProjectResource attributes and values to find by.
+
+        Returns:
+            List of KiProjectResources or an empty list.
+
+        Raises:
+            ValueError: Raised on invalid &#39;operator&#39; or invalid KiProjectResources property.
+        &#34;&#34;&#34;
+        results = []
+
+        if operator not in [&#39;and&#39;, &#39;or&#39;]:
+            raise ValueError(&#39;operator must be one of: &#34;and&#34;, &#34;or&#34;. &#39;)
+
+        for resource in self.resources:
+            matches = []
+
+            for attribute, attribute_value in kwargs.items():
+                if not hasattr(resource, attribute):
+                    raise ValueError(&#39;{0} does not have attribute: {1}&#39;.format(type(resource), attribute))
+
+                resource_value = getattr(resource, attribute)
+
+                if resource_value == attribute_value:
+                    matches.append(attribute)
+                elif isinstance(resource_value, DataType) and isinstance(attribute_value, str):
+                    # Handle searching by DataType Name.
+                    if resource_value.name == attribute_value:
+                        matches.append(attribute)
+
+            if operator == &#39;and&#39; and len(matches) == len(kwargs):
+                results.append(resource)
+            elif operator == &#39;or&#39; and len(matches) &gt; 0:
+                results.append(resource)
+
+        return results
+
+    def find_data_type(self, name_or_data_type, raise_on_missing=True):
+        &#34;&#34;&#34;Finds a DataType by it&#39;s name.
+
+        Args:
+            name_or_data_type: The DataType name to find.
+            raise_on_missing: Whether or not to raise an error if not found.
+
+        Returns:
+            DataType or None
+        &#34;&#34;&#34;
+        if isinstance(name_or_data_type, DataType):
+            name_or_data_type = name_or_data_type.name
+
+        for data_type in self.data_types:
+            if data_type.name == name_or_data_type:
+                return data_type
+
+        if raise_on_missing:
+            raise InvalidDataTypeError(name_or_data_type, self.data_types)
+        else:
+            return None
+
+    def get_data_type_from_path(self, path):
+        &#34;&#34;&#34;Gets the DataType from a path.
+
+        The path must be in one of the KiProject&#39;s DataType directories.
+
+        Args:
+            path: Path to get the DataType from.
+
+        Returns:
+            The DataType or None.
+        &#34;&#34;&#34;
+        sorted_data_types = sorted(self.data_types, reverse=True, key=lambda d: len(d.rel_path))
+        sys_path = SysPath(path, cwd=self.local_path, rel_start=self.local_path)
+
+        for data_type in sorted_data_types:
+            if sys_path.rel_path.startswith(data_type.rel_path):
+                return data_type
+
+        return None
+
+    def is_data_type_path(self, local_path):
+        &#34;&#34;&#34;Gets if the local_path is in one of the DataType directories.
+
+        Args:
+            local_path: Path to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        try:
+            is_data_path = self.get_data_type_from_path(local_path) is not None
+            is_root_data_path = is_data_path and local_path in self._root_data_paths()
+
+            if is_data_path and not is_root_data_path:
+                return True
+            else:
+                return False
+        except Exception as ex:
+            # TODO: log this?
+            pass
+        return False
+
+    def load(self):
+        &#34;&#34;&#34;Loads the KiProject from a config file.
+
+        Returns:
+            True if the config file exists and was loaded.
+        &#34;&#34;&#34;
+        loaded = False
+        if os.path.isfile(self._config_path):
+            with open(self._config_path) as f:
+                self.from_json(json.load(f))
+                loaded = True
+
+        return loaded
+
+    def save(self):
+        &#34;&#34;&#34;Saves the KiProject to a config file.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        # Sort the resources before saving.
+        self.resources.sort(
+            key=lambda r: r.rel_path or (r.data_type.name if r.data_type else None) or r.name or r.remote_uri or r.id)
+
+        with open(self._config_path, &#39;w&#39;) as f:
+            json.dump(self.to_json(), f, indent=2)
+
+    def to_json(self):
+        &#34;&#34;&#34;Serializes the KiProject to JSON.
+
+        Returns:
+            Hash
+        &#34;&#34;&#34;
+        return {
+            &#39;title&#39;: self.title,
+            &#39;description&#39;: self.description,
+            &#39;project_uri&#39;: self.project_uri,
+            &#39;data_ignores&#39;: self.data_ignores,
+            &#39;data_types&#39;: [item.to_json() for item in self.data_types],
+            &#39;resources&#39;: [item.to_json() for item in self.resources]
+        }
+
+    def from_json(self, json):
+        &#34;&#34;&#34;Deserializes JSON into the KiProject.
+
+        Args:
+            json: The JSON to deserialize.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        self.title = json.get(&#39;title&#39;)
+        self.description = json.get(&#39;description&#39;)
+        self.project_uri = json.get(&#39;project_uri&#39;)
+        self._data_ignores = json.get(&#39;data_ignores&#39;, list(self.DEFAULT_DATA_IGNORES))
+        self.data_types = []
+        self.resources = []
+
+        for jdata_type in json.get(&#39;data_types&#39;):
+            self.data_types.append(DataType.from_json(jdata_type, self.local_path))
+
+        for jresource in json.get(&#39;resources&#39;):
+            self.resources.append(KiProjectResource.from_json(jresource, self))
+
+    def _ensure_loaded(self):
+        &#34;&#34;&#34;Ensures the KiProject has been successfully loaded and created.
+
+        Returns:
+            None or raise an exception.
+        &#34;&#34;&#34;
+        if not self._loaded:
+            raise Exception(&#39;KiProject configuration not created or loaded.&#39;)
+
+    def _init_project(self, **kwargs):
+        &#34;&#34;&#34;Configures and creates the KiProject.
+
+        Args:
+            **kwargs: Keyword arguments.
+
+        Kwargs:
+            title: The title for the new KiProject.
+            description: The description for the new KiProject.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+            data_type_template: The name of the DataTypeTemplate to create the project with.
+            no_prompt: Suppress all prompts during KiProject initialization.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        title = kwargs.get(&#39;title&#39;)
+        description = kwargs.get(&#39;description&#39;)
+        project_uri = kwargs.get(&#39;project_uri&#39;)
+        project_name = kwargs.get(&#39;project_name&#39;)
+        data_type_template = kwargs.get(&#39;data_type_template&#39;)
+        no_prompt = kwargs.get(&#39;no_prompt&#39;)
+
+        if project_uri and project_name:
+            print(&#39;ERROR: project_uri and project_name cannot both be set.&#39;)
+            return False
+
+        if project_uri and not DataUri.is_uri(project_uri):
+            print(&#39;ERROR: Invalid project_uri: {0}&#39;.format(project_uri))
+            return False
+
+        if data_type_template:
+            data_type_template = DataTypeTemplate.get(data_type_template)
+        else:
+            data_type_template = DataTypeTemplate.default()
+
+        if not self._init_local_path(no_prompt):
+            return False
+
+        if not self._init_title(no_prompt, title):
+            return False
+
+        if not self._init_description(no_prompt, description):
+            return False
+
+        if not self._init_project_uri(no_prompt, project_uri, project_name):
+            return False
+
+        self._set_data_types_from_template(data_type_template)
+
+        self._ensure_project_structure()
+
+        self.save()
+        return True
+
+    def _init_local_path(self, no_prompt):
+        &#34;&#34;&#34;Ensures the local_path is set.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if no_prompt:
+            print(&#39;KiProject path: {0}&#39;.format(self.local_path))
+            return True
+        else:
+            answer = input(&#39;Create KiProject in: {0} [y/n]: &#39;.format(self.local_path))
+            return answer and answer.strip().lower() == &#39;y&#39;
+
+    def _init_title(self, no_prompt, title):
+        &#34;&#34;&#34;Ensures the title is set.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            title: The title for the new KiProject.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if title:
+            self.title = title
+        elif not no_prompt:
+            while self.title is None:
+                answer = input(&#39;KiProject title: &#39;)
+                self.title = answer
+
+        if self.title:
+            print(&#39;KiProject title: {0}&#39;.format(self.title))
+
+        return self.title is not None
+
+    def _init_description(self, no_prompt, description):
+        &#34;&#34;&#34;Ensures the description is set.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            description: The description for the new KiProject.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if description:
+            self.description = description
+        elif not no_prompt:
+            while self.description is None:
+                answer = input(&#39;KiProject description: &#39;)
+                self.description = answer
+
+        if self.description:
+            print(&#39;KiProject description: {0}&#39;.format(self.description))
+
+        # Description is optional so always return True.
+        return True
+
+    def _init_project_uri(self, no_prompt, project_uri, project_name):
+        &#34;&#34;&#34;Ensures the project_uri is set and valid.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if project_uri:
+            return self._init_project_uri_existing(no_prompt, project_uri=project_uri)
+        elif project_name:
+            return self._init_project_uri_new(no_prompt, project_name=project_name)
+        elif not no_prompt:
+            while self.project_uri is None:
+                answer = input(&#39;Create a remote project or use an existing? [c/e]: &#39;)
+                if answer == &#39;c&#39;:
+                    return self._init_project_uri_new(no_prompt)
+                elif answer == &#39;e&#39;:
+                    return self._init_project_uri_existing(no_prompt)
+                else:
+                    print(&#39;Enter &#34;c&#34; to create a new remote project or &#34;e&#34; to use an existing remote project.&#39;)
+        else:
+            return False
+
+    def _init_project_uri_new(self, no_prompt, project_name=None):
+        &#34;&#34;&#34;Creates a new remote project and sets the project_uri.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        data_uri = DataUri(DataUri.default_scheme(), None)
+
+        while not self.project_uri:
+            try:
+                project_name = project_name
+
+                if not project_name and not no_prompt:
+                    project_name = input(&#39;Remote project name: &#39;)
+
+                if project_name:
+                    remote_project = data_uri.data_adapter().create_project(project_name)
+                    self.project_uri = DataUri(data_uri.scheme, remote_project.id).uri
+                    print(&#39;Remote project: &#34;{0}&#34; created at URI: {1}&#39;.format(remote_project.name, self.project_uri))
+            except Exception as ex:
+                print(&#39;Error creating remote project: {0}&#39;.format(str(ex)))
+                if no_prompt:
+                    break
+                else:
+                    answer = input(&#39;Try again? [y/n]: &#39;)
+                    if answer == &#39;n&#39;:
+                        break
+
+        return self.project_uri is not None
+
+    def _init_project_uri_existing(self, no_prompt, project_uri=None):
+        &#34;&#34;&#34;Sets the project_uri to an existing remote project.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if project_uri:
+            if self._validate_project_uri(project_uri):
+                self.project_uri = project_uri
+            else:
+                print(&#39;project_uri: {0} could not be validated.&#39;.format(project_uri))
+        elif not no_prompt:
+            example_data_uri = DataUri(DataUri.default_scheme(), &#39;{0}123456&#39;.format(DataUri.default_scheme())).uri
+
+            while not self.project_uri:
+                answer = input(&#39;Remote project URI (e.g., {0}): &#39;.format(example_data_uri))
+                if answer and self._validate_project_uri(answer):
+                    self.project_uri = answer
+
+        if self.project_uri:
+            print(&#39;Remote project URI: {0}&#39;.format(self.project_uri))
+
+        return self.project_uri is not None
+
+    def _validate_project_uri(self, project_uri):
+        &#34;&#34;&#34;Validates that a remote project exists at a specific data URI.
+
+        Args:
+            project_uri: The remote URI to validate.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        remote_entity = None
+        try:
+            data_uri = DataUri.parse(project_uri)
+            remote_entity = data_uri.data_adapter().get_entity(data_uri.id)
+        except Exception as ex:
+            print(&#39;Invalid remote project URI: {0}&#39;.format(ex))
+
+        return remote_entity is not None and remote_entity.is_project
+
+    def _set_data_types_from_template(self, name_or_template):
+        &#34;&#34;&#34;Sets the data_types from a template.
+
+        Args:
+            name_or_template: The name or the DataTypeTemplate template.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        if isinstance(name_or_template, DataTypeTemplate):
+            name_or_template = name_or_template.name
+
+        template = DataTypeTemplate.get(name_or_template)
+        if not template:
+            raise Exception(&#39;Data type template: {0} not found.&#39;.format(name_or_template))
+
+        self.data_types = []
+
+        for template_path in template.paths:
+            self.data_types.append(DataType(self.local_path, template_path.name, template_path.rel_path))
+
+    def _ensure_project_structure(self):
+        &#34;&#34;&#34;Ensures the KiProject structure has been created.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        # Project root
+        SysPath(self.local_path).ensure_dirs()
+
+        # Data types
+        for data_type in self.data_types:
+            SysPath(data_type.abs_path).ensure_dirs()
+
+        # Other supporting directories
+        for dir_name in [&#39;scripts&#39;, &#39;reports&#39;]:
+            SysPath(os.path.join(self.local_path, dir_name)).ensure_dirs()
+
+        # Git ignore
+        gitignore_path = os.path.join(self.local_path, &#39;.gitignore&#39;)
+        if not os.path.isfile(gitignore_path):
+            # TODO: implement this
+            pass
+
+    def _data_add(self,
+                  remote_uri=None,
+                  local_path=None,
+                  name=None,
+                  version=None,
+                  data_type=None,
+                  root_ki_project_resource=None):
+        &#34;&#34;&#34;Adds or updates a resource.
+
+        Must have remote_uri or local_path specified.
+
+        Args:
+            remote_uri: The remote URI to add.
+            local_path: The local path to a file or directory to add.
+            name: The friendly name of the resource.
+            version: The version to lock on the resource.
+            data_type: The data_type of the resource (only needed for remote_uris that do not match the DataType structure).
+            root_ki_project_resource: The root KiProjectResource. Only needed when auto adding children of a directory.
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        if not remote_uri and not local_path:
+            raise ValueError(&#39;remote_uri or local_path must be supplied.&#39;)
+
+        if data_type:
+            # Get the DataType
+            data_type = self.find_data_type(data_type)
+
+        if local_path:
+            # Make sure the file is in one of the data directories.
+            if not self.is_data_type_path(local_path):
+                raise NotADataTypePathError(local_path, self.data_types)
+
+            # Make sure the data_type param matches the local_path.
+            if data_type:
+                local_path_data_type = self.get_data_type_from_path(local_path)
+                if local_path_data_type is None or data_type != local_path_data_type:
+                    raise DataTypeMismatchError(
+                        &#39;data_type: {0} does not match local_path: {1}.&#39;.format(data_type.name, local_path))
+
+        root_id = root_ki_project_resource.id if root_ki_project_resource else None
+
+        # Check for an existing KiProjectResource
+        find_args = {}
+        if remote_uri:
+            find_args[&#39;remote_uri&#39;] = remote_uri
+        if local_path:
+            find_args[&#39;abs_path&#39;] = local_path
+        if root_id:
+            find_args[&#39;root_id&#39;] = root_id
+
+        project_resource = self.find_project_resource_by(**find_args)
+
+        if project_resource:
+            # Update the resource and warn about any changes.
+            changes = []
+
+            change_map = {
+                &#39;remote_uri&#39;: {&#39;value&#39;: remote_uri, &#39;allow_none&#39;: False},
+                &#39;abs_path&#39;: {&#39;value&#39;: local_path, &#39;allow_none&#39;: False},
+                &#39;name&#39;: {&#39;value&#39;: name, &#39;allow_none&#39;: False},
+                &#39;version&#39;: {&#39;value&#39;: version, &#39;allow_none&#39;: True},
+                &#39;data_type&#39;: {&#39;value&#39;: data_type, &#39;allow_none&#39;: False},
+                &#39;root_id&#39;: {&#39;value&#39;: root_id, &#39;allow_none&#39;: False}
+            }
+
+            for attr, config in change_map.items():
+                old_value = getattr(project_resource, attr)
+                new_value = config.get(&#39;value&#39;)
+                allow_none = config.get(&#39;allow_none&#39;)
+
+                if new_value != old_value:
+                    if new_value is None and not allow_none:
+                        print(&#39;WARNING: Cannot set {0} to None. {0} already has value: {1}&#39;.format(attr, old_value))
+                        continue
+
+                    changes.append(&#39;{0} changed from: {1} to: {2}&#39;.format(attr.title(), old_value, new_value))
+                    setattr(project_resource, attr, new_value)
+
+            if len(changes) &gt; 0:
+                print(&#39;WARNING: Resource already exists and has been updated with the following changes:&#39;)
+                for change in changes:
+                    print(&#39;  - {0}&#39;.format(change))
+        else:
+            # Add the resource.
+            project_resource = KiProjectResource(kiproject=self,
+                                                 root_id=root_id,
+                                                 data_type=data_type,
+                                                 remote_uri=remote_uri,
+                                                 local_path=local_path,
+                                                 name=name,
+                                                 version=version)
+
+            self.resources.append(project_resource)
+
+        self.save()
+        return project_resource
+
+    def _find_project_resource_by_value(self, value):
+        &#34;&#34;&#34;Finds a KiProjectResource by a unique value.
+
+        Value must be one of:
+            - KiProjectResource (will be looked up by its id)
+            - KiProjectResource.id (UUID)
+            - KiProjectResource.remote_uri (DataUri)
+            - KiProjectResource.abs_path or rel_path (file/folder that exists at the value path)
+            - KiProjectResource.name (string)
+
+        Args:
+            value: The value to find by.
+
+        Returns:
+            KiProjectResource or None
+        &#34;&#34;&#34;
+        result = None
+
+        if isinstance(value, KiProjectResource):
+            result = self.find_project_resource_by(id=value.id)
+        elif DataUri.is_uri(value):
+            result = self.find_project_resource_by(remote_uri=value)
+        elif Utils.is_uuid(value):
+            result = self.find_project_resource_by(id=value)
+        elif SysPath(value, cwd=self.local_path).exists:
+            sys_path = SysPath(value, cwd=self.local_path)
+            result = self.find_project_resource_by(abs_path=sys_path.abs_path)
+        elif isinstance(value, str):
+            result = self.find_project_resource_by(name=value)
+        else:
+            raise ValueError(&#39;Could not determine value type of: {0}&#39;.format(value))
+
+        if result is None:
+            raise KiProjectResourceNotFoundError(&#39;No project resource found matching: {0}&#39;.format(value))
+
+        return result
+
+    def _root_data_paths(self):
+        &#34;&#34;&#34;Gets all the DataType root paths for the project (e.g., /home/user/my_project/data/core)
+
+        Returns:
+            List of absolute paths.
+        &#34;&#34;&#34;
+        paths = []
+        for data_type in self.data_types:
+            paths.append(data_type.abs_path)
+        return paths
+
+    def _get_data_ignored_paths(self):
+        &#34;&#34;&#34;Gets the absolute paths of all files and directories to ignore.
+
+        Returns:
+            List of absolute paths to ignore from the data directory.
+        &#34;&#34;&#34;
+        ignored = []
+        for pattern in self.data_ignores:
+            for data_type in self.data_types:
+                ignored += glob.glob(os.path.join(data_type.abs_path, &#39;**&#39;, pattern), recursive=True)
+        return ignored</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="kitools.ki_project.KiProject"><code class="flex name class">
+<span>class <span class="ident">KiProject</span></span>
+<span>(</span><span>local_path, **kwargs)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Primary class for interacting with KI Projects.</p>
+<p>Instantiates the KiProject.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>local_path</code></strong></dt>
+<dd>The local path to where the KiProject resides (or will reside if creating a new KiProject).</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>Keyword arguments.</dd>
+</dl>
+<h2 id="kwargs">Kwargs</h2>
+<dl>
+<dt><strong><code>title</code></strong></dt>
+<dd>The title for the new KiProject.</dd>
+<dt><strong><code>description</code></strong></dt>
+<dd>The description for the new KiProject.</dd>
+<dt><strong><code>project_uri</code></strong></dt>
+<dd>The remote URI of the remote project that will hold the new KiProject resources.
+If this is set an existing remote project will be used.</dd>
+<dt><strong><code>project_name</code></strong></dt>
+<dd>The name of the remote project that will hold the new KiProject resources.
+If this is set a new remote project will be created with this name.</dd>
+<dt><strong><code>data_type_template</code></strong></dt>
+<dd>The name of the DataTypeTemplate to create the project with.</dd>
+<dt><strong><code>no_prompt</code></strong></dt>
+<dd>Suppress all prompts during KiProject initialization.</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class KiProject(object):
+    &#34;&#34;&#34;Primary class for interacting with KI Projects.&#34;&#34;&#34;
+
+    CONFIG_FILENAME = &#39;kiproject.json&#39;
+
+    DEFAULT_LINUX_DATA_IGNORES = frozenset([
+        &#39;*~&#39;,
+        &#39;.Trash-*&#39;,
+        &#39;.directory&#39;,
+        &#39;.fuse_hidden*&#39;,
+        &#39;.nfs*&#39;
+    ])
+
+    DEFAULT_OSX_DATA_IGNORES = frozenset([
+        &#39;.DS_Store&#39;,
+        &#39;.AppleDouble&#39;,
+        &#39;.LSOverride&#39;,
+        &#39;._*&#39;,
+        &#39;.DocumentRevisions-V100&#39;,
+        &#39;.fseventsd&#39;,
+        &#39;.Spotlight-V100&#39;,
+        &#39;.TemporaryItems&#39;,
+        &#39;.Trashes&#39;,
+        &#39;.VolumeIcon.icns&#39;,
+        &#39;.com.apple.timemachine.donotpresent&#39;,
+        &#39;.AppleDB&#39;,
+        &#39;.AppleDesktop&#39;,
+        &#39;.apdisk&#39;
+    ])
+
+    DEFAULT_WINDOWS_DATA_IGNORES = frozenset([
+        &#39;Thumbs.db&#39;,
+        &#39;ehthumbs.db&#39;,
+        &#39;ehthumbs_vista.db&#39;,
+        &#39;*.stackdump&#39;,
+        &#39;[Dd]esktop.ini&#39;,
+        &#39;$RECYCLE.BIN/&#39;,
+        &#39;*.lnk&#39;
+    ])
+
+    DEFAULT_DATA_IGNORES = frozenset.union(DEFAULT_LINUX_DATA_IGNORES,
+                                           DEFAULT_OSX_DATA_IGNORES,
+                                           DEFAULT_WINDOWS_DATA_IGNORES)
+
+    def __init__(self, local_path, **kwargs):
+        &#34;&#34;&#34;Instantiates the KiProject.
+
+        Args:
+            local_path: The local path to where the KiProject resides (or will reside if creating a new KiProject).
+            **kwargs: Keyword arguments.
+
+        Kwargs:
+            title: The title for the new KiProject.
+            description: The description for the new KiProject.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+            data_type_template: The name of the DataTypeTemplate to create the project with.
+            no_prompt: Suppress all prompts during KiProject initialization.
+        &#34;&#34;&#34;
+        if not local_path or local_path.strip() == &#39;&#39;:
+            raise ValueError(&#39;local_path is required.&#39;)
+
+        self.local_path = SysPath(local_path).abs_path
+        self.title = None
+        self.description = None
+        self.project_uri = None
+        self.project_name = None
+        self.data_types = []
+        self.resources = []
+
+        self._data_ignores = list(self.DEFAULT_DATA_IGNORES)
+
+        self._config_path = os.path.join(self.local_path, self.CONFIG_FILENAME)
+
+        self._loaded = False
+
+        if self.load():
+            self._ensure_project_structure()
+            self._loaded = True
+            self.show_missing_resources()
+            print(&#39;KiProject successfully loaded and ready to use.&#39;)
+        else:
+            if self._init_project(**kwargs):
+                self._loaded = True
+                self.show_missing_resources()
+                print(&#39;KiProject initialized successfully and ready to use.&#39;)
+            else:
+                print(&#39;KiProject initialization failed.&#39;)
+
+    def data_add(self, remote_uri_or_local_path, name=None, version=None, data_type=None):
+        &#34;&#34;&#34;Adds a new resource to the KiProject.
+
+        A resource can be a remote or local file or directory.
+        If the resource already exists it will be updated with the provided parameters.
+
+        Examples:
+            &gt;&gt;&gt; import kitools
+            &gt;&gt;&gt; kiproject = kitools.KiProject(&#39;/tmp/my_project&#39;)
+            &gt;&gt;&gt; kiproject.data_add(&#39;syn:syn123456&#39;, name=&#39;my dataset&#39;)
+            &gt;&gt;&gt; kiproject.data_add(&#39;/home/me/file1.csv&#39;)
+            &gt;&gt;&gt; kiproject.data_add(&#39;syn:syn123457&#39;, data_type=&#39;core&#39;, version=&#39;2&#39;)
+
+        Args:
+            remote_uri_or_local_path: The remote URI (e.g., syn:syn123456) or local path of the directory for file.
+            name: A user friendly name for the resource.
+            version: The version of the file to add.
+            data_type: The DataType of the file. This is only required when a remote_uri is provided
+                and the remote folder structure does not match the KiProject&#39;s &#34;data&#34; structure.
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        if DataUri.is_uri(remote_uri_or_local_path):
+            return self._data_add(data_type=data_type,
+                                  remote_uri=remote_uri_or_local_path,
+                                  name=(name or remote_uri_or_local_path),
+                                  version=version)
+        else:
+            sys_local_path = SysPath(remote_uri_or_local_path, cwd=self.local_path)
+            if sys_local_path.exists:
+                return self._data_add(data_type=data_type,
+                                      local_path=sys_local_path.abs_path,
+                                      name=(name or sys_local_path.basename),
+                                      version=version)
+            else:
+                raise ValueError(&#39;Please specify a remote URI or a local file or folder path that exists.&#39;)
+
+    def data_remove(self, resource_or_identifier):
+        &#34;&#34;&#34;Removes a resource from the KiProject.
+
+        This does not delete the file locally or remotely, it is only removed from the KiProject manifest.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+        # Remove any children.
+        for child_resource in self.find_project_resources_by(root_id=project_resource.id):
+            self.resources.remove(child_resource)
+
+        # Remove the root.
+        self.resources.remove(project_resource)
+        self.save()
+        return project_resource
+
+    def data_change(self, resource_or_identifier, name=None, version=None):
+        &#34;&#34;&#34;Changes the name or version on a KiProjectResource.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+            name: The new name.
+            version: The new version (or &#39;None&#39; to clear the version).
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+        if name is not None:
+            project_resource.name = name
+
+        if version is not None:
+            project_resource.version = version
+
+        self.save()
+        return project_resource
+
+    def data_pull(self, resource_or_identifier=None):
+        &#34;&#34;&#34;Downloads a specific resource or all resources in the KiProject.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+        Returns:
+            The absolute path to the pulled resource or a list of absolute paths for all pulled resources.
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        if resource_or_identifier:
+            project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+            if project_resource.remote_uri is None:
+                print(&#39;Resource cannot be pulled until it has been pushed:{0}{1}&#39;.format(os.linesep, project_resource))
+                return None
+
+            data_uri = DataUri.parse(project_resource.remote_uri)
+            data_uri.data_adapter().data_pull(project_resource)
+            return project_resource
+        else:
+            results = []
+            for project_resource in self.resources:
+                # Skip any non-root resources. The root resource will handle pulling the child.
+                if project_resource.root_id:
+                    continue
+
+                results.append(self.data_pull(project_resource))
+            return results
+
+    def data_push(self, resource_or_identifier=None):
+        &#34;&#34;&#34;Uploads a specific resource or all local non-pushed resources.
+
+        Args:
+            resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+        Returns:
+            The absolute path to the pushed resource or a list of absolute paths for all pushed resources.
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        if resource_or_identifier:
+            project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+            if project_resource.abs_path is None:
+                print(&#39;Source cannot be pushed until it has been pulled:{0}{1}&#39;.format(os.linesep, project_resource))
+                return None
+
+            data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
+            data_uri.data_adapter().data_push(project_resource)
+            return project_resource
+        else:
+            print(&#39;Pushing all resources that have not been pushed.&#39;)
+            results = []
+            for project_resource in self.resources:
+                # Only push resources that have not been pushed yet.
+                if project_resource.remote_uri:
+                    continue
+
+                # Skip any non-root resources unless the root resource has already been pushed.
+                # The root resource will handle pushing the child.
+                if project_resource.root_id and project_resource.root_resource.remote_uri is None:
+                    continue
+
+                results.append(self.data_push(project_resource))
+            return results
+
+    def data_list(self, all=False):
+        &#34;&#34;&#34;Prints out a table of all the resources in the KiProject.
+
+        Args:
+            all: Set to True to include all child resources.
+
+        Returns:
+            BeautifulTable
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        # Only show non-root resources unless requested.
+        scoped_resources = self.resources if all else self.find_project_resources_by(root_id=None)
+
+        col_action_needed = &#39;Action Needed&#39;
+        col_remote_uri = &#39;Remote URI&#39;
+        col_root_uri = &#39;Root URI&#39;
+        col_version = &#39;Version&#39;
+        col_name = &#39;Name&#39;
+        col_path = &#39;Path&#39;
+
+        column_headers = [col_action_needed, col_remote_uri, col_root_uri, col_version, col_name, col_path]
+
+        table = BeautifulTable(max_width=1000)
+        table.set_style(BeautifulTable.STYLE_BOX)
+        # Remove the row separator.
+        table.row_separator_char = &#39;&#39;
+        table.column_headers = column_headers
+
+        for header in table.column_headers:
+            table.column_alignments[header] = BeautifulTable.ALIGN_LEFT
+
+        for resource in scoped_resources:
+            row_data = [&#39;&#39; for _ in column_headers]
+            actions_needed = []
+
+            # remote_uri
+            if resource.remote_uri:
+                row_data[column_headers.index(col_remote_uri)] = resource.remote_uri
+            else:
+                actions_needed.append(&#39;data_push()&#39;)
+
+            # root_id
+            if resource.root_id:
+                root_resource = self.find_project_resource_by(id=resource.root_id)
+                row_data[column_headers.index(col_root_uri)] = root_resource.remote_uri
+
+            # version
+            if resource.version:
+                row_data[column_headers.index(col_version)] = resource.version
+
+            # name
+            if resource.name:
+                row_data[column_headers.index(col_name)] = resource.name
+
+            # rel_path
+            if resource.rel_path:
+                row_data[column_headers.index(col_path)] = resource.rel_path
+            else:
+                actions_needed.append(&#39;data_pull()&#39;)
+
+            # action needed
+            row_data[column_headers.index(col_action_needed)] = &#39;, &#39;.join(actions_needed)
+
+            table.append_row(row_data)
+
+        # Remove the root uri column unless we are showing all.
+        if all is not True:
+            table.pop_column(col_root_uri)
+
+        # Remove the actions needed column if there are no actions needed.
+        if not list(filter(None, table[col_action_needed])):
+            table.pop_column(col_action_needed)
+
+        print(table)
+
+    @property
+    def data_ignores(self):
+        &#34;&#34;&#34;Ges the ignored data patterns.&#34;&#34;&#34;
+        return self._data_ignores
+
+    def add_data_ignore(self, pattern):
+        &#34;&#34;&#34;Add a glob pattern to ignore data files.
+
+        Args:
+            pattern: A glob pattern to match files to be ignored.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        if pattern not in self._data_ignores:
+            self._data_ignores.append(pattern)
+            self.save()
+
+    def remove_data_ignore(self, pattern):
+        &#34;&#34;&#34;Remove a glob pattern that ignores data files.
+
+        Args:
+            pattern: The glob pattern to remove.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        if pattern in self._data_ignores:
+            self._data_ignores.remove(pattern)
+            self.save()
+
+    def show_missing_resources(self):
+        &#34;&#34;&#34;Shows all local DataType directories and files that have not been added to the KiProject resources.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        self._ensure_loaded()
+
+        missing = self.find_missing_resources()
+        if missing:
+            print(&#39;WARNING: The following local resources have not been added to this KiProject.&#39;)
+            for path in missing:
+                print(&#39; - {0}&#39;.format(SysPath(path, rel_start=self.local_path).rel_path))
+
+    def find_missing_resources(self):
+        &#34;&#34;&#34;Finds all local DataType directories and files that have not been added to the KiProject resources.
+
+        Returns:
+            List of paths
+        &#34;&#34;&#34;
+        missing = []
+
+        paths = deque(self._root_data_paths())
+
+        ignored_paths = self._get_data_ignored_paths()
+
+        while paths:
+            path = paths.popleft()
+            dirs, files = Utils.get_dirs_and_files(path)
+
+            for entry in (dirs + files):
+                if entry.path in ignored_paths:
+                    continue
+
+                resources = self.find_project_resources_by(abs_path=entry.path)
+                if not resources:
+                    missing.append(entry.path)
+
+                if entry.is_dir():
+                    paths.append(entry.path)
+
+        return missing
+
+    def find_project_resource_by(self, operator=&#39;and&#39;, **kwargs):
+        &#34;&#34;&#34;Finds a single resource in the KiProject by any of KiProjectResource attributes.
+
+        Args:
+            operator: The operator to use when finding by more than one attribute. Must be one of: &#39;and&#39;, &#39;or&#39;.
+            **kwargs: KiProjectResource attributes and values to find by.
+
+        Returns:
+            KiProjectResource or None
+
+        Raises:
+            Exception: Raised if more than one result is found.
+        &#34;&#34;&#34;
+        results = self.find_project_resources_by(operator=operator, **kwargs)
+        if len(results) == 1:
+            return results[0]
+        elif len(results) &gt; 1:
+            raise Exception(&#39;Found more than one matching resource.&#39;)
+
+    def find_project_resources_by(self, operator=&#39;and&#39;, **kwargs):
+        &#34;&#34;&#34;Finds all resources in the KiProject by any of KiProjectResource attributes.
+
+        Args:
+            operator: The operator to use when finding by more than one attribute. Must be one of: &#39;and&#39;, &#39;or&#39;.
+            **kwargs: KiProjectResource attributes and values to find by.
+
+        Returns:
+            List of KiProjectResources or an empty list.
+
+        Raises:
+            ValueError: Raised on invalid &#39;operator&#39; or invalid KiProjectResources property.
+        &#34;&#34;&#34;
+        results = []
+
+        if operator not in [&#39;and&#39;, &#39;or&#39;]:
+            raise ValueError(&#39;operator must be one of: &#34;and&#34;, &#34;or&#34;. &#39;)
+
+        for resource in self.resources:
+            matches = []
+
+            for attribute, attribute_value in kwargs.items():
+                if not hasattr(resource, attribute):
+                    raise ValueError(&#39;{0} does not have attribute: {1}&#39;.format(type(resource), attribute))
+
+                resource_value = getattr(resource, attribute)
+
+                if resource_value == attribute_value:
+                    matches.append(attribute)
+                elif isinstance(resource_value, DataType) and isinstance(attribute_value, str):
+                    # Handle searching by DataType Name.
+                    if resource_value.name == attribute_value:
+                        matches.append(attribute)
+
+            if operator == &#39;and&#39; and len(matches) == len(kwargs):
+                results.append(resource)
+            elif operator == &#39;or&#39; and len(matches) &gt; 0:
+                results.append(resource)
+
+        return results
+
+    def find_data_type(self, name_or_data_type, raise_on_missing=True):
+        &#34;&#34;&#34;Finds a DataType by it&#39;s name.
+
+        Args:
+            name_or_data_type: The DataType name to find.
+            raise_on_missing: Whether or not to raise an error if not found.
+
+        Returns:
+            DataType or None
+        &#34;&#34;&#34;
+        if isinstance(name_or_data_type, DataType):
+            name_or_data_type = name_or_data_type.name
+
+        for data_type in self.data_types:
+            if data_type.name == name_or_data_type:
+                return data_type
+
+        if raise_on_missing:
+            raise InvalidDataTypeError(name_or_data_type, self.data_types)
+        else:
+            return None
+
+    def get_data_type_from_path(self, path):
+        &#34;&#34;&#34;Gets the DataType from a path.
+
+        The path must be in one of the KiProject&#39;s DataType directories.
+
+        Args:
+            path: Path to get the DataType from.
+
+        Returns:
+            The DataType or None.
+        &#34;&#34;&#34;
+        sorted_data_types = sorted(self.data_types, reverse=True, key=lambda d: len(d.rel_path))
+        sys_path = SysPath(path, cwd=self.local_path, rel_start=self.local_path)
+
+        for data_type in sorted_data_types:
+            if sys_path.rel_path.startswith(data_type.rel_path):
+                return data_type
+
+        return None
+
+    def is_data_type_path(self, local_path):
+        &#34;&#34;&#34;Gets if the local_path is in one of the DataType directories.
+
+        Args:
+            local_path: Path to check.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        try:
+            is_data_path = self.get_data_type_from_path(local_path) is not None
+            is_root_data_path = is_data_path and local_path in self._root_data_paths()
+
+            if is_data_path and not is_root_data_path:
+                return True
+            else:
+                return False
+        except Exception as ex:
+            # TODO: log this?
+            pass
+        return False
+
+    def load(self):
+        &#34;&#34;&#34;Loads the KiProject from a config file.
+
+        Returns:
+            True if the config file exists and was loaded.
+        &#34;&#34;&#34;
+        loaded = False
+        if os.path.isfile(self._config_path):
+            with open(self._config_path) as f:
+                self.from_json(json.load(f))
+                loaded = True
+
+        return loaded
+
+    def save(self):
+        &#34;&#34;&#34;Saves the KiProject to a config file.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        # Sort the resources before saving.
+        self.resources.sort(
+            key=lambda r: r.rel_path or (r.data_type.name if r.data_type else None) or r.name or r.remote_uri or r.id)
+
+        with open(self._config_path, &#39;w&#39;) as f:
+            json.dump(self.to_json(), f, indent=2)
+
+    def to_json(self):
+        &#34;&#34;&#34;Serializes the KiProject to JSON.
+
+        Returns:
+            Hash
+        &#34;&#34;&#34;
+        return {
+            &#39;title&#39;: self.title,
+            &#39;description&#39;: self.description,
+            &#39;project_uri&#39;: self.project_uri,
+            &#39;data_ignores&#39;: self.data_ignores,
+            &#39;data_types&#39;: [item.to_json() for item in self.data_types],
+            &#39;resources&#39;: [item.to_json() for item in self.resources]
+        }
+
+    def from_json(self, json):
+        &#34;&#34;&#34;Deserializes JSON into the KiProject.
+
+        Args:
+            json: The JSON to deserialize.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        self.title = json.get(&#39;title&#39;)
+        self.description = json.get(&#39;description&#39;)
+        self.project_uri = json.get(&#39;project_uri&#39;)
+        self._data_ignores = json.get(&#39;data_ignores&#39;, list(self.DEFAULT_DATA_IGNORES))
+        self.data_types = []
+        self.resources = []
+
+        for jdata_type in json.get(&#39;data_types&#39;):
+            self.data_types.append(DataType.from_json(jdata_type, self.local_path))
+
+        for jresource in json.get(&#39;resources&#39;):
+            self.resources.append(KiProjectResource.from_json(jresource, self))
+
+    def _ensure_loaded(self):
+        &#34;&#34;&#34;Ensures the KiProject has been successfully loaded and created.
+
+        Returns:
+            None or raise an exception.
+        &#34;&#34;&#34;
+        if not self._loaded:
+            raise Exception(&#39;KiProject configuration not created or loaded.&#39;)
+
+    def _init_project(self, **kwargs):
+        &#34;&#34;&#34;Configures and creates the KiProject.
+
+        Args:
+            **kwargs: Keyword arguments.
+
+        Kwargs:
+            title: The title for the new KiProject.
+            description: The description for the new KiProject.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+            data_type_template: The name of the DataTypeTemplate to create the project with.
+            no_prompt: Suppress all prompts during KiProject initialization.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        title = kwargs.get(&#39;title&#39;)
+        description = kwargs.get(&#39;description&#39;)
+        project_uri = kwargs.get(&#39;project_uri&#39;)
+        project_name = kwargs.get(&#39;project_name&#39;)
+        data_type_template = kwargs.get(&#39;data_type_template&#39;)
+        no_prompt = kwargs.get(&#39;no_prompt&#39;)
+
+        if project_uri and project_name:
+            print(&#39;ERROR: project_uri and project_name cannot both be set.&#39;)
+            return False
+
+        if project_uri and not DataUri.is_uri(project_uri):
+            print(&#39;ERROR: Invalid project_uri: {0}&#39;.format(project_uri))
+            return False
+
+        if data_type_template:
+            data_type_template = DataTypeTemplate.get(data_type_template)
+        else:
+            data_type_template = DataTypeTemplate.default()
+
+        if not self._init_local_path(no_prompt):
+            return False
+
+        if not self._init_title(no_prompt, title):
+            return False
+
+        if not self._init_description(no_prompt, description):
+            return False
+
+        if not self._init_project_uri(no_prompt, project_uri, project_name):
+            return False
+
+        self._set_data_types_from_template(data_type_template)
+
+        self._ensure_project_structure()
+
+        self.save()
+        return True
+
+    def _init_local_path(self, no_prompt):
+        &#34;&#34;&#34;Ensures the local_path is set.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if no_prompt:
+            print(&#39;KiProject path: {0}&#39;.format(self.local_path))
+            return True
+        else:
+            answer = input(&#39;Create KiProject in: {0} [y/n]: &#39;.format(self.local_path))
+            return answer and answer.strip().lower() == &#39;y&#39;
+
+    def _init_title(self, no_prompt, title):
+        &#34;&#34;&#34;Ensures the title is set.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            title: The title for the new KiProject.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if title:
+            self.title = title
+        elif not no_prompt:
+            while self.title is None:
+                answer = input(&#39;KiProject title: &#39;)
+                self.title = answer
+
+        if self.title:
+            print(&#39;KiProject title: {0}&#39;.format(self.title))
+
+        return self.title is not None
+
+    def _init_description(self, no_prompt, description):
+        &#34;&#34;&#34;Ensures the description is set.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            description: The description for the new KiProject.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if description:
+            self.description = description
+        elif not no_prompt:
+            while self.description is None:
+                answer = input(&#39;KiProject description: &#39;)
+                self.description = answer
+
+        if self.description:
+            print(&#39;KiProject description: {0}&#39;.format(self.description))
+
+        # Description is optional so always return True.
+        return True
+
+    def _init_project_uri(self, no_prompt, project_uri, project_name):
+        &#34;&#34;&#34;Ensures the project_uri is set and valid.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if project_uri:
+            return self._init_project_uri_existing(no_prompt, project_uri=project_uri)
+        elif project_name:
+            return self._init_project_uri_new(no_prompt, project_name=project_name)
+        elif not no_prompt:
+            while self.project_uri is None:
+                answer = input(&#39;Create a remote project or use an existing? [c/e]: &#39;)
+                if answer == &#39;c&#39;:
+                    return self._init_project_uri_new(no_prompt)
+                elif answer == &#39;e&#39;:
+                    return self._init_project_uri_existing(no_prompt)
+                else:
+                    print(&#39;Enter &#34;c&#34; to create a new remote project or &#34;e&#34; to use an existing remote project.&#39;)
+        else:
+            return False
+
+    def _init_project_uri_new(self, no_prompt, project_name=None):
+        &#34;&#34;&#34;Creates a new remote project and sets the project_uri.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_name: The name of the remote project that will hold the new KiProject resources.
+                If this is set a new remote project will be created with this name.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        data_uri = DataUri(DataUri.default_scheme(), None)
+
+        while not self.project_uri:
+            try:
+                project_name = project_name
+
+                if not project_name and not no_prompt:
+                    project_name = input(&#39;Remote project name: &#39;)
+
+                if project_name:
+                    remote_project = data_uri.data_adapter().create_project(project_name)
+                    self.project_uri = DataUri(data_uri.scheme, remote_project.id).uri
+                    print(&#39;Remote project: &#34;{0}&#34; created at URI: {1}&#39;.format(remote_project.name, self.project_uri))
+            except Exception as ex:
+                print(&#39;Error creating remote project: {0}&#39;.format(str(ex)))
+                if no_prompt:
+                    break
+                else:
+                    answer = input(&#39;Try again? [y/n]: &#39;)
+                    if answer == &#39;n&#39;:
+                        break
+
+        return self.project_uri is not None
+
+    def _init_project_uri_existing(self, no_prompt, project_uri=None):
+        &#34;&#34;&#34;Sets the project_uri to an existing remote project.
+
+        Args:
+            no_prompt: Suppress all prompts during KiProject initialization.
+            project_uri: The remote URI of the remote project that will hold the new KiProject resources.
+                If this is set an existing remote project will be used.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        if project_uri:
+            if self._validate_project_uri(project_uri):
+                self.project_uri = project_uri
+            else:
+                print(&#39;project_uri: {0} could not be validated.&#39;.format(project_uri))
+        elif not no_prompt:
+            example_data_uri = DataUri(DataUri.default_scheme(), &#39;{0}123456&#39;.format(DataUri.default_scheme())).uri
+
+            while not self.project_uri:
+                answer = input(&#39;Remote project URI (e.g., {0}): &#39;.format(example_data_uri))
+                if answer and self._validate_project_uri(answer):
+                    self.project_uri = answer
+
+        if self.project_uri:
+            print(&#39;Remote project URI: {0}&#39;.format(self.project_uri))
+
+        return self.project_uri is not None
+
+    def _validate_project_uri(self, project_uri):
+        &#34;&#34;&#34;Validates that a remote project exists at a specific data URI.
+
+        Args:
+            project_uri: The remote URI to validate.
+
+        Returns:
+            True or False
+        &#34;&#34;&#34;
+        remote_entity = None
+        try:
+            data_uri = DataUri.parse(project_uri)
+            remote_entity = data_uri.data_adapter().get_entity(data_uri.id)
+        except Exception as ex:
+            print(&#39;Invalid remote project URI: {0}&#39;.format(ex))
+
+        return remote_entity is not None and remote_entity.is_project
+
+    def _set_data_types_from_template(self, name_or_template):
+        &#34;&#34;&#34;Sets the data_types from a template.
+
+        Args:
+            name_or_template: The name or the DataTypeTemplate template.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        if isinstance(name_or_template, DataTypeTemplate):
+            name_or_template = name_or_template.name
+
+        template = DataTypeTemplate.get(name_or_template)
+        if not template:
+            raise Exception(&#39;Data type template: {0} not found.&#39;.format(name_or_template))
+
+        self.data_types = []
+
+        for template_path in template.paths:
+            self.data_types.append(DataType(self.local_path, template_path.name, template_path.rel_path))
+
+    def _ensure_project_structure(self):
+        &#34;&#34;&#34;Ensures the KiProject structure has been created.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        # Project root
+        SysPath(self.local_path).ensure_dirs()
+
+        # Data types
+        for data_type in self.data_types:
+            SysPath(data_type.abs_path).ensure_dirs()
+
+        # Other supporting directories
+        for dir_name in [&#39;scripts&#39;, &#39;reports&#39;]:
+            SysPath(os.path.join(self.local_path, dir_name)).ensure_dirs()
+
+        # Git ignore
+        gitignore_path = os.path.join(self.local_path, &#39;.gitignore&#39;)
+        if not os.path.isfile(gitignore_path):
+            # TODO: implement this
+            pass
+
+    def _data_add(self,
+                  remote_uri=None,
+                  local_path=None,
+                  name=None,
+                  version=None,
+                  data_type=None,
+                  root_ki_project_resource=None):
+        &#34;&#34;&#34;Adds or updates a resource.
+
+        Must have remote_uri or local_path specified.
+
+        Args:
+            remote_uri: The remote URI to add.
+            local_path: The local path to a file or directory to add.
+            name: The friendly name of the resource.
+            version: The version to lock on the resource.
+            data_type: The data_type of the resource (only needed for remote_uris that do not match the DataType structure).
+            root_ki_project_resource: The root KiProjectResource. Only needed when auto adding children of a directory.
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        if not remote_uri and not local_path:
+            raise ValueError(&#39;remote_uri or local_path must be supplied.&#39;)
+
+        if data_type:
+            # Get the DataType
+            data_type = self.find_data_type(data_type)
+
+        if local_path:
+            # Make sure the file is in one of the data directories.
+            if not self.is_data_type_path(local_path):
+                raise NotADataTypePathError(local_path, self.data_types)
+
+            # Make sure the data_type param matches the local_path.
+            if data_type:
+                local_path_data_type = self.get_data_type_from_path(local_path)
+                if local_path_data_type is None or data_type != local_path_data_type:
+                    raise DataTypeMismatchError(
+                        &#39;data_type: {0} does not match local_path: {1}.&#39;.format(data_type.name, local_path))
+
+        root_id = root_ki_project_resource.id if root_ki_project_resource else None
+
+        # Check for an existing KiProjectResource
+        find_args = {}
+        if remote_uri:
+            find_args[&#39;remote_uri&#39;] = remote_uri
+        if local_path:
+            find_args[&#39;abs_path&#39;] = local_path
+        if root_id:
+            find_args[&#39;root_id&#39;] = root_id
+
+        project_resource = self.find_project_resource_by(**find_args)
+
+        if project_resource:
+            # Update the resource and warn about any changes.
+            changes = []
+
+            change_map = {
+                &#39;remote_uri&#39;: {&#39;value&#39;: remote_uri, &#39;allow_none&#39;: False},
+                &#39;abs_path&#39;: {&#39;value&#39;: local_path, &#39;allow_none&#39;: False},
+                &#39;name&#39;: {&#39;value&#39;: name, &#39;allow_none&#39;: False},
+                &#39;version&#39;: {&#39;value&#39;: version, &#39;allow_none&#39;: True},
+                &#39;data_type&#39;: {&#39;value&#39;: data_type, &#39;allow_none&#39;: False},
+                &#39;root_id&#39;: {&#39;value&#39;: root_id, &#39;allow_none&#39;: False}
+            }
+
+            for attr, config in change_map.items():
+                old_value = getattr(project_resource, attr)
+                new_value = config.get(&#39;value&#39;)
+                allow_none = config.get(&#39;allow_none&#39;)
+
+                if new_value != old_value:
+                    if new_value is None and not allow_none:
+                        print(&#39;WARNING: Cannot set {0} to None. {0} already has value: {1}&#39;.format(attr, old_value))
+                        continue
+
+                    changes.append(&#39;{0} changed from: {1} to: {2}&#39;.format(attr.title(), old_value, new_value))
+                    setattr(project_resource, attr, new_value)
+
+            if len(changes) &gt; 0:
+                print(&#39;WARNING: Resource already exists and has been updated with the following changes:&#39;)
+                for change in changes:
+                    print(&#39;  - {0}&#39;.format(change))
+        else:
+            # Add the resource.
+            project_resource = KiProjectResource(kiproject=self,
+                                                 root_id=root_id,
+                                                 data_type=data_type,
+                                                 remote_uri=remote_uri,
+                                                 local_path=local_path,
+                                                 name=name,
+                                                 version=version)
+
+            self.resources.append(project_resource)
+
+        self.save()
+        return project_resource
+
+    def _find_project_resource_by_value(self, value):
+        &#34;&#34;&#34;Finds a KiProjectResource by a unique value.
+
+        Value must be one of:
+            - KiProjectResource (will be looked up by its id)
+            - KiProjectResource.id (UUID)
+            - KiProjectResource.remote_uri (DataUri)
+            - KiProjectResource.abs_path or rel_path (file/folder that exists at the value path)
+            - KiProjectResource.name (string)
+
+        Args:
+            value: The value to find by.
+
+        Returns:
+            KiProjectResource or None
+        &#34;&#34;&#34;
+        result = None
+
+        if isinstance(value, KiProjectResource):
+            result = self.find_project_resource_by(id=value.id)
+        elif DataUri.is_uri(value):
+            result = self.find_project_resource_by(remote_uri=value)
+        elif Utils.is_uuid(value):
+            result = self.find_project_resource_by(id=value)
+        elif SysPath(value, cwd=self.local_path).exists:
+            sys_path = SysPath(value, cwd=self.local_path)
+            result = self.find_project_resource_by(abs_path=sys_path.abs_path)
+        elif isinstance(value, str):
+            result = self.find_project_resource_by(name=value)
+        else:
+            raise ValueError(&#39;Could not determine value type of: {0}&#39;.format(value))
+
+        if result is None:
+            raise KiProjectResourceNotFoundError(&#39;No project resource found matching: {0}&#39;.format(value))
+
+        return result
+
+    def _root_data_paths(self):
+        &#34;&#34;&#34;Gets all the DataType root paths for the project (e.g., /home/user/my_project/data/core)
+
+        Returns:
+            List of absolute paths.
+        &#34;&#34;&#34;
+        paths = []
+        for data_type in self.data_types:
+            paths.append(data_type.abs_path)
+        return paths
+
+    def _get_data_ignored_paths(self):
+        &#34;&#34;&#34;Gets the absolute paths of all files and directories to ignore.
+
+        Returns:
+            List of absolute paths to ignore from the data directory.
+        &#34;&#34;&#34;
+        ignored = []
+        for pattern in self.data_ignores:
+            for data_type in self.data_types:
+                ignored += glob.glob(os.path.join(data_type.abs_path, &#39;**&#39;, pattern), recursive=True)
+        return ignored</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="kitools.ki_project.KiProject.CONFIG_FILENAME"><code class="name">var <span class="ident">CONFIG_FILENAME</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="kitools.ki_project.KiProject.DEFAULT_DATA_IGNORES"><code class="name">var <span class="ident">DEFAULT_DATA_IGNORES</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="kitools.ki_project.KiProject.DEFAULT_LINUX_DATA_IGNORES"><code class="name">var <span class="ident">DEFAULT_LINUX_DATA_IGNORES</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="kitools.ki_project.KiProject.DEFAULT_OSX_DATA_IGNORES"><code class="name">var <span class="ident">DEFAULT_OSX_DATA_IGNORES</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+<dt id="kitools.ki_project.KiProject.DEFAULT_WINDOWS_DATA_IGNORES"><code class="name">var <span class="ident">DEFAULT_WINDOWS_DATA_IGNORES</span></code></dt>
+<dd>
+<section class="desc"></section>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="kitools.ki_project.KiProject.data_ignores"><code class="name">var <span class="ident">data_ignores</span></code></dt>
+<dd>
+<section class="desc"><p>Ges the ignored data patterns.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def data_ignores(self):
+    &#34;&#34;&#34;Ges the ignored data patterns.&#34;&#34;&#34;
+    return self._data_ignores</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="kitools.ki_project.KiProject.add_data_ignore"><code class="name flex">
+<span>def <span class="ident">add_data_ignore</span></span>(<span>self, pattern)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Add a glob pattern to ignore data files.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pattern</code></strong></dt>
+<dd>A glob pattern to match files to be ignored.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def add_data_ignore(self, pattern):
+    &#34;&#34;&#34;Add a glob pattern to ignore data files.
+
+    Args:
+        pattern: A glob pattern to match files to be ignored.
+
+    Returns:
+        None
+    &#34;&#34;&#34;
+    if pattern not in self._data_ignores:
+        self._data_ignores.append(pattern)
+        self.save()</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.data_add"><code class="name flex">
+<span>def <span class="ident">data_add</span></span>(<span>self, remote_uri_or_local_path, name=None, version=None, data_type=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Adds a new resource to the KiProject.</p>
+<p>A resource can be a remote or local file or directory.
+If the resource already exists it will be updated with the provided parameters.</p>
+<h2 id="examples">Examples</h2>
+<pre><code>&gt;&gt;&gt; import kitools
+&gt;&gt;&gt; kiproject = kitools.KiProject('/tmp/my_project')
+&gt;&gt;&gt; kiproject.data_add('syn:syn123456', name='my dataset')
+&gt;&gt;&gt; kiproject.data_add('/home/me/file1.csv')
+&gt;&gt;&gt; kiproject.data_add('syn:syn123457', data_type='core', version='2')
+</code></pre>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>remote_uri_or_local_path</code></strong></dt>
+<dd>The remote URI (e.g., syn:syn123456) or local path of the directory for file.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>A user friendly name for the resource.</dd>
+<dt><strong><code>version</code></strong></dt>
+<dd>The version of the file to add.</dd>
+<dt><strong><code>data_type</code></strong></dt>
+<dd>The DataType of the file. This is only required when a remote_uri is provided
+and the remote folder structure does not match the KiProject's "data" structure.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>KiProjectResource</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_add(self, remote_uri_or_local_path, name=None, version=None, data_type=None):
+    &#34;&#34;&#34;Adds a new resource to the KiProject.
+
+    A resource can be a remote or local file or directory.
+    If the resource already exists it will be updated with the provided parameters.
+
+    Examples:
+        &gt;&gt;&gt; import kitools
+        &gt;&gt;&gt; kiproject = kitools.KiProject(&#39;/tmp/my_project&#39;)
+        &gt;&gt;&gt; kiproject.data_add(&#39;syn:syn123456&#39;, name=&#39;my dataset&#39;)
+        &gt;&gt;&gt; kiproject.data_add(&#39;/home/me/file1.csv&#39;)
+        &gt;&gt;&gt; kiproject.data_add(&#39;syn:syn123457&#39;, data_type=&#39;core&#39;, version=&#39;2&#39;)
+
+    Args:
+        remote_uri_or_local_path: The remote URI (e.g., syn:syn123456) or local path of the directory for file.
+        name: A user friendly name for the resource.
+        version: The version of the file to add.
+        data_type: The DataType of the file. This is only required when a remote_uri is provided
+            and the remote folder structure does not match the KiProject&#39;s &#34;data&#34; structure.
+
+    Returns:
+        KiProjectResource
+    &#34;&#34;&#34;
+    self._ensure_loaded()
+
+    if DataUri.is_uri(remote_uri_or_local_path):
+        return self._data_add(data_type=data_type,
+                              remote_uri=remote_uri_or_local_path,
+                              name=(name or remote_uri_or_local_path),
+                              version=version)
+    else:
+        sys_local_path = SysPath(remote_uri_or_local_path, cwd=self.local_path)
+        if sys_local_path.exists:
+            return self._data_add(data_type=data_type,
+                                  local_path=sys_local_path.abs_path,
+                                  name=(name or sys_local_path.basename),
+                                  version=version)
+        else:
+            raise ValueError(&#39;Please specify a remote URI or a local file or folder path that exists.&#39;)</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.data_change"><code class="name flex">
+<span>def <span class="ident">data_change</span></span>(<span>self, resource_or_identifier, name=None, version=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Changes the name or version on a KiProjectResource.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>resource_or_identifier</code></strong></dt>
+<dd>KiProjectResource object or a valid identifier (local path, remote URI, name).</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>The new name.</dd>
+<dt><strong><code>version</code></strong></dt>
+<dd>The new version (or 'None' to clear the version).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>KiProjectResource</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_change(self, resource_or_identifier, name=None, version=None):
+    &#34;&#34;&#34;Changes the name or version on a KiProjectResource.
+
+    Args:
+        resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+        name: The new name.
+        version: The new version (or &#39;None&#39; to clear the version).
+
+    Returns:
+        KiProjectResource
+    &#34;&#34;&#34;
+    self._ensure_loaded()
+
+    project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+    if name is not None:
+        project_resource.name = name
+
+    if version is not None:
+        project_resource.version = version
+
+    self.save()
+    return project_resource</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.data_list"><code class="name flex">
+<span>def <span class="ident">data_list</span></span>(<span>self, all=False)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Prints out a table of all the resources in the KiProject.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>all</code></strong></dt>
+<dd>Set to True to include all child resources.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>BeautifulTable</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_list(self, all=False):
+    &#34;&#34;&#34;Prints out a table of all the resources in the KiProject.
+
+    Args:
+        all: Set to True to include all child resources.
+
+    Returns:
+        BeautifulTable
+    &#34;&#34;&#34;
+    self._ensure_loaded()
+
+    # Only show non-root resources unless requested.
+    scoped_resources = self.resources if all else self.find_project_resources_by(root_id=None)
+
+    col_action_needed = &#39;Action Needed&#39;
+    col_remote_uri = &#39;Remote URI&#39;
+    col_root_uri = &#39;Root URI&#39;
+    col_version = &#39;Version&#39;
+    col_name = &#39;Name&#39;
+    col_path = &#39;Path&#39;
+
+    column_headers = [col_action_needed, col_remote_uri, col_root_uri, col_version, col_name, col_path]
+
+    table = BeautifulTable(max_width=1000)
+    table.set_style(BeautifulTable.STYLE_BOX)
+    # Remove the row separator.
+    table.row_separator_char = &#39;&#39;
+    table.column_headers = column_headers
+
+    for header in table.column_headers:
+        table.column_alignments[header] = BeautifulTable.ALIGN_LEFT
+
+    for resource in scoped_resources:
+        row_data = [&#39;&#39; for _ in column_headers]
+        actions_needed = []
+
+        # remote_uri
+        if resource.remote_uri:
+            row_data[column_headers.index(col_remote_uri)] = resource.remote_uri
+        else:
+            actions_needed.append(&#39;data_push()&#39;)
+
+        # root_id
+        if resource.root_id:
+            root_resource = self.find_project_resource_by(id=resource.root_id)
+            row_data[column_headers.index(col_root_uri)] = root_resource.remote_uri
+
+        # version
+        if resource.version:
+            row_data[column_headers.index(col_version)] = resource.version
+
+        # name
+        if resource.name:
+            row_data[column_headers.index(col_name)] = resource.name
+
+        # rel_path
+        if resource.rel_path:
+            row_data[column_headers.index(col_path)] = resource.rel_path
+        else:
+            actions_needed.append(&#39;data_pull()&#39;)
+
+        # action needed
+        row_data[column_headers.index(col_action_needed)] = &#39;, &#39;.join(actions_needed)
+
+        table.append_row(row_data)
+
+    # Remove the root uri column unless we are showing all.
+    if all is not True:
+        table.pop_column(col_root_uri)
+
+    # Remove the actions needed column if there are no actions needed.
+    if not list(filter(None, table[col_action_needed])):
+        table.pop_column(col_action_needed)
+
+    print(table)</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.data_pull"><code class="name flex">
+<span>def <span class="ident">data_pull</span></span>(<span>self, resource_or_identifier=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Downloads a specific resource or all resources in the KiProject.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>resource_or_identifier</code></strong></dt>
+<dd>KiProjectResource object or a valid identifier (local path, remote URI, name).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>The absolute path to the pulled resource or a list of absolute paths for all pulled resources.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_pull(self, resource_or_identifier=None):
+    &#34;&#34;&#34;Downloads a specific resource or all resources in the KiProject.
+
+    Args:
+        resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+    Returns:
+        The absolute path to the pulled resource or a list of absolute paths for all pulled resources.
+    &#34;&#34;&#34;
+    self._ensure_loaded()
+
+    if resource_or_identifier:
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+        if project_resource.remote_uri is None:
+            print(&#39;Resource cannot be pulled until it has been pushed:{0}{1}&#39;.format(os.linesep, project_resource))
+            return None
+
+        data_uri = DataUri.parse(project_resource.remote_uri)
+        data_uri.data_adapter().data_pull(project_resource)
+        return project_resource
+    else:
+        results = []
+        for project_resource in self.resources:
+            # Skip any non-root resources. The root resource will handle pulling the child.
+            if project_resource.root_id:
+                continue
+
+            results.append(self.data_pull(project_resource))
+        return results</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.data_push"><code class="name flex">
+<span>def <span class="ident">data_push</span></span>(<span>self, resource_or_identifier=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Uploads a specific resource or all local non-pushed resources.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>resource_or_identifier</code></strong></dt>
+<dd>KiProjectResource object or a valid identifier (local path, remote URI, name).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>The absolute path to the pushed resource or a list of absolute paths for all pushed resources.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_push(self, resource_or_identifier=None):
+    &#34;&#34;&#34;Uploads a specific resource or all local non-pushed resources.
+
+    Args:
+        resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+    Returns:
+        The absolute path to the pushed resource or a list of absolute paths for all pushed resources.
+    &#34;&#34;&#34;
+    self._ensure_loaded()
+
+    if resource_or_identifier:
+        project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+        if project_resource.abs_path is None:
+            print(&#39;Source cannot be pushed until it has been pulled:{0}{1}&#39;.format(os.linesep, project_resource))
+            return None
+
+        data_uri = DataUri.parse(project_resource.remote_uri or self.project_uri)
+        data_uri.data_adapter().data_push(project_resource)
+        return project_resource
+    else:
+        print(&#39;Pushing all resources that have not been pushed.&#39;)
+        results = []
+        for project_resource in self.resources:
+            # Only push resources that have not been pushed yet.
+            if project_resource.remote_uri:
+                continue
+
+            # Skip any non-root resources unless the root resource has already been pushed.
+            # The root resource will handle pushing the child.
+            if project_resource.root_id and project_resource.root_resource.remote_uri is None:
+                continue
+
+            results.append(self.data_push(project_resource))
+        return results</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.data_remove"><code class="name flex">
+<span>def <span class="ident">data_remove</span></span>(<span>self, resource_or_identifier)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Removes a resource from the KiProject.</p>
+<p>This does not delete the file locally or remotely, it is only removed from the KiProject manifest.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>resource_or_identifier</code></strong></dt>
+<dd>KiProjectResource object or a valid identifier (local path, remote URI, name).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>KiProjectResource</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def data_remove(self, resource_or_identifier):
+    &#34;&#34;&#34;Removes a resource from the KiProject.
+
+    This does not delete the file locally or remotely, it is only removed from the KiProject manifest.
+
+    Args:
+        resource_or_identifier: KiProjectResource object or a valid identifier (local path, remote URI, name).
+
+    Returns:
+        KiProjectResource
+    &#34;&#34;&#34;
+    self._ensure_loaded()
+
+    project_resource = self._find_project_resource_by_value(resource_or_identifier)
+
+    # Remove any children.
+    for child_resource in self.find_project_resources_by(root_id=project_resource.id):
+        self.resources.remove(child_resource)
+
+    # Remove the root.
+    self.resources.remove(project_resource)
+    self.save()
+    return project_resource</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.find_data_type"><code class="name flex">
+<span>def <span class="ident">find_data_type</span></span>(<span>self, name_or_data_type, raise_on_missing=True)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Finds a DataType by it's name.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>name_or_data_type</code></strong></dt>
+<dd>The DataType name to find.</dd>
+<dt><strong><code>raise_on_missing</code></strong></dt>
+<dd>Whether or not to raise an error if not found.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>DataType</code> or <code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def find_data_type(self, name_or_data_type, raise_on_missing=True):
+    &#34;&#34;&#34;Finds a DataType by it&#39;s name.
+
+    Args:
+        name_or_data_type: The DataType name to find.
+        raise_on_missing: Whether or not to raise an error if not found.
+
+    Returns:
+        DataType or None
+    &#34;&#34;&#34;
+    if isinstance(name_or_data_type, DataType):
+        name_or_data_type = name_or_data_type.name
+
+    for data_type in self.data_types:
+        if data_type.name == name_or_data_type:
+            return data_type
+
+    if raise_on_missing:
+        raise InvalidDataTypeError(name_or_data_type, self.data_types)
+    else:
+        return None</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.find_missing_resources"><code class="name flex">
+<span>def <span class="ident">find_missing_resources</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Finds all local DataType directories and files that have not been added to the KiProject resources.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>List</code> of <code>paths</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def find_missing_resources(self):
+    &#34;&#34;&#34;Finds all local DataType directories and files that have not been added to the KiProject resources.
+
+    Returns:
+        List of paths
+    &#34;&#34;&#34;
+    missing = []
+
+    paths = deque(self._root_data_paths())
+
+    ignored_paths = self._get_data_ignored_paths()
+
+    while paths:
+        path = paths.popleft()
+        dirs, files = Utils.get_dirs_and_files(path)
+
+        for entry in (dirs + files):
+            if entry.path in ignored_paths:
+                continue
+
+            resources = self.find_project_resources_by(abs_path=entry.path)
+            if not resources:
+                missing.append(entry.path)
+
+            if entry.is_dir():
+                paths.append(entry.path)
+
+    return missing</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.find_project_resource_by"><code class="name flex">
+<span>def <span class="ident">find_project_resource_by</span></span>(<span>self, operator='and', **kwargs)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Finds a single resource in the KiProject by any of KiProjectResource attributes.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>operator</code></strong></dt>
+<dd>The operator to use when finding by more than one attribute. Must be one of: 'and', 'or'.</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>KiProjectResource attributes and values to find by.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>KiProjectResource</code> or <code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><strong><code>Exception</code></strong></dt>
+<dd>Raised if more than one result is found.</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def find_project_resource_by(self, operator=&#39;and&#39;, **kwargs):
+    &#34;&#34;&#34;Finds a single resource in the KiProject by any of KiProjectResource attributes.
+
+    Args:
+        operator: The operator to use when finding by more than one attribute. Must be one of: &#39;and&#39;, &#39;or&#39;.
+        **kwargs: KiProjectResource attributes and values to find by.
+
+    Returns:
+        KiProjectResource or None
+
+    Raises:
+        Exception: Raised if more than one result is found.
+    &#34;&#34;&#34;
+    results = self.find_project_resources_by(operator=operator, **kwargs)
+    if len(results) == 1:
+        return results[0]
+    elif len(results) &gt; 1:
+        raise Exception(&#39;Found more than one matching resource.&#39;)</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.find_project_resources_by"><code class="name flex">
+<span>def <span class="ident">find_project_resources_by</span></span>(<span>self, operator='and', **kwargs)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Finds all resources in the KiProject by any of KiProjectResource attributes.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>operator</code></strong></dt>
+<dd>The operator to use when finding by more than one attribute. Must be one of: 'and', 'or'.</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>KiProjectResource attributes and values to find by.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>List of KiProjectResources or an empty list.</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><strong><code>ValueError</code></strong></dt>
+<dd>Raised on invalid 'operator' or invalid KiProjectResources property.</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def find_project_resources_by(self, operator=&#39;and&#39;, **kwargs):
+    &#34;&#34;&#34;Finds all resources in the KiProject by any of KiProjectResource attributes.
+
+    Args:
+        operator: The operator to use when finding by more than one attribute. Must be one of: &#39;and&#39;, &#39;or&#39;.
+        **kwargs: KiProjectResource attributes and values to find by.
+
+    Returns:
+        List of KiProjectResources or an empty list.
+
+    Raises:
+        ValueError: Raised on invalid &#39;operator&#39; or invalid KiProjectResources property.
+    &#34;&#34;&#34;
+    results = []
+
+    if operator not in [&#39;and&#39;, &#39;or&#39;]:
+        raise ValueError(&#39;operator must be one of: &#34;and&#34;, &#34;or&#34;. &#39;)
+
+    for resource in self.resources:
+        matches = []
+
+        for attribute, attribute_value in kwargs.items():
+            if not hasattr(resource, attribute):
+                raise ValueError(&#39;{0} does not have attribute: {1}&#39;.format(type(resource), attribute))
+
+            resource_value = getattr(resource, attribute)
+
+            if resource_value == attribute_value:
+                matches.append(attribute)
+            elif isinstance(resource_value, DataType) and isinstance(attribute_value, str):
+                # Handle searching by DataType Name.
+                if resource_value.name == attribute_value:
+                    matches.append(attribute)
+
+        if operator == &#39;and&#39; and len(matches) == len(kwargs):
+            results.append(resource)
+        elif operator == &#39;or&#39; and len(matches) &gt; 0:
+            results.append(resource)
+
+    return results</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.from_json"><code class="name flex">
+<span>def <span class="ident">from_json</span></span>(<span>self, json)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Deserializes JSON into the KiProject.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>json</code></strong></dt>
+<dd>The JSON to deserialize.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def from_json(self, json):
+    &#34;&#34;&#34;Deserializes JSON into the KiProject.
+
+    Args:
+        json: The JSON to deserialize.
+
+    Returns:
+        None
+    &#34;&#34;&#34;
+    self.title = json.get(&#39;title&#39;)
+    self.description = json.get(&#39;description&#39;)
+    self.project_uri = json.get(&#39;project_uri&#39;)
+    self._data_ignores = json.get(&#39;data_ignores&#39;, list(self.DEFAULT_DATA_IGNORES))
+    self.data_types = []
+    self.resources = []
+
+    for jdata_type in json.get(&#39;data_types&#39;):
+        self.data_types.append(DataType.from_json(jdata_type, self.local_path))
+
+    for jresource in json.get(&#39;resources&#39;):
+        self.resources.append(KiProjectResource.from_json(jresource, self))</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.get_data_type_from_path"><code class="name flex">
+<span>def <span class="ident">get_data_type_from_path</span></span>(<span>self, path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Gets the DataType from a path.</p>
+<p>The path must be in one of the KiProject's DataType directories.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>path</code></strong></dt>
+<dd>Path to get the DataType from.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>The DataType or None.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def get_data_type_from_path(self, path):
+    &#34;&#34;&#34;Gets the DataType from a path.
+
+    The path must be in one of the KiProject&#39;s DataType directories.
+
+    Args:
+        path: Path to get the DataType from.
+
+    Returns:
+        The DataType or None.
+    &#34;&#34;&#34;
+    sorted_data_types = sorted(self.data_types, reverse=True, key=lambda d: len(d.rel_path))
+    sys_path = SysPath(path, cwd=self.local_path, rel_start=self.local_path)
+
+    for data_type in sorted_data_types:
+        if sys_path.rel_path.startswith(data_type.rel_path):
+            return data_type
+
+    return None</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.is_data_type_path"><code class="name flex">
+<span>def <span class="ident">is_data_type_path</span></span>(<span>self, local_path)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Gets if the local_path is in one of the DataType directories.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>local_path</code></strong></dt>
+<dd>Path to check.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>True</code> or <code>False</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def is_data_type_path(self, local_path):
+    &#34;&#34;&#34;Gets if the local_path is in one of the DataType directories.
+
+    Args:
+        local_path: Path to check.
+
+    Returns:
+        True or False
+    &#34;&#34;&#34;
+    try:
+        is_data_path = self.get_data_type_from_path(local_path) is not None
+        is_root_data_path = is_data_path and local_path in self._root_data_paths()
+
+        if is_data_path and not is_root_data_path:
+            return True
+        else:
+            return False
+    except Exception as ex:
+        # TODO: log this?
+        pass
+    return False</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Loads the KiProject from a config file.</p>
+<h2 id="returns">Returns</h2>
+<p>True if the config file exists and was loaded.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def load(self):
+    &#34;&#34;&#34;Loads the KiProject from a config file.
+
+    Returns:
+        True if the config file exists and was loaded.
+    &#34;&#34;&#34;
+    loaded = False
+    if os.path.isfile(self._config_path):
+        with open(self._config_path) as f:
+            self.from_json(json.load(f))
+            loaded = True
+
+    return loaded</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.remove_data_ignore"><code class="name flex">
+<span>def <span class="ident">remove_data_ignore</span></span>(<span>self, pattern)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Remove a glob pattern that ignores data files.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pattern</code></strong></dt>
+<dd>The glob pattern to remove.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def remove_data_ignore(self, pattern):
+    &#34;&#34;&#34;Remove a glob pattern that ignores data files.
+
+    Args:
+        pattern: The glob pattern to remove.
+
+    Returns:
+        None
+    &#34;&#34;&#34;
+    if pattern in self._data_ignores:
+        self._data_ignores.remove(pattern)
+        self.save()</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.save"><code class="name flex">
+<span>def <span class="ident">save</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Saves the KiProject to a config file.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def save(self):
+    &#34;&#34;&#34;Saves the KiProject to a config file.
+
+    Returns:
+        None
+    &#34;&#34;&#34;
+    # Sort the resources before saving.
+    self.resources.sort(
+        key=lambda r: r.rel_path or (r.data_type.name if r.data_type else None) or r.name or r.remote_uri or r.id)
+
+    with open(self._config_path, &#39;w&#39;) as f:
+        json.dump(self.to_json(), f, indent=2)</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.show_missing_resources"><code class="name flex">
+<span>def <span class="ident">show_missing_resources</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Shows all local DataType directories and files that have not been added to the KiProject resources.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>None</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def show_missing_resources(self):
+    &#34;&#34;&#34;Shows all local DataType directories and files that have not been added to the KiProject resources.
+
+    Returns:
+        None
+    &#34;&#34;&#34;
+    self._ensure_loaded()
+
+    missing = self.find_missing_resources()
+    if missing:
+        print(&#39;WARNING: The following local resources have not been added to this KiProject.&#39;)
+        for path in missing:
+            print(&#39; - {0}&#39;.format(SysPath(path, rel_start=self.local_path).rel_path))</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project.KiProject.to_json"><code class="name flex">
+<span>def <span class="ident">to_json</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Serializes the KiProject to JSON.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Hash</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def to_json(self):
+    &#34;&#34;&#34;Serializes the KiProject to JSON.
+
+    Returns:
+        Hash
+    &#34;&#34;&#34;
+    return {
+        &#39;title&#39;: self.title,
+        &#39;description&#39;: self.description,
+        &#39;project_uri&#39;: self.project_uri,
+        &#39;data_ignores&#39;: self.data_ignores,
+        &#39;data_types&#39;: [item.to_json() for item in self.data_types],
+        &#39;resources&#39;: [item.to_json() for item in self.resources]
+    }</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="kitools" href="index.html">kitools</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="kitools.ki_project.KiProject" href="#kitools.ki_project.KiProject">KiProject</a></code></h4>
+<ul class="">
+<li><code><a title="kitools.ki_project.KiProject.CONFIG_FILENAME" href="#kitools.ki_project.KiProject.CONFIG_FILENAME">CONFIG_FILENAME</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.DEFAULT_DATA_IGNORES" href="#kitools.ki_project.KiProject.DEFAULT_DATA_IGNORES">DEFAULT_DATA_IGNORES</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.DEFAULT_LINUX_DATA_IGNORES" href="#kitools.ki_project.KiProject.DEFAULT_LINUX_DATA_IGNORES">DEFAULT_LINUX_DATA_IGNORES</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.DEFAULT_OSX_DATA_IGNORES" href="#kitools.ki_project.KiProject.DEFAULT_OSX_DATA_IGNORES">DEFAULT_OSX_DATA_IGNORES</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.DEFAULT_WINDOWS_DATA_IGNORES" href="#kitools.ki_project.KiProject.DEFAULT_WINDOWS_DATA_IGNORES">DEFAULT_WINDOWS_DATA_IGNORES</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.add_data_ignore" href="#kitools.ki_project.KiProject.add_data_ignore">add_data_ignore</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.data_add" href="#kitools.ki_project.KiProject.data_add">data_add</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.data_change" href="#kitools.ki_project.KiProject.data_change">data_change</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.data_ignores" href="#kitools.ki_project.KiProject.data_ignores">data_ignores</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.data_list" href="#kitools.ki_project.KiProject.data_list">data_list</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.data_pull" href="#kitools.ki_project.KiProject.data_pull">data_pull</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.data_push" href="#kitools.ki_project.KiProject.data_push">data_push</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.data_remove" href="#kitools.ki_project.KiProject.data_remove">data_remove</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.find_data_type" href="#kitools.ki_project.KiProject.find_data_type">find_data_type</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.find_missing_resources" href="#kitools.ki_project.KiProject.find_missing_resources">find_missing_resources</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.find_project_resource_by" href="#kitools.ki_project.KiProject.find_project_resource_by">find_project_resource_by</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.find_project_resources_by" href="#kitools.ki_project.KiProject.find_project_resources_by">find_project_resources_by</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.from_json" href="#kitools.ki_project.KiProject.from_json">from_json</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.get_data_type_from_path" href="#kitools.ki_project.KiProject.get_data_type_from_path">get_data_type_from_path</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.is_data_type_path" href="#kitools.ki_project.KiProject.is_data_type_path">is_data_type_path</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.load" href="#kitools.ki_project.KiProject.load">load</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.remove_data_ignore" href="#kitools.ki_project.KiProject.remove_data_ignore">remove_data_ignore</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.save" href="#kitools.ki_project.KiProject.save">save</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.show_missing_resources" href="#kitools.ki_project.KiProject.show_missing_resources">show_missing_resources</a></code></li>
+<li><code><a title="kitools.ki_project.KiProject.to_json" href="#kitools.ki_project.KiProject.to_json">to_json</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.6.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

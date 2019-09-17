@@ -1,17 +1,3 @@
-# Copyright 2018-present, Bill & Melinda Gates Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import uuid
 from pathlib import PurePath
@@ -20,8 +6,9 @@ from .data_type import DataType
 
 
 class KiProjectResource(object):
-    """
-    Defines a resource in a KiProject. A resource can be a directory or a file.
+    """Defines a resource in a KiProject.
+
+    A resource can be a directory or a file.
     """
 
     def __init__(self,
@@ -34,18 +21,18 @@ class KiProjectResource(object):
                  name=None,
                  version=None):
         """
-        Instantiates the KiProjectResource.
+        Instantiates a new instance.
 
-        :param kiproject: The KiProject the resource belongs to.
-        :param id: The ID of the resource.
-        :param root_id: The ID of the root KiProjectResource (if the resource is a child).
-        :param data_type: The data type of the resource.
-        :param remote_uri: The remote URI of the resource.
-        :param local_path: The local path of the resource.
-        :param name: The friendly name of the resource.
-        :param version: The locked version of the resource.
+        Args:
+            kiproject: The KiProject the resource belongs to.
+            id: The ID of the resource.
+            root_id: The ID of the root KiProjectResource (if the resource is a child).
+            data_type: The data type of the resource.
+            remote_uri: The remote URI of the resource.
+            local_path: The local path of the resource.
+            name: The friendly name of the resource.
+            version: The locked version of the resource.
         """
-
         self._id = id if id else str(uuid.uuid4())
         self._root_id = root_id
         self._kiproject = kiproject
@@ -141,9 +128,10 @@ class KiProjectResource(object):
 
     @property
     def abs_path(self):
-        """
-        Gets the absolute path to the file.
-        :return:
+        """Gets the absolute path to the file.
+
+        Returns:
+            String of the absolute path or None.
         """
         if self.rel_path:
             return os.path.join(self.kiproject.local_path, self.rel_path)
@@ -156,9 +144,10 @@ class KiProjectResource(object):
 
     @property
     def rel_path(self):
-        """
-        Gets the path of the file relative to the KiProject's root directory.
-        :return:
+        """Gets the path of the file relative to the KiProject's root directory.
+
+        Returns:
+            String of the relative path or None.
         """
         if self._local_path:
             return SysPath(self._local_path, rel_start=self.kiproject.local_path).rel_path
@@ -182,10 +171,10 @@ class KiProjectResource(object):
         return os.linesep.join(details)
 
     def to_json(self):
-        """
-        Serializes self into JSON.
+        """Serializes self into JSON.
 
-        :return: Hash
+        Returns:
+            Hash
         """
         return {
             'id': self.id,
@@ -200,11 +189,14 @@ class KiProjectResource(object):
 
     @staticmethod
     def from_json(json, kiproject):
-        """
-        Deserializes JSON into a KiProjectResource.
+        """Deserializes JSON into a KiProjectResource.
 
-        :param json: The JSON to deserialize.
-        :return: KiProjectResource
+        Args:
+            json: The JSON to deserialize.
+            kiproject: The KiProject the resource belongs to.
+
+        Returns:
+            KiProjectResource
         """
         return KiProjectResource(kiproject,
                                  id=json.get('id'),

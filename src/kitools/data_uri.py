@@ -1,45 +1,21 @@
-# Copyright 2018-present, Bill & Melinda Gates Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 from .exceptions import InvalidDataUriError
 
 
 class DataUri(object):
-    """
-    Defines a URI format for identifying remote projects, folders, and files.
+    """Defines a URI format for identifying remote projects, folders, and files.
 
     URI Format: <scheme>:<id> (e.g., syn:syn123456789, osf:z7s4a)
     """
 
     SCHEMES = {}
 
-    @classmethod
-    def register_data_adapter(cls, scheme, adapter):
-        """
-        Registers a DataAdapter class for a specific scheme.
-
-        :param scheme: The scheme of the data adapter.
-        :param adapter: The data adapter class.
-        :return: None
-        """
-        if scheme not in cls.SCHEMES:
-            cls.SCHEMES[scheme] = {
-                'data_adapter': adapter
-            }
-
     def __init__(self, scheme, id):
+        """Instantiates a new instance.
+
+        Args:
+            scheme: The scheme to use.
+            id: The ID of the remote object.
+        """
         self._scheme = scheme
         self._id = id
 
@@ -53,17 +29,43 @@ class DataUri(object):
 
     @property
     def uri(self):
+        """Gets the full URI.
+
+        Returns:
+            Full URI as a string.
+        """
         return '{0}:{1}'.format(self.scheme, self.id)
 
     def data_adapter(self):
+        """Gets the data adapter for the current scheme.
+
+        Returns:
+            Data adapter.
+        """
         return self.SCHEMES.get(self.scheme).get('data_adapter')()
 
     @staticmethod
     def default_scheme():
+        """Gets the default scheme ('syn').
+
+        Returns:
+            String.
+        """
         return 'syn'
 
     @staticmethod
     def parse(uri):
+        """Parses a string into a DataUri.
+
+        Args:
+            uri: The string to parse.
+
+        Returns:
+            DataUri
+
+        Raises:
+            InvalidDataUriError: Raised when the string cannot be parsed.
+        """
         if not uri:
             raise InvalidDataUriError('uri cannot be blank.')
 
@@ -88,10 +90,13 @@ class DataUri(object):
 
     @staticmethod
     def is_uri(value):
-        """
-        Gets if a string is a DataUri.
-        :param value:
-        :return:
+        """Gets if a string is a DataUri.
+
+        Args:
+            value: The string to check.
+
+        Returns:
+            True if the string is a DataUri.
         """
         try:
             return DataUri.parse(value) is not None
@@ -99,3 +104,19 @@ class DataUri(object):
             # TODO: log this?
             pass
         return False
+
+    @classmethod
+    def register_data_adapter(cls, scheme, adapter):
+        """Registers a DataAdapter class for a specific scheme.
+
+        Args:
+            scheme: The scheme of the data adapter.
+            adapter: The data adapter class.
+
+        Returns:
+            None
+        """
+        if scheme not in cls.SCHEMES:
+            cls.SCHEMES[scheme] = {
+                'data_adapter': adapter
+            }

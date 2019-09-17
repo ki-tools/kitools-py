@@ -1,17 +1,3 @@
-# Copyright 2018-present, Bill & Melinda Gates Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import pytest
 import os
 import tempfile
@@ -157,6 +143,7 @@ def syn_dispose_of(syn_test_helper):
     def _sdo(kiproject):
         syn_project = syn_test_helper.client().get(DataUri.parse(kiproject.project_uri).id)
         syn_test_helper.dispose_of(syn_project)
+        return syn_project
 
     yield _sdo
 
@@ -183,6 +170,8 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
             raise_on_create_project_in=False,
             project_title=None,
             raise_on_project_title=False,
+            project_description=None,
+            raise_on_project_description=False,
             create_remote_project_or_existing=None,
             raise_on_create_remote_project_or_existing=False,
             remote_project_name=None,
@@ -203,6 +192,11 @@ def mk_mock_kiproject_input(mocker, syn_test_helper, mk_uniq_string):
                     raise MockKiProjectInputError(prompt)
                 else:
                     return project_title or mk_uniq_string()
+            elif 'KiProject description:' in prompt:
+                if raise_on_project_description:
+                    raise MockKiProjectInputError(prompt)
+                else:
+                    return project_description or mk_uniq_string()
             elif 'Create a remote project or use an existing? [c/e]:' in prompt:
                 if raise_on_create_remote_project_or_existing:
                     raise MockKiProjectInputError(prompt)

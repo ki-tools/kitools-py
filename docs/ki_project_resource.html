@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.6.2" />
+<title>kitools.ki_project_resource API documentation</title>
+<meta name="description" content="" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase;cursor:pointer}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>kitools.ki_project_resource</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">import os
+import uuid
+from pathlib import PurePath
+from .sys_path import SysPath
+from .data_type import DataType
+
+
+class KiProjectResource(object):
+    &#34;&#34;&#34;Defines a resource in a KiProject.
+
+    A resource can be a directory or a file.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 kiproject,
+                 id=None,
+                 root_id=None,
+                 data_type=None,
+                 remote_uri=None,
+                 local_path=None,
+                 name=None,
+                 version=None):
+        &#34;&#34;&#34;
+        Instantiates a new instance.
+
+        Args:
+            kiproject: The KiProject the resource belongs to.
+            id: The ID of the resource.
+            root_id: The ID of the root KiProjectResource (if the resource is a child).
+            data_type: The data type of the resource.
+            remote_uri: The remote URI of the resource.
+            local_path: The local path of the resource.
+            name: The friendly name of the resource.
+            version: The locked version of the resource.
+        &#34;&#34;&#34;
+        self._id = id if id else str(uuid.uuid4())
+        self._root_id = root_id
+        self._kiproject = kiproject
+        self._remote_uri = remote_uri
+        self._name = name
+
+        self._data_type = None
+        self._set_data_type(data_type)
+
+        self._local_path = None
+        self._set_local_path(local_path)
+
+        self._version = None
+        self._set_version(version)
+
+    def _set_data_type(self, value):
+        if value:
+            if isinstance(value, DataType):
+                value = value.name
+
+            # Validate the value.
+            value = self.kiproject.find_data_type(value)
+        self._data_type = value
+
+    def _set_local_path(self, value):
+        if value:
+            sys_path = SysPath(value, cwd=self.kiproject.local_path)
+            value = sys_path.abs_path
+
+        self._local_path = value
+
+        if self.abs_path:
+            data_type = self.kiproject.get_data_type_from_path(self.abs_path)
+            self._set_data_type(data_type)
+
+    def _set_version(self, value):
+        self._version = str(value) if value else None
+
+    @property
+    def kiproject(self):
+        return self._kiproject
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def root_id(self):
+        return self._root_id
+
+    @root_id.setter
+    def root_id(self, value):
+        self._root_id = value
+
+    @property
+    def root_resource(self):
+        if self.root_id is not None:
+            return self.kiproject.find_project_resource_by(id=self.root_id)
+        else:
+            return None
+
+    @property
+    def remote_uri(self):
+        return self._remote_uri
+
+    @remote_uri.setter
+    def remote_uri(self, value):
+        self._remote_uri = value
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, value):
+        self._version = value
+
+    @property
+    def data_type(self):
+        return self._data_type
+
+    @data_type.setter
+    def data_type(self, value):
+        self._set_data_type(value)
+
+    @property
+    def abs_path(self):
+        &#34;&#34;&#34;Gets the absolute path to the file.
+
+        Returns:
+            String of the absolute path or None.
+        &#34;&#34;&#34;
+        if self.rel_path:
+            return os.path.join(self.kiproject.local_path, self.rel_path)
+        else:
+            return None
+
+    @abs_path.setter
+    def abs_path(self, value):
+        self._set_local_path(value)
+
+    @property
+    def rel_path(self):
+        &#34;&#34;&#34;Gets the path of the file relative to the KiProject&#39;s root directory.
+
+        Returns:
+            String of the relative path or None.
+        &#34;&#34;&#34;
+        if self._local_path:
+            return SysPath(self._local_path, rel_start=self.kiproject.local_path).rel_path
+        else:
+            return None
+
+    @rel_path.setter
+    def rel_path(self, value):
+        self._set_local_path(value)
+
+    def __str__(self):
+        details = []
+        details.append(&#39;Name: {0}&#39;.format(self.name if self.name else &#39;[not set]&#39;))
+        details.append(&#39;Date Type: {0}&#39;.format(
+            self.data_type if self.data_type else &#39;[has not been pulled... use data_pull() to pull this dataset]&#39;))
+        details.append(&#39;Version: {0}&#39;.format(self.version if self.version else &#39;[latest]&#39;))
+        details.append(&#39;Remote URI: {0}&#39;.format(
+            self.remote_uri if self.remote_uri else &#39;[has not been pushed... use data_push() to push this dataset]&#39;))
+        details.append(&#39;Absolute Path: {0}&#39;.format(
+            self.abs_path if self.abs_path else &#39;[has not been pulled... use data_pull() to pull this dataset]&#39;))
+        return os.linesep.join(details)
+
+    def to_json(self):
+        &#34;&#34;&#34;Serializes self into JSON.
+
+        Returns:
+            Hash
+        &#34;&#34;&#34;
+        return {
+            &#39;id&#39;: self.id,
+            &#39;root_id&#39;: self.root_id,
+            &#39;data_type&#39;: self.data_type.name if self.data_type else None,
+            &#39;remote_uri&#39;: self.remote_uri,
+            # Always store the path in Posix format (&#34;/&#34; vs &#34;\&#34;).
+            &#39;rel_path&#39;: PurePath(self.rel_path).as_posix() if self.rel_path else None,
+            &#39;name&#39;: self.name,
+            &#39;version&#39;: self.version
+        }
+
+    @staticmethod
+    def from_json(json, kiproject):
+        &#34;&#34;&#34;Deserializes JSON into a KiProjectResource.
+
+        Args:
+            json: The JSON to deserialize.
+            kiproject: The KiProject the resource belongs to.
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        return KiProjectResource(kiproject,
+                                 id=json.get(&#39;id&#39;),
+                                 root_id=json.get(&#39;root_id&#39;),
+                                 data_type=json.get(&#39;data_type&#39;),
+                                 remote_uri=json.get(&#39;remote_uri&#39;),
+                                 local_path=json.get(&#39;rel_path&#39;),
+                                 name=json.get(&#39;name&#39;),
+                                 version=json.get(&#39;version&#39;))</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="kitools.ki_project_resource.KiProjectResource"><code class="flex name class">
+<span>class <span class="ident">KiProjectResource</span></span>
+<span>(</span><span>kiproject, id=None, root_id=None, data_type=None, remote_uri=None, local_path=None, name=None, version=None)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Defines a resource in a KiProject.</p>
+<p>A resource can be a directory or a file.</p>
+<p>Instantiates a new instance.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>kiproject</code></strong></dt>
+<dd>The KiProject the resource belongs to.</dd>
+<dt><strong><code>id</code></strong></dt>
+<dd>The ID of the resource.</dd>
+<dt><strong><code>root_id</code></strong></dt>
+<dd>The ID of the root KiProjectResource (if the resource is a child).</dd>
+<dt><strong><code>data_type</code></strong></dt>
+<dd>The data type of the resource.</dd>
+<dt><strong><code>remote_uri</code></strong></dt>
+<dd>The remote URI of the resource.</dd>
+<dt><strong><code>local_path</code></strong></dt>
+<dd>The local path of the resource.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>The friendly name of the resource.</dd>
+<dt><strong><code>version</code></strong></dt>
+<dd>The locked version of the resource.</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">class KiProjectResource(object):
+    &#34;&#34;&#34;Defines a resource in a KiProject.
+
+    A resource can be a directory or a file.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 kiproject,
+                 id=None,
+                 root_id=None,
+                 data_type=None,
+                 remote_uri=None,
+                 local_path=None,
+                 name=None,
+                 version=None):
+        &#34;&#34;&#34;
+        Instantiates a new instance.
+
+        Args:
+            kiproject: The KiProject the resource belongs to.
+            id: The ID of the resource.
+            root_id: The ID of the root KiProjectResource (if the resource is a child).
+            data_type: The data type of the resource.
+            remote_uri: The remote URI of the resource.
+            local_path: The local path of the resource.
+            name: The friendly name of the resource.
+            version: The locked version of the resource.
+        &#34;&#34;&#34;
+        self._id = id if id else str(uuid.uuid4())
+        self._root_id = root_id
+        self._kiproject = kiproject
+        self._remote_uri = remote_uri
+        self._name = name
+
+        self._data_type = None
+        self._set_data_type(data_type)
+
+        self._local_path = None
+        self._set_local_path(local_path)
+
+        self._version = None
+        self._set_version(version)
+
+    def _set_data_type(self, value):
+        if value:
+            if isinstance(value, DataType):
+                value = value.name
+
+            # Validate the value.
+            value = self.kiproject.find_data_type(value)
+        self._data_type = value
+
+    def _set_local_path(self, value):
+        if value:
+            sys_path = SysPath(value, cwd=self.kiproject.local_path)
+            value = sys_path.abs_path
+
+        self._local_path = value
+
+        if self.abs_path:
+            data_type = self.kiproject.get_data_type_from_path(self.abs_path)
+            self._set_data_type(data_type)
+
+    def _set_version(self, value):
+        self._version = str(value) if value else None
+
+    @property
+    def kiproject(self):
+        return self._kiproject
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def root_id(self):
+        return self._root_id
+
+    @root_id.setter
+    def root_id(self, value):
+        self._root_id = value
+
+    @property
+    def root_resource(self):
+        if self.root_id is not None:
+            return self.kiproject.find_project_resource_by(id=self.root_id)
+        else:
+            return None
+
+    @property
+    def remote_uri(self):
+        return self._remote_uri
+
+    @remote_uri.setter
+    def remote_uri(self, value):
+        self._remote_uri = value
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, value):
+        self._version = value
+
+    @property
+    def data_type(self):
+        return self._data_type
+
+    @data_type.setter
+    def data_type(self, value):
+        self._set_data_type(value)
+
+    @property
+    def abs_path(self):
+        &#34;&#34;&#34;Gets the absolute path to the file.
+
+        Returns:
+            String of the absolute path or None.
+        &#34;&#34;&#34;
+        if self.rel_path:
+            return os.path.join(self.kiproject.local_path, self.rel_path)
+        else:
+            return None
+
+    @abs_path.setter
+    def abs_path(self, value):
+        self._set_local_path(value)
+
+    @property
+    def rel_path(self):
+        &#34;&#34;&#34;Gets the path of the file relative to the KiProject&#39;s root directory.
+
+        Returns:
+            String of the relative path or None.
+        &#34;&#34;&#34;
+        if self._local_path:
+            return SysPath(self._local_path, rel_start=self.kiproject.local_path).rel_path
+        else:
+            return None
+
+    @rel_path.setter
+    def rel_path(self, value):
+        self._set_local_path(value)
+
+    def __str__(self):
+        details = []
+        details.append(&#39;Name: {0}&#39;.format(self.name if self.name else &#39;[not set]&#39;))
+        details.append(&#39;Date Type: {0}&#39;.format(
+            self.data_type if self.data_type else &#39;[has not been pulled... use data_pull() to pull this dataset]&#39;))
+        details.append(&#39;Version: {0}&#39;.format(self.version if self.version else &#39;[latest]&#39;))
+        details.append(&#39;Remote URI: {0}&#39;.format(
+            self.remote_uri if self.remote_uri else &#39;[has not been pushed... use data_push() to push this dataset]&#39;))
+        details.append(&#39;Absolute Path: {0}&#39;.format(
+            self.abs_path if self.abs_path else &#39;[has not been pulled... use data_pull() to pull this dataset]&#39;))
+        return os.linesep.join(details)
+
+    def to_json(self):
+        &#34;&#34;&#34;Serializes self into JSON.
+
+        Returns:
+            Hash
+        &#34;&#34;&#34;
+        return {
+            &#39;id&#39;: self.id,
+            &#39;root_id&#39;: self.root_id,
+            &#39;data_type&#39;: self.data_type.name if self.data_type else None,
+            &#39;remote_uri&#39;: self.remote_uri,
+            # Always store the path in Posix format (&#34;/&#34; vs &#34;\&#34;).
+            &#39;rel_path&#39;: PurePath(self.rel_path).as_posix() if self.rel_path else None,
+            &#39;name&#39;: self.name,
+            &#39;version&#39;: self.version
+        }
+
+    @staticmethod
+    def from_json(json, kiproject):
+        &#34;&#34;&#34;Deserializes JSON into a KiProjectResource.
+
+        Args:
+            json: The JSON to deserialize.
+            kiproject: The KiProject the resource belongs to.
+
+        Returns:
+            KiProjectResource
+        &#34;&#34;&#34;
+        return KiProjectResource(kiproject,
+                                 id=json.get(&#39;id&#39;),
+                                 root_id=json.get(&#39;root_id&#39;),
+                                 data_type=json.get(&#39;data_type&#39;),
+                                 remote_uri=json.get(&#39;remote_uri&#39;),
+                                 local_path=json.get(&#39;rel_path&#39;),
+                                 name=json.get(&#39;name&#39;),
+                                 version=json.get(&#39;version&#39;))</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="kitools.ki_project_resource.KiProjectResource.from_json"><code class="name flex">
+<span>def <span class="ident">from_json</span></span>(<span>json, kiproject)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Deserializes JSON into a KiProjectResource.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>json</code></strong></dt>
+<dd>The JSON to deserialize.</dd>
+<dt><strong><code>kiproject</code></strong></dt>
+<dd>The KiProject the resource belongs to.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><a title="kitools.ki_project_resource.KiProjectResource" href="#kitools.ki_project_resource.KiProjectResource"><code>KiProjectResource</code></a></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@staticmethod
+def from_json(json, kiproject):
+    &#34;&#34;&#34;Deserializes JSON into a KiProjectResource.
+
+    Args:
+        json: The JSON to deserialize.
+        kiproject: The KiProject the resource belongs to.
+
+    Returns:
+        KiProjectResource
+    &#34;&#34;&#34;
+    return KiProjectResource(kiproject,
+                             id=json.get(&#39;id&#39;),
+                             root_id=json.get(&#39;root_id&#39;),
+                             data_type=json.get(&#39;data_type&#39;),
+                             remote_uri=json.get(&#39;remote_uri&#39;),
+                             local_path=json.get(&#39;rel_path&#39;),
+                             name=json.get(&#39;name&#39;),
+                             version=json.get(&#39;version&#39;))</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="kitools.ki_project_resource.KiProjectResource.abs_path"><code class="name">var <span class="ident">abs_path</span></code></dt>
+<dd>
+<section class="desc"><p>Gets the absolute path to the file.</p>
+<h2 id="returns">Returns</h2>
+<p>String of the absolute path or None.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def abs_path(self):
+    &#34;&#34;&#34;Gets the absolute path to the file.
+
+    Returns:
+        String of the absolute path or None.
+    &#34;&#34;&#34;
+    if self.rel_path:
+        return os.path.join(self.kiproject.local_path, self.rel_path)
+    else:
+        return None</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.data_type"><code class="name">var <span class="ident">data_type</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def data_type(self):
+    return self._data_type</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.id"><code class="name">var <span class="ident">id</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def id(self):
+    return self._id</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.kiproject"><code class="name">var <span class="ident">kiproject</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def kiproject(self):
+    return self._kiproject</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.name"><code class="name">var <span class="ident">name</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def name(self):
+    return self._name</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.rel_path"><code class="name">var <span class="ident">rel_path</span></code></dt>
+<dd>
+<section class="desc"><p>Gets the path of the file relative to the KiProject's root directory.</p>
+<h2 id="returns">Returns</h2>
+<p>String of the relative path or None.</p></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def rel_path(self):
+    &#34;&#34;&#34;Gets the path of the file relative to the KiProject&#39;s root directory.
+
+    Returns:
+        String of the relative path or None.
+    &#34;&#34;&#34;
+    if self._local_path:
+        return SysPath(self._local_path, rel_start=self.kiproject.local_path).rel_path
+    else:
+        return None</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.remote_uri"><code class="name">var <span class="ident">remote_uri</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def remote_uri(self):
+    return self._remote_uri</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.root_id"><code class="name">var <span class="ident">root_id</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def root_id(self):
+    return self._root_id</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.root_resource"><code class="name">var <span class="ident">root_resource</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def root_resource(self):
+    if self.root_id is not None:
+        return self.kiproject.find_project_resource_by(id=self.root_id)
+    else:
+        return None</code></pre>
+</details>
+</dd>
+<dt id="kitools.ki_project_resource.KiProjectResource.version"><code class="name">var <span class="ident">version</span></code></dt>
+<dd>
+<section class="desc"></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">@property
+def version(self):
+    return self._version</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="kitools.ki_project_resource.KiProjectResource.to_json"><code class="name flex">
+<span>def <span class="ident">to_json</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Serializes self into JSON.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Hash</code></dt>
+<dd>&nbsp;</dd>
+</dl></section>
+<details class="source">
+<summary>Source code</summary>
+<pre><code class="python">def to_json(self):
+    &#34;&#34;&#34;Serializes self into JSON.
+
+    Returns:
+        Hash
+    &#34;&#34;&#34;
+    return {
+        &#39;id&#39;: self.id,
+        &#39;root_id&#39;: self.root_id,
+        &#39;data_type&#39;: self.data_type.name if self.data_type else None,
+        &#39;remote_uri&#39;: self.remote_uri,
+        # Always store the path in Posix format (&#34;/&#34; vs &#34;\&#34;).
+        &#39;rel_path&#39;: PurePath(self.rel_path).as_posix() if self.rel_path else None,
+        &#39;name&#39;: self.name,
+        &#39;version&#39;: self.version
+    }</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="kitools" href="index.html">kitools</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="kitools.ki_project_resource.KiProjectResource" href="#kitools.ki_project_resource.KiProjectResource">KiProjectResource</a></code></h4>
+<ul class="two-column">
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.abs_path" href="#kitools.ki_project_resource.KiProjectResource.abs_path">abs_path</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.data_type" href="#kitools.ki_project_resource.KiProjectResource.data_type">data_type</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.from_json" href="#kitools.ki_project_resource.KiProjectResource.from_json">from_json</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.id" href="#kitools.ki_project_resource.KiProjectResource.id">id</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.kiproject" href="#kitools.ki_project_resource.KiProjectResource.kiproject">kiproject</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.name" href="#kitools.ki_project_resource.KiProjectResource.name">name</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.rel_path" href="#kitools.ki_project_resource.KiProjectResource.rel_path">rel_path</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.remote_uri" href="#kitools.ki_project_resource.KiProjectResource.remote_uri">remote_uri</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.root_id" href="#kitools.ki_project_resource.KiProjectResource.root_id">root_id</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.root_resource" href="#kitools.ki_project_resource.KiProjectResource.root_resource">root_resource</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.to_json" href="#kitools.ki_project_resource.KiProjectResource.to_json">to_json</a></code></li>
+<li><code><a title="kitools.ki_project_resource.KiProjectResource.version" href="#kitools.ki_project_resource.KiProjectResource.version">version</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.6.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>
