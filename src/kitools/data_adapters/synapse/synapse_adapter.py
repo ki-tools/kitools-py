@@ -1,7 +1,9 @@
 import os
+import re
 import synapseclient
 from ..base_adapter import BaseAdapter
 from .synapse_remote_entity import SynapseRemoteEntity
+from .exceptions import InvalidNameError
 from ...data_uri import DataUri
 from ...sys_path import SysPath
 from ...env import Env
@@ -12,6 +14,7 @@ class SynapseAdapter(BaseAdapter):
     """Data Adapter for Synapse."""
 
     DATA_URI_SCHEME = 'syn'
+    VALID_NAME_REGEX = re.compile(r'^[A-Za-z0-9_\-\.\+\(\) ]*$')
     _client = None
 
     @classmethod
@@ -281,6 +284,17 @@ class SynapseAdapter(BaseAdapter):
         sys_path = SysPath(ki_project_resource.abs_path, rel_start=kiproject.local_path)
         syn_entity = None
 
+        # check for valid characters in string
+        for rel_part in sys_path.rel_parts:
+            if not re.match(self.VALID_NAME_REGEX, rel_part):
+                # TODO: Add logging statement
+                message = (
+                    "Invalid character(s) found in path part '{part}' (from full path '{full}'). "
+                    "Paths may only contain letters, numbers, spaces, underscores, hypens, periods, plus signs, and parentheses. "
+                    "Please correct the filename and update any instances in kiproject.json."
+                    ).format(part=rel_part, full=sys_path.abs_path)
+                raise InvalidNameError(message)
+
         if sys_path.is_dir:
             # Find or create the folder in Synapse.
             syn_entity = self._find_or_create_syn_folder(syn_parent, sys_path.basename)
@@ -289,8 +303,8 @@ class SynapseAdapter(BaseAdapter):
             self._push_children(ki_project_resource.root_resource or ki_project_resource, syn_entity, sys_path.abs_path)
         else:
             # Upload the file
-            syn_entity = SynapseAdapter.client().store(synapseclient.File(path=sys_path.abs_path, parent=syn_parent),
-                                                       forceVersion=False)
+            syn_file =  synapseclient.File(path=sys_path.abs_path, parent=syn_parent)
+            syn_entity = SynapseAdapter.client().store(syn_file,forceVersion=False)
 
         has_changes = False
 
