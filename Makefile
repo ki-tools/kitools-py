@@ -20,9 +20,9 @@ docs:
 	rmdir ./docs/kitools
 
 
-.PHONY: init_dev
-init_dev:
-	pip install -r requirements.txt
+.PHONY: pip_install
+pip_install:
+	pipenv install --dev
 
 
 .PHONY: test

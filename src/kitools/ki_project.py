@@ -11,6 +11,7 @@ from .sys_path import SysPath
 from .utils import Utils
 from .exceptions import NotADataTypePathError, DataTypeMismatchError, KiProjectResourceNotFoundError, \
     InvalidDataTypeError
+from ._version import __version__
 
 
 class KiProject(object):
@@ -103,6 +104,11 @@ class KiProject(object):
                 print('KiProject initialized successfully and ready to use.')
             else:
                 print('KiProject initialization failed.')
+
+    def version(self):
+        """Prints and returns the version of kitools."""
+        print(__version__)
+        return __version__
 
     def data_add(self, remote_uri_or_local_path, name=None, version=None, data_type=None):
         """Adds a new resource to the KiProject.
