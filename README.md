@@ -10,20 +10,18 @@ Tools for working with data in [Ki](https://kiglobalhealth.org) analyses.
 
 `pip install kitools`
 
-
 ## Usage
 
 Coming soon...
-
 
 ## Development Setup
 
 ```bash
 git clone https://github.com/ki-tools/kitools-py.git
 cd kitools-py
-python3 -m venv .venv
-source .venv/bin/activate
-make init_dev
+pipenv --python 3.7.5
+pipenv shell
+make pip_install
 cp tests/templates/private.test.env.json tests/private.test.env.json
 # Set the test values in: private.test.env.json
 make test

@@ -5,36 +5,57 @@ matrix:
   include:
     - os: linux
       python: 3.5
+      env:
+        - PYENV_VERSION=3.5
     - os: linux
       python: 3.6
+      env:
+        - PYENV_VERSION=3.6
     - os: linux
       python: 3.7
+      env:
+        - PYENV_VERSION=3.7
+    - os: linux
+      python: 3.8
+      env:
+        - PYENV_VERSION=3.8
     - os: osx
       language: generic
-      env: PYENV_VERSION=3.5.4
+      env:
+        - PYENV_VERSION=3.5.4
     - os: osx
       language: generic
-      env: PYENV_VERSION=3.6.8
+      env:
+        - PYENV_VERSION=3.6.8
     - os: osx
       language: generic
-      env: PYENV_VERSION=3.7.4
+      env:
+        - PYENV_VERSION=3.7.4
+    - os: osx
+        language: generic
+        env:
+          - PYENV_VERSION=3.8.5
 
 before_install:
   - export LOG_LEVEL=DEBUG
 install:
+  - python -m pip install -U pip
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew update ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew outdated pyenv || brew upgrade pyenv ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then pyenv install $PYENV_VERSION ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then ~/.pyenv/versions/$PYENV_VERSION/bin/python -m venv .venv ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then source .venv/bin/activate ; fi
+  - if [ "PYENV_VERSION" == "3.5" ] || [ "PYENV_VERSION" == "3.5.4" ] ; then pip install -Iv synapseclient==1.9.2; else pip install -Iv synapseclient>=2.3.1,<3.0.0 ; fi
+  - pip install -Iv beautifultable>=0.7.0,<1.0.0
+  - pip install pytest pytest-mock pytest-cov coverage responses
   - python --version
-  - python -m pip install -U pip
-  - pip install -r requirements.txt
+  - synapse --version
   - pip install coveralls
 before_script:
   - python -m coverage erase
 script:
   - python --version
+  - synapse --version
   - python -m pytest -v -s --cov
 after_success:
   - python -m coveralls

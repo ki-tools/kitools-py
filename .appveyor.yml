@@ -4,13 +4,17 @@ environment:
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36-x64"
     - PYTHON: "C:\\Python37-x64"
+    - PYTHON: "C:\\Python38-x64"
 
 install:
   - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
-  - python -m pip install -U pip
-  - pip install -r requirements.txt
+  - IF %PYTHON%=="C:\\Python35-x64" (pip install -Iv synapseclient==1.9.2) ELSE (pip install -Iv synapseclient>=2.3.1,<3.0.0)
+  - pip install -Iv beautifultable>=0.7.0,<1.0.0
+  - pip install pytest pytest-mock pytest-cov coverage responses
 
 build: off
 
 test_script:
+  - python --version
+  - synapse --version
   - pytest -v -s --cov

@@ -6,8 +6,9 @@ import shutil
 from random import sample
 import synapseclient
 from collections import deque
-from src.kitools import KiProject, KiProjectResource, DataUri, SysPath, DataType, DataTypeTemplate
+from src.kitools import KiProject, DataUri, SysPath, DataType, DataTypeTemplate
 from src.kitools import NotADataTypePathError, DataTypeMismatchError
+from src.kitools._version import __version__
 
 
 @pytest.fixture(scope='session')
@@ -246,15 +247,7 @@ def assert_matches_config(kiproject):
 
 
 def assert_data_type_paths(kiproject, exists=True):
-    """Asserts that all the data_type directories exist or not.
-
-    Args:
-        kiproject:
-        exists:
-
-    Returns:
-
-    """
+    """Asserts that all the data_type directories exist or not."""
     assert len(kiproject.data_types) > 0
 
     for data_type in kiproject.data_types:
@@ -276,6 +269,10 @@ def no_prompt_init_params(syn_test_helper, syn_project_uri):
         'description': syn_test_helper.uniq_name(),
         'project_uri': syn_project_uri
     }
+
+
+def test_it_gets_the_version(kiproject):
+    assert kiproject.version() == __version__
 
 
 def test_it_sets_the_kiproject_paths(mk_kiproject, mk_tempdir):

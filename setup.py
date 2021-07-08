@@ -1,11 +1,12 @@
 import setuptools
+from src.kitools._version import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="kitools",
-    version="0.0.2",
+    version=__version__,
     author="Patrick Stout, Ryan Hafen, Sergey Feldman",
     author_email="pstout@prevagroup.com, rhafen@gmail.com, sergey@data-cowboys.com",
     license="Apache2",
@@ -28,7 +29,7 @@ setuptools.setup(
         "Intended Audience :: Developers"
     ),
     install_requires=[
-        "synapseclient>=1.9.2,<2.0.0",
+        "synapseclient>=1.9.2,<3.0.0",
         "beautifultable>=0.7.0,<1.0.0"
     ]
 )

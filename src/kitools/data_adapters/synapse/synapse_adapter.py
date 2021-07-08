@@ -22,7 +22,7 @@ class SynapseAdapter(BaseAdapter):
             synapseclient.Synapse
         """
         if not cls._client:
-            cls._client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH())
+            cls._client = synapseclient.Synapse(configPath=Env.SYNAPSE_CONFIG_PATH(), skip_checks=True)
             cls._client.login(silent=True)
         return cls._client
 
@@ -359,10 +359,14 @@ class SynapseAdapter(BaseAdapter):
 
         path_parts = [syn_entity.name]
 
-        for e in SynapseParentIter(syn_entity):
-            if self._is_project(e):
-                break
-            path_parts.insert(0, e.name)
+        try:
+            for e in SynapseParentIter(syn_entity):
+                if self._is_project(e):
+                    break
+                path_parts.insert(0, e.name)
+        except Exception as ex:
+            print('Warning: Could not load parent entity. {0}'.format(ex))
+            return ''
 
         # Return the path matching the OS's separator.
         return os.sep.join(path_parts)
