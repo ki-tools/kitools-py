@@ -2,14 +2,18 @@ environment:
   PYTHONIOENCODING: UTF-8
   matrix:
     - TOXENV: py35
+      PYTHON: "C:\\Python35-x64"
     - TOXENV: py36
+      PYTHON: "C:\\Python36-x64"
     - TOXENV: py37
+      PYTHON: "C:\\Python37-x64"
     - TOXENV: py38
+      PYTHON: "C:\\Python38-x64"
 
 build: off
 
 install:
-  - python3 -m pip install tox
+  - "%PYTHON%\\python -m pip install tox"
 
 test_script:
-  - python3 -m tox
+  - "%PYTHON%\\python -m tox"
